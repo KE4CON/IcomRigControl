@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IcomRigControl.RigModel")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4389ae98c26d6a7f669f918e4cec03bc03e470ca")]
 [assembly: System.Reflection.AssemblyProductAttribute("IcomRigControl.RigModel")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IcomRigControl.RigModel")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

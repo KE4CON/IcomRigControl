@@ -97,3 +97,4 @@
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Tests/obj/Debug/net10.0/IcomRigControl.Tests.pdb
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Tests/obj/Debug/net10.0/IcomRigControl.Tests.genruntimeconfig.cache
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Tests/obj/Debug/net10.0/ref/IcomRigControl.Tests.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Tests/obj/Debug/net10.0/IcomRigControl.Tests.sourcelink.json

@@ -9,3 +9,4 @@
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.CivEngine/obj/Debug/net10.0/refint/IcomRigControl.CivEngine.dll
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.CivEngine/obj/Debug/net10.0/IcomRigControl.CivEngine.pdb
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.CivEngine/obj/Debug/net10.0/ref/IcomRigControl.CivEngine.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.CivEngine/obj/Debug/net10.0/IcomRigControl.CivEngine.sourcelink.json

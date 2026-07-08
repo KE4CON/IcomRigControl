@@ -151,7 +151,19 @@ public class Transceiver : IAsyncDisposable
             ApplyFrame(frame);
         }
     }
-
+private static string ModeCodeToString(byte code) => code switch
+{
+    0x00 => "LSB",
+    0x01 => "USB",
+    0x02 => "AM",
+    0x03 => "CW",
+    0x04 => "RTTY",
+    0x05 => "FM",
+    0x07 => "CW-R",
+    0x08 => "RTTY-R",
+    0x17 => "DV",
+    _ => "UNKNOWN"
+};
     private void ApplyFrame(CivFrame frame)
     {
         switch (frame.Command)
@@ -161,7 +173,14 @@ public class Transceiver : IAsyncDisposable
                 FrequencyHz = BcdCodec.DecodeFrequency(frame.Data);
                 FrequencyChanged?.Invoke(this, FrequencyHz);
                 break;
-
+case CivCommands.ReadMode:
+case CivCommands.SetOutputMode:
+    if (frame.Data.Length > 0)
+    {
+        Mode = ModeCodeToString(frame.Data[0]);
+        ModeChanged?.Invoke(this, Mode);
+    }
+                break;
             case CivCommands.ReadMeter when frame.SubCommand == CivCommands.MeterSMeter:
                 (SMeterS, SMeterDbm) = MeterDecoder.DecodeSMeter(frame.Data);
                 break;

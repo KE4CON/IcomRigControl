@@ -13,3 +13,4 @@
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.RigModel/obj/Debug/net10.0/refint/IcomRigControl.RigModel.dll
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.RigModel/obj/Debug/net10.0/IcomRigControl.RigModel.pdb
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.RigModel/obj/Debug/net10.0/ref/IcomRigControl.RigModel.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.RigModel/obj/Debug/net10.0/IcomRigControl.RigModel.sourcelink.json

@@ -15,3 +15,4 @@
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/refint/IcomRigControl.Services.dll
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigControl.Services.pdb
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/ref/IcomRigControl.Services.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigControl.Services.sourcelink.json

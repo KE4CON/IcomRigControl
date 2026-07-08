@@ -20,3 +20,4 @@
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.UI/obj/Debug/net10.0/IcomRigControl.UI.pdb
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.UI/obj/Debug/net10.0/IcomRigControl.UI.genruntimeconfig.cache
 /Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.UI/obj/Debug/net10.0/ref/IcomRigControl.UI.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.UI/obj/Debug/net10.0/IcomRigControl.UI.sourcelink.json

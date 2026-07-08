@@ -29,8 +29,8 @@ ObservableCollections
 - Unit tests required for: BCD encode/decode, frame builder, frame parser, frequency
 conversion
 ## Feature Priorities (build in this order)
-Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set
-Phase 2: Meter polling (S-meter, SWR, ALC, power, voltage, current)
+Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (BcdCodec, CivCommands, CivFrame, CivFrameBuilder, CivFrameParser, ICivTransport, SerialCivTransport, 23 passing tests)
+Phase 2: Meter polling (S-meter, SWR, ALC, power, voltage, current) — ACTIVE
 Phase 3: Avalonia UI — main panel with frequency display, mode selector, meter gauges
 Phase 4: Memory bulk editor (read all 99 channels, edit in DataGrid, write back)
 Phase 5: Activity logger (CSV output, frequency/mode/meter timestamped)

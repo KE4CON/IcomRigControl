@@ -1,0 +1,71 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "IcomRigControl.UI/1.0.0": {
+        "dependencies": {
+          "IcomRigControl.Services": "1.0.0"
+        },
+        "runtime": {
+          "IcomRigControl.UI.dll": {}
+        }
+      },
+      "IcomRigControl.CivEngine/1.0.0": {
+        "runtime": {
+          "IcomRigControl.CivEngine.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "IcomRigControl.RigModel/1.0.0": {
+        "dependencies": {
+          "IcomRigControl.CivEngine": "1.0.0"
+        },
+        "runtime": {
+          "IcomRigControl.RigModel.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "IcomRigControl.Services/1.0.0": {
+        "dependencies": {
+          "IcomRigControl.RigModel": "1.0.0"
+        },
+        "runtime": {
+          "IcomRigControl.Services.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "IcomRigControl.UI/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "IcomRigControl.CivEngine/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "IcomRigControl.RigModel/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "IcomRigControl.Services/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

@@ -1,0 +1,17 @@
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/bin/Debug/net10.0/IcomRigControl.Services.deps.json
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/bin/Debug/net10.0/IcomRigControl.Services.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/bin/Debug/net10.0/IcomRigControl.Services.pdb
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/bin/Debug/net10.0/IcomRigControl.CivEngine.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/bin/Debug/net10.0/IcomRigControl.RigModel.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/bin/Debug/net10.0/IcomRigControl.RigModel.pdb
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/bin/Debug/net10.0/IcomRigControl.CivEngine.pdb
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigControl.Services.csproj.AssemblyReference.cache
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigControl.Services.GeneratedMSBuildEditorConfig.editorconfig
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigControl.Services.AssemblyInfoInputs.cache
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigControl.Services.AssemblyInfo.cs
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigControl.Services.csproj.CoreCompileInputs.cache
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigC.053AB2FE.Up2Date
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigControl.Services.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/refint/IcomRigControl.Services.dll
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/IcomRigControl.Services.pdb
+/Users/jamesrospopo/Library/Mobile Documents/com~apple~CloudDocs/IcomRigControl/IcomRigControl.Services/obj/Debug/net10.0/ref/IcomRigControl.Services.dll

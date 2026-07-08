@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="IcomRigControl.CivEngine/IcomRigControl.CivEngine.csproj" />
+  <Project Path="IcomRigControl.RigModel/IcomRigControl.RigModel.csproj" />
+  <Project Path="IcomRigControl.Services/IcomRigControl.Services.csproj" />
+  <Project Path="IcomRigControl.Tests/IcomRigControl.Tests.csproj" />
+  <Project Path="IcomRigControl.UI/IcomRigControl.UI.csproj" />
+</Solution>

@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\IcomRigControl.CivEngine\IcomRigControl.CivEngine.csproj" />
+    <ProjectReference Include="..\IcomRigControl.RigModel\IcomRigControl.RigModel.csproj" />
   </ItemGroup>
 
 </Project>

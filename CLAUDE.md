@@ -67,3 +67,16 @@ Before writing any code in a session:
 2. Confirm which Phase is active
 3. Check that the layer being touched matches the Phase
 4. Do not refactor other layers unless the current Phase explicitly requires it
+
+## Deployment Targets
+Headless CI-V server (Phase 9, no UI): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable.
+Full Avalonia UI + scope on Pi (Phase 8-9 combined): Raspberry Pi 5, 8GB RAM — standardized target for breathing room with scope waterfall, EMMCOM bridge, and APRS beacon running concurrently.
+Storage: 16-32GB microSD (A2 rated recommended for sustained write performance from ActivityLogger).
+Desktop development target: MacBook Pro M1 Pro or better, macOS 26+.
+
+## Supported Desktop Platforms (all four, via Avalonia 11)
+macOS: primary development platform, M1 Pro, macOS 26+
+Windows: full support for EMMCOM members and any Windows-based go-kit laptops
+Linux desktop: full support (Ubuntu/Debian primary test targets)
+Raspberry Pi OS (Linux ARM64): Pi 5, 8GB — see Deployment Targets above
+All four platforms build from the same Avalonia 11 UI project — no platform-specific UI code unless a capability is genuinely unavailable, in which case isolate behind ICivTransport per architecture rules.

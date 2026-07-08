@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IcomRigControl.CivEngine")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1afc1b3d17ed9739a3acf003148838442f259174")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b82e8db20ddd6c99ad9c53f90d90ff5808565227")]
 [assembly: System.Reflection.AssemblyProductAttribute("IcomRigControl.CivEngine")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IcomRigControl.CivEngine")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

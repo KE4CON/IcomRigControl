@@ -1,0 +1,83 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:IcomRigControl.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="420"
+        x:Class="IcomRigControl.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="IcomRigControl"
+        Width="500" Height="420"
+        Background="#1a1a1a">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <StackPanel Margin="20" Spacing="16">
+
+        <!-- Status row -->
+        <TextBlock Text="{Binding StatusMessage}"
+                   Foreground="Gray" FontSize="12" HorizontalAlignment="Center"/>
+
+        <!-- Frequency display -->
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="16">
+            <StackPanel HorizontalAlignment="Center" Spacing="4">
+                <TextBlock Text="{Binding FrequencyDisplay}"
+                           FontSize="48" FontWeight="Bold"
+                           Foreground="#00ff88"
+                           FontFamily="Courier New"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding Mode}"
+                           FontSize="18" Foreground="#88ccff"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- PTT indicator -->
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                <Ellipse Width="16" Height="16">
+                    <Ellipse.Fill>
+                        <SolidColorBrush Color="{Binding PttActive, Converter={x:Static vm:BoolToColorConverter.Instance}}"/>
+                    </Ellipse.Fill>
+                </Ellipse>
+                <TextBlock Text="{Binding PttActive, StringFormat='PTT: {0}'}"
+                           Foreground="White" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Meters grid -->
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="16">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" >
+                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2" Margin="0,0,0,10">
+                    <TextBlock Text="S-Meter" Foreground="Gray" FontSize="11"/>
+                    <TextBlock Text="{Binding SMeterDisplay}" Foreground="#00ff88" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+                <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2" Margin="0,0,0,10">
+                    <TextBlock Text="Power" Foreground="Gray" FontSize="11"/>
+                    <TextBlock Text="{Binding RfPowerPercent, StringFormat='{}{0:F0}%'}" Foreground="#00ff88" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" Margin="0,0,0,10">
+                    <TextBlock Text="SWR" Foreground="Gray" FontSize="11"/>
+                    <TextBlock Text="{Binding SwrRatio, StringFormat='{}{0:F1}:1'}" Foreground="#00ff88" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2" Margin="0,0,0,10">
+                    <TextBlock Text="ALC" Foreground="Gray" FontSize="11"/>
+                    <TextBlock Text="{Binding AlcLevel, StringFormat='{}{0:F0}%'}" Foreground="#00ff88" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Grid.Column="0" Spacing="2">
+                    <TextBlock Text="Supply Voltage" Foreground="Gray" FontSize="11"/>
+                    <TextBlock Text="{Binding SupplyVoltage, StringFormat='{}{0:F1}V'}" Foreground="#00ff88" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Grid.Column="1" Spacing="2">
+                    <TextBlock Text="Current Draw" Foreground="Gray" FontSize="11"/>
+                    <TextBlock Text="{Binding CurrentDraw, StringFormat='{}{0:F1}A'}" Foreground="#00ff88" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+    </StackPanel>
+</Window>

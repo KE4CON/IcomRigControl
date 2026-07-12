@@ -46,6 +46,9 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
     public List<string> AvailableModes { get; } = new() { "LSB", "USB", "AM", "CW", "FM" };
 
+    [ObservableProperty]
+    private string _frequencyInput = "14074000";
+
     public MainWindowViewModel()
     {
         // For now: FakeCivTransport so the UI is fully demoable without hardware.
@@ -80,6 +83,27 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         if (!IsConnected) return;
         await _transceiver.SetModeAsync(mode);
+    }
+
+    [RelayCommand]
+    private async Task SetFrequency()
+    {
+        if (!IsConnected) return;
+        if (long.TryParse(FrequencyInput, out long hz) && hz > 0)
+        {
+            await _transceiver.SetFrequencyAsync(hz);
+        }
+        else
+        {
+            StatusMessage = "Invalid frequency — digits only, e.g. 14074000";
+        }
+    }
+
+    [RelayCommand]
+    private async Task TogglePtt()
+    {
+        if (!IsConnected) return;
+        await _transceiver.SetPttAsync(!PttActive);
     }
 
     private async Task ConnectAsync()

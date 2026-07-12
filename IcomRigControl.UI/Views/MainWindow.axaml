@@ -20,6 +20,21 @@
         <TextBlock Text="{Binding StatusMessage}"
                    Foreground="Gray" FontSize="12" HorizontalAlignment="Center"/>
 
+                   <!-- Frequency entry -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+            <TextBox Text="{Binding FrequencyInput}" Width="150"
+                     PlaceholderText="14074000" FontFamily="Courier New"/>
+            <Button Content="Set Freq" Command="{Binding SetFrequencyCommand}"
+                    Width="80" Background="#2a2a2a" Foreground="White">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#00ff88"/>
+                        <Setter Property="TextBlock.Foreground" Value="Black"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </StackPanel>
+
         <!-- Frequency display -->
         <Border Background="#0d0d0d" CornerRadius="6" Padding="16">
             <StackPanel HorizontalAlignment="Center" Spacing="4">
@@ -70,6 +85,15 @@
                 </Ellipse>
                 <TextBlock Text="{Binding PttActive, StringFormat='PTT: {0}'}"
                            Foreground="White" VerticalAlignment="Center"/>
+                <Button Content="Toggle PTT" Command="{Binding TogglePttCommand}"
+                        Width="100" Background="#2a2a2a" Foreground="White">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="Red"/>
+                            <Setter Property="TextBlock.Foreground" Value="White"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
             </StackPanel>
         </Border>
 

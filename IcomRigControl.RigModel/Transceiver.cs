@@ -76,6 +76,81 @@ public class Transceiver : IAsyncDisposable
         PttChanged?.Invoke(this, transmit);
     }
 
+    /// Read a single memory channel's frequency and mode by selecting it,
+    /// then requesting frequency and mode reads while it's active.
+    /// Returns null if no response arrives within the timeout.
+    public async Task<MemoryChannel?> ReadMemoryChannelAsync(int channelNumber, CancellationToken ct = default)
+    {
+        long? capturedFreq = null;
+        string? capturedMode = null;
+
+        void OnFreq(object? s, long hz) => capturedFreq = hz;
+        void OnMode(object? s, string m) => capturedMode = m;
+
+        FrequencyChanged += OnFreq;
+        ModeChanged += OnMode;
+
+        try
+        {
+            await _transport.WriteAsync(_builder.SelectMemoryChannel(channelNumber), ct);
+            await Task.Delay(50, ct); // give the radio time to switch
+
+            await _transport.WriteAsync(_builder.ReadFrequency(), ct);
+            await Task.Delay(50, ct);
+
+            await _transport.WriteAsync(_builder.ReadMode(), ct);
+            await Task.Delay(50, ct);
+
+            if (capturedFreq.HasValue && capturedMode != null)
+            {
+                return new MemoryChannel(channelNumber, capturedFreq.Value, capturedMode, string.Empty);
+            }
+
+            return null;
+        }
+        finally
+        {
+            FrequencyChanged -= OnFreq;
+            ModeChanged -= OnMode;
+        }
+    }
+
+    /// Read all channels 1-99, skipping any that don't respond (empty channels).
+    /// Reports progress via the optional callback (channel number just completed, total).
+    public async Task<List<MemoryChannel>> ReadAllMemoriesAsync(
+        IProgress<(int current, int total)>? progress = null,
+        CancellationToken ct = default)
+    {
+        var results = new List<MemoryChannel>();
+        const int totalChannels = 99;
+
+        for (int ch = 1; ch <= totalChannels; ch++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var channel = await ReadMemoryChannelAsync(ch, ct);
+            if (channel != null)
+            {
+                results.Add(channel);
+            }
+            progress?.Report((ch, totalChannels));
+        }
+
+        return results;
+    }
+
+    /// Write a single memory channel: select it, then set frequency and mode.
+    public async Task WriteMemoryChannelAsync(MemoryChannel channel, CancellationToken ct = default)
+    {
+        await _transport.WriteAsync(_builder.SelectMemoryChannel(channel.ChannelNumber), ct);
+        await Task.Delay(50, ct);
+
+        await SetFrequencyAsync(channel.FrequencyHz, ct);
+        await Task.Delay(50, ct);
+
+        await SetModeAsync(channel.Mode, ct);
+        await Task.Delay(50, ct);
+    }
+
     public async Task SetModeAsync(string mode, CancellationToken ct = default)
     {
         byte modeCode = StringToModeCode(mode);

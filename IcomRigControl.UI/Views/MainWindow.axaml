@@ -129,5 +129,17 @@
             </Grid>
         </Border>
 
+        <!-- Memory Editor launcher -->
+        <Button Content="Open Memory Editor" Command="{Binding OpenMemoryEditorCommand}"
+                HorizontalAlignment="Center" Margin="0,4,0,0"
+                Background="#2a2a2a" Foreground="White" Padding="10,6">
+            <Button.Styles>
+                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                    <Setter Property="Background" Value="#00ff88"/>
+                    <Setter Property="TextBlock.Foreground" Value="Black"/>
+                </Style>
+            </Button.Styles>
+        </Button>
+
     </StackPanel>
 </Window>

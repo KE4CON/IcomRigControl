@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:IcomRigControl.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="600"
+        x:Class="IcomRigControl.UI.Views.MemoryEditorWindow"
+        x:DataType="vm:MemoryEditorViewModel"
+        Title="Memory Channel Editor"
+        Width="700" Height="600"
+        Background="#1a1a1a">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+            <Button Content="Read All Channels" Command="{Binding ReadAllChannelsCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    Background="#2a2a2a" Foreground="White" Padding="10,6"/>
+            <Button Content="Write All Channels" Command="{Binding WriteAllChannelsCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    Background="#2a2a2a" Foreground="White" Padding="10,6"/>
+            <Button Content="Add Channel" Command="{Binding AddEmptyChannelCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    Background="#2a2a2a" Foreground="White" Padding="10,6"/>
+            <Button Content="Cancel" Command="{Binding CancelReadCommand}"
+                    IsEnabled="{Binding IsBusy}"
+                    Background="#5a2a2a" Foreground="White" Padding="10,6"/>
+        </StackPanel>
+
+        <!-- Progress -->
+        <StackPanel Grid.Row="1" Spacing="4" Margin="0,0,0,10">
+            <TextBlock Text="{Binding ProgressText}" Foreground="#88ccff" FontSize="12"/>
+            <ProgressBar Value="{Binding ProgressPercent}" Minimum="0" Maximum="100" Height="6"/>
+        </StackPanel>
+
+        <!-- Channel grid -->
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Channels}"
+                  AutoGenerateColumns="False" CanUserSortColumns="True"
+                  GridLinesVisibility="All" HeadersVisibility="Column"
+                  Background="#0d0d0d" Foreground="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Ch" Binding="{Binding ChannelNumber}" Width="50"/>
+                <DataGridTextColumn Header="Frequency (Hz)" Binding="{Binding FrequencyHz}" Width="140"/>
+                <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="80"/>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Footer -->
+        <TextBlock Grid.Row="3" Text="{Binding Channels.Count, StringFormat='{}{0} channels loaded'}"
+                   Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
+    </Grid>
+</Window>

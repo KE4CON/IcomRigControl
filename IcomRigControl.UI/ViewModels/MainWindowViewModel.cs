@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 {
     private readonly Transceiver _transceiver;
+    public Transceiver TransceiverInstance => _transceiver;
 
     [ObservableProperty]
     private string _frequencyDisplay = "---.---.---";
@@ -104,6 +105,17 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         if (!IsConnected) return;
         await _transceiver.SetPttAsync(!PttActive);
+    }
+
+    [RelayCommand]
+    private void OpenMemoryEditor()
+    {
+        var editorViewModel = new MemoryEditorViewModel(_transceiver);
+        var editorWindow = new Views.MemoryEditorWindow
+        {
+            DataContext = editorViewModel
+        };
+        editorWindow.Show();
     }
 
     private async Task ConnectAsync()

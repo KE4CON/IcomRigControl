@@ -67,4 +67,29 @@ public class CivFrameBuilder
 
     public byte[] PowerOff() =>
         Build(CivCommands.PowerControl, 0x00);
+
+    // ── Memory Channels ─────────────────────────────────────────────────────
+
+    /// Select a memory channel (1-99) as the active memory (command 08h 00h + channel BCD).
+    public byte[] SelectMemoryChannel(int channelNumber)
+    {
+        var channelBcd = EncodeChannelNumber(channelNumber);
+        return Build(CivCommands.SelectMemory, 0x00, channelBcd);
+    }
+
+    /// Switch the radio into Memory mode (no channel selection yet).
+    public byte[] SwitchToMemoryMode() =>
+        Build(CivCommands.SelectMemory);
+
+    /// Read the currently selected memory channel's full content (command 1Ah 00h).
+    public byte[] ReadMemoryContent() =>
+        Build(CivCommands.MemorySetMenu, 0x00);
+
+    private static byte[] EncodeChannelNumber(int channelNumber)
+    {
+        // Channel numbers 1-99 encoded as 2-digit BCD (e.g. 5 -> 0x05, 42 -> 0x42)
+        int hi = channelNumber / 10;
+        int lo = channelNumber % 10;
+        return new byte[] { (byte)((hi << 4) | lo) };
+    }
 }

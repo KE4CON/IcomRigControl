@@ -31,8 +31,8 @@ conversion
 ## Feature Priorities (build in this order)
 Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set
 Phase 2: Meter polling (S-meter, SWR, ALC, power, voltage, current) — COMPLETE (MeterDecoder, RadioModel, MeterSnapshot, Transceiver with async polling loop and mode/frequency/PTT event wiring, 43 passing tests)
-Phase 3: Avalonia UI — main panel with frequency display, mode selector, meter gauges — ACTIVE
-Phase 4: Memory bulk editor (read all 99 channels, edit in DataGrid, write back)
+Phase 3: Avalonia UI — main panel with frequency display, mode selector, meter gauges — COMPLETE (live dashboard: frequency entry + display, mode selector buttons with hover styling, PTT toggle + indicator, all six meters live-updating via DemoCivTransport; MainWindowViewModel fully wired to Transceiver)
+Phase 4: Memory bulk editor (read all 99 channels, edit in DataGrid, write back) — ACTIVE
 Phase 5: Activity logger (CSV output, frequency/mode/meter timestamped)
 Phase 6: EMMCOM dashboard integration (push rig status to Field Comms Server)
 Phase 7: APRS beacon (beacon operating frequency as APRS object via CrossPlatformAPRS

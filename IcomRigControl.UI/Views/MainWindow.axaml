@@ -7,7 +7,7 @@
         x:Class="IcomRigControl.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="IcomRigControl"
-        Width="500" Height="420"
+        Width="500" Height="520"
         Background="#1a1a1a">
 
     <Design.DataContext>
@@ -31,6 +31,32 @@
                 <TextBlock Text="{Binding Mode}"
                            FontSize="18" Foreground="#88ccff"
                            HorizontalAlignment="Center"/>
+
+           <ItemsControl ItemsSource="{Binding AvailableModes}" Margin="0,8,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel HorizontalAlignment="Center"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding}"
+                                    Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SetModeCommand}"
+                                    CommandParameter="{Binding}"
+                                    Width="55" Height="32"
+                                    Background="#2a2a2a"
+                                    Foreground="White"
+                                    Margin="3" Padding="4" FontSize="12">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="#00ff88"/>
+                                        <Setter Property="TextBlock.Foreground" Value="Black"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
         </Border>
 

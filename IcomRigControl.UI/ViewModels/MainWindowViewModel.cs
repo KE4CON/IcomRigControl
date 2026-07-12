@@ -4,6 +4,8 @@ using IcomRigControl.CivEngine;
 using IcomRigControl.RigModel;
 using IcomRigControl.UI.Demo;
 namespace IcomRigControl.UI.ViewModels;
+using System.Collections.Generic;
+using CommunityToolkit.Mvvm.Input;
 
 public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 {
@@ -42,6 +44,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty]
     private string _statusMessage = "Not connected";
 
+    public List<string> AvailableModes { get; } = new() { "LSB", "USB", "AM", "CW", "FM" };
+
     public MainWindowViewModel()
     {
         // For now: FakeCivTransport so the UI is fully demoable without hardware.
@@ -68,7 +72,14 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             CurrentDraw = snapshot.CurrentDraw;
         };
 
-        _ = ConnectAsync();
+       _ = ConnectAsync();
+    }
+
+    [RelayCommand]
+    private async Task SetMode(string mode)
+    {
+        if (!IsConnected) return;
+        await _transceiver.SetModeAsync(mode);
     }
 
     private async Task ConnectAsync()

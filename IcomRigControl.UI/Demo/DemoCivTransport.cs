@@ -50,6 +50,14 @@ public class DemoCivTransport : ICivTransport
                 SimulateReply(BuildFreqReply());
                 break;
 
+                case CivCommands.SetMode:
+                if (data.Length >= 6)
+                {
+                    _modeCode = data[5];
+                }
+                SimulateReply(BuildModeReply());
+                break;
+
             case CivCommands.ReadFrequency:
                 SimulateReply(BuildFreqReply());
                 break;

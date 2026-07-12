@@ -76,6 +76,29 @@ public class Transceiver : IAsyncDisposable
         PttChanged?.Invoke(this, transmit);
     }
 
+    public async Task SetModeAsync(string mode, CancellationToken ct = default)
+    {
+        byte modeCode = StringToModeCode(mode);
+        var frame = _builder.SetMode(modeCode);
+        await _transport.WriteAsync(frame, ct);
+        Mode = mode;
+        ModeChanged?.Invoke(this, mode);
+    }
+
+    private static byte StringToModeCode(string mode) => mode switch
+    {
+        "LSB" => 0x00,
+        "USB" => 0x01,
+        "AM" => 0x02,
+        "CW" => 0x03,
+        "RTTY" => 0x04,
+        "FM" => 0x05,
+        "CW-R" => 0x07,
+        "RTTY-R" => 0x08,
+        "DV" => 0x17,
+        _ => 0x01
+    };
+
     /// Start a background loop that polls all meters at the given interval.
     public void StartPolling(TimeSpan interval)
     {

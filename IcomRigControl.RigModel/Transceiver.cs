@@ -93,13 +93,13 @@ public class Transceiver : IAsyncDisposable
         try
         {
             await _transport.WriteAsync(_builder.SelectMemoryChannel(channelNumber), ct);
-            await Task.Delay(50, ct); // give the radio time to switch
+            await Task.Delay(150, ct); // give the radio time to switch
 
             await _transport.WriteAsync(_builder.ReadFrequency(), ct);
-            await Task.Delay(50, ct);
+            await Task.Delay(150, ct);
 
             await _transport.WriteAsync(_builder.ReadMode(), ct);
-            await Task.Delay(50, ct);
+            await Task.Delay(150, ct);
 
             if (capturedFreq.HasValue && capturedMode != null)
             {

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IcomRigControl.RigModel;
+using Avalonia.Threading;
 
 namespace IcomRigControl.UI.ViewModels;
 
@@ -47,8 +48,12 @@ public partial class MemoryEditorViewModel : ViewModelBase
         try
         {
             var results = await _transceiver.ReadAllMemoriesAsync(progress, _readCts.Token);
+            System.IO.File.AppendAllText("memory_debug.log",
+                $"{DateTime.Now}: ReadAllMemoriesAsync returned {results.Count} channels\n");
             foreach (var ch in results)
             {
+                System.IO.File.AppendAllText("memory_debug.log",
+                    $"{DateTime.Now}: Channel {ch.ChannelNumber}: {ch.FrequencyHz} Hz, {ch.Mode}\n");
                 Channels.Add(ch);
             }
             ProgressText = $"Done — {results.Count} channels found.";

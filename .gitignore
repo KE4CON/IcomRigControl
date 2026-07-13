@@ -13,3 +13,4 @@ obj/
 # Rider/VS Code
 .idea/
 .vscode/
+memory_debug.log

@@ -17,6 +17,9 @@ public class Transceiver : IAsyncDisposable
     private CancellationTokenSource? _pollCts;
     private Task? _pollTask;
 
+    private TaskCompletionSource<long>? _pendingFreqResponse;
+    private TaskCompletionSource<string>? _pendingModeResponse;
+
     public bool IsConnected { get; private set; }
     public long FrequencyHz { get; private set; }
     public string Mode { get; private set; } = string.Empty;
@@ -78,41 +81,43 @@ public class Transceiver : IAsyncDisposable
 
     /// Read a single memory channel's frequency and mode by selecting it,
     /// then requesting frequency and mode reads while it's active.
-    /// Returns null if no response arrives within the timeout.
+    /// Returns null if no response arrives within the timeout (empty channel).
     public async Task<MemoryChannel?> ReadMemoryChannelAsync(int channelNumber, CancellationToken ct = default)
     {
-        long? capturedFreq = null;
-        string? capturedMode = null;
+        await _transport.WriteAsync(_builder.SelectMemoryChannel(channelNumber), ct);
+        await Task.Delay(50, ct);
 
-        void OnFreq(object? s, long hz) => capturedFreq = hz;
-        void OnMode(object? s, string m) => capturedMode = m;
+        _pendingFreqResponse = new TaskCompletionSource<long>();
+        await _transport.WriteAsync(_builder.ReadFrequency(), ct);
+        var (freqOk, capturedFreq) = await WaitWithTimeout(_pendingFreqResponse.Task, 500, ct);
+        _pendingFreqResponse = null;
 
-        FrequencyChanged += OnFreq;
-        ModeChanged += OnMode;
-
-        try
+        if (!freqOk)
         {
-            await _transport.WriteAsync(_builder.SelectMemoryChannel(channelNumber), ct);
-            await Task.Delay(150, ct); // give the radio time to switch
-
-            await _transport.WriteAsync(_builder.ReadFrequency(), ct);
-            await Task.Delay(150, ct);
-
-            await _transport.WriteAsync(_builder.ReadMode(), ct);
-            await Task.Delay(150, ct);
-
-            if (capturedFreq.HasValue && capturedMode != null)
-            {
-                return new MemoryChannel(channelNumber, capturedFreq.Value, capturedMode, string.Empty);
-            }
-
             return null;
         }
-        finally
+
+        _pendingModeResponse = new TaskCompletionSource<string>();
+        await _transport.WriteAsync(_builder.ReadMode(), ct);
+        var (modeOk, capturedMode) = await WaitWithTimeout(_pendingModeResponse.Task, 500, ct);
+        _pendingModeResponse = null;
+
+        return new MemoryChannel(channelNumber, capturedFreq, modeOk ? capturedMode : "USB", string.Empty);
+    }
+
+    private static async Task<(bool success, T value)> WaitWithTimeout<T>(Task<T> task, int timeoutMs, CancellationToken ct)
+    {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var delayTask = Task.Delay(timeoutMs, timeoutCts.Token);
+        var completed = await Task.WhenAny(task, delayTask);
+
+        if (completed == task)
         {
-            FrequencyChanged -= OnFreq;
-            ModeChanged -= OnMode;
+            timeoutCts.Cancel();
+            return (true, await task);
         }
+
+        return (false, default!);
     }
 
     /// Read all channels 1-99, skipping any that don't respond (empty channels).
@@ -134,9 +139,6 @@ public class Transceiver : IAsyncDisposable
             }
             progress?.Report((ch, totalChannels));
         }
-
-        System.IO.File.AppendAllText("memory_debug.log",
-            $"{DateTime.Now}: LOOP FINISHED, about to return {results.Count} results\n");
 
         return results;
     }
@@ -177,6 +179,20 @@ public class Transceiver : IAsyncDisposable
         _ => 0x01
     };
 
+    private static string ModeCodeToString(byte code) => code switch
+    {
+        0x00 => "LSB",
+        0x01 => "USB",
+        0x02 => "AM",
+        0x03 => "CW",
+        0x04 => "RTTY",
+        0x05 => "FM",
+        0x07 => "CW-R",
+        0x08 => "RTTY-R",
+        0x17 => "DV",
+        _ => "UNKNOWN"
+    };
+
     /// Start a background loop that polls all meters at the given interval.
     public void StartPolling(TimeSpan interval)
     {
@@ -206,7 +222,6 @@ public class Transceiver : IAsyncDisposable
             catch
             {
                 // Swallow transient poll errors (per CLAUDE.md: log, don't crash the loop).
-                // Logging hook will be added when ActivityLogger (Phase 5) exists.
             }
 
             try
@@ -252,19 +267,7 @@ public class Transceiver : IAsyncDisposable
             ApplyFrame(frame);
         }
     }
-private static string ModeCodeToString(byte code) => code switch
-{
-    0x00 => "LSB",
-    0x01 => "USB",
-    0x02 => "AM",
-    0x03 => "CW",
-    0x04 => "RTTY",
-    0x05 => "FM",
-    0x07 => "CW-R",
-    0x08 => "RTTY-R",
-    0x17 => "DV",
-    _ => "UNKNOWN"
-};
+
     private void ApplyFrame(CivFrame frame)
     {
         switch (frame.Command)
@@ -273,15 +276,19 @@ private static string ModeCodeToString(byte code) => code switch
             case CivCommands.SetOutputFreq:
                 FrequencyHz = BcdCodec.DecodeFrequency(frame.Data);
                 FrequencyChanged?.Invoke(this, FrequencyHz);
+                _pendingFreqResponse?.TrySetResult(FrequencyHz);
                 break;
-case CivCommands.ReadMode:
-case CivCommands.SetOutputMode:
-    if (frame.Data.Length > 0)
-    {
-        Mode = ModeCodeToString(frame.Data[0]);
-        ModeChanged?.Invoke(this, Mode);
-    }
+
+            case CivCommands.ReadMode:
+            case CivCommands.SetOutputMode:
+                if (frame.Data.Length > 0)
+                {
+                    Mode = ModeCodeToString(frame.Data[0]);
+                    ModeChanged?.Invoke(this, Mode);
+                    _pendingModeResponse?.TrySetResult(Mode);
+                }
                 break;
+
             case CivCommands.ReadMeter when frame.SubCommand == CivCommands.MeterSMeter:
                 (SMeterS, SMeterDbm) = MeterDecoder.DecodeSMeter(frame.Data);
                 break;

@@ -62,18 +62,32 @@
             <ProgressBar Value="{Binding ProgressPercent}" Minimum="0" Maximum="100" Height="6"/>
         </StackPanel>
 
-        <!-- Channel grid -->
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Channels}"
-                  AutoGenerateColumns="False" CanUserSortColumns="True"
-                  GridLinesVisibility="All" HeadersVisibility="Column"
-                  Background="#0d0d0d" Foreground="White">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Ch" Binding="{Binding ChannelNumber}" Width="50"/>
-                <DataGridTextColumn Header="Frequency (Hz)" Binding="{Binding FrequencyHz}" Width="140"/>
-                <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="80"/>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- Channel list -->
+        <ScrollViewer Grid.Row="2">
+            <StackPanel>
+                <!-- Header row -->
+                <Grid ColumnDefinitions="60,160,90,*" Background="#2a2a2a" Margin="0,0,0,2">
+                    <TextBlock Grid.Column="0" Text="Ch" Foreground="White" FontWeight="Bold" Padding="8,6"/>
+                    <TextBlock Grid.Column="1" Text="Frequency (Hz)" Foreground="White" FontWeight="Bold" Padding="8,6"/>
+                    <TextBlock Grid.Column="2" Text="Mode" Foreground="White" FontWeight="Bold" Padding="8,6"/>
+                    <TextBlock Grid.Column="3" Text="Name" Foreground="White" FontWeight="Bold" Padding="8,6"/>
+                </Grid>
+
+                <!-- Data rows -->
+                <ItemsControl ItemsSource="{Binding Channels}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="60,160,90,*" Background="#0d0d0d" Margin="0,0,0,1">
+                                <TextBlock Grid.Column="0" Text="{Binding ChannelNumber}" Foreground="#00ff88" Padding="8,6"/>
+                                <TextBlock Grid.Column="1" Text="{Binding FrequencyHz}" Foreground="#00ff88" Padding="8,6"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Mode}" Foreground="#88ccff" Padding="8,6"/>
+                                <TextBlock Grid.Column="3" Text="{Binding Name}" Foreground="White" Padding="8,6"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
 
         <!-- Footer -->
         <TextBlock Grid.Row="3" Text="{Binding Channels.Count, StringFormat='{}{0} channels loaded'}"

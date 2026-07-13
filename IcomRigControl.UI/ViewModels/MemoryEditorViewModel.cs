@@ -2,10 +2,10 @@ using System;
 using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IcomRigControl.RigModel;
-using Avalonia.Threading;
 
 namespace IcomRigControl.UI.ViewModels;
 
@@ -41,35 +41,44 @@ public partial class MemoryEditorViewModel : ViewModelBase
 
         var progress = new Progress<(int current, int total)>(p =>
         {
-            ProgressText = $"Reading channel {p.current} of {p.total}...";
-            ProgressPercent = (double)p.current / p.total * 100;
+            Dispatcher.UIThread.Post(() =>
+            {
+                ProgressText = $"Reading channel {p.current} of {p.total}...";
+                ProgressPercent = (double)p.current / p.total * 100;
+            });
         });
 
         try
         {
             var results = await _transceiver.ReadAllMemoriesAsync(progress, _readCts.Token);
-            System.IO.File.AppendAllText("memory_debug.log",
-                $"{DateTime.Now}: ReadAllMemoriesAsync returned {results.Count} channels\n");
-            foreach (var ch in results)
+            System.IO.File.AppendAllText("memory_debug.log", $"{DateTime.Now}: VIEWMODEL got {results.Count} results, about to dispatch\n");
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                System.IO.File.AppendAllText("memory_debug.log",
-                    $"{DateTime.Now}: Channel {ch.ChannelNumber}: {ch.FrequencyHz} Hz, {ch.Mode}\n");
-                Channels.Add(ch);
-            }
-            ProgressText = $"Done — {results.Count} channels found.";
+                System.IO.File.AppendAllText("memory_debug.log", $"{DateTime.Now}: VIEWMODEL inside dispatcher, adding to Channels\n");
+                foreach (var ch in results)
+                {
+                    Channels.Add(ch);
+                }
+                ProgressText = $"Done — {results.Count} channels found.";
+                System.IO.File.AppendAllText("memory_debug.log", $"{DateTime.Now}: VIEWMODEL set ProgressText to Done\n");
+            });
         }
         catch (OperationCanceledException)
         {
-            ProgressText = "Read cancelled.";
+            await Dispatcher.UIThread.InvokeAsync(() => ProgressText = "Read cancelled.");
         }
         catch (Exception ex)
         {
-            ProgressText = $"Error: {ex.Message}";
+            await Dispatcher.UIThread.InvokeAsync(() => ProgressText = $"Error: {ex.Message}");
         }
         finally
         {
-            IsBusy = false;
-            ProgressPercent = 0;
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                IsBusy = false;
+                ProgressPercent = 0;
+            });
         }
     }
 
@@ -94,19 +103,26 @@ public partial class MemoryEditorViewModel : ViewModelBase
             {
                 await _transceiver.WriteMemoryChannelAsync(ch);
                 done++;
-                ProgressText = $"Writing channel {done} of {total}...";
-                ProgressPercent = (double)done / total * 100;
+                int currentDone = done;
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    ProgressText = $"Writing channel {currentDone} of {total}...";
+                    ProgressPercent = (double)currentDone / total * 100;
+                });
             }
-            ProgressText = $"Done — {total} channels written.";
+            await Dispatcher.UIThread.InvokeAsync(() => ProgressText = $"Done — {total} channels written.");
         }
         catch (Exception ex)
         {
-            ProgressText = $"Error: {ex.Message}";
+            await Dispatcher.UIThread.InvokeAsync(() => ProgressText = $"Error: {ex.Message}");
         }
         finally
         {
-            IsBusy = false;
-            ProgressPercent = 0;
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                IsBusy = false;
+                ProgressPercent = 0;
+            });
         }
     }
 

@@ -28,12 +28,15 @@ ObservableCollections
 - All serial port access goes through ICivTransport interface to allow mocking in tests
 - Unit tests required for: BCD encode/decode, frame builder, frame parser, frequency
 conversion
+- For DataGrid-style tabular UI: prefer ItemsControl + DataTemplate over Avalonia.Controls.DataGrid.
+  DataGrid 12.1.0 has a confirmed row-rendering bug (rows never appear despite correct,
+  verified ItemsSource data) — reported upstream to AvaloniaUI/Avalonia.Controls.DataGrid.
 ## Feature Priorities (build in this order)
-Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set
+Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (BcdCodec, CivCommands, CivFrame, CivFrameBuilder, CivFrameParser, ICivTransport, SerialCivTransport, 23 passing tests)
 Phase 2: Meter polling (S-meter, SWR, ALC, power, voltage, current) — COMPLETE (MeterDecoder, RadioModel, MeterSnapshot, Transceiver with async polling loop and mode/frequency/PTT event wiring, 43 passing tests)
 Phase 3: Avalonia UI — main panel with frequency display, mode selector, meter gauges — COMPLETE (live dashboard: frequency entry + display, mode selector buttons with hover styling, PTT toggle + indicator, all six meters live-updating via DemoCivTransport; MainWindowViewModel fully wired to Transceiver)
-Phase 4: Memory bulk editor (read all 99 channels, edit in DataGrid, write back) — ACTIVE
-Phase 5: Activity logger (CSV output, frequency/mode/meter timestamped)
+Phase 4: Memory bulk editor (read all 99 channels, edit in DataGrid, write back) — COMPLETE (MemoryChannel record, CI-V memory select/read commands, Transceiver.ReadAllMemoriesAsync/WriteMemoryChannelAsync using TaskCompletionSource-based response correlation to avoid event-subscription race conditions, MemoryEditorViewModel + MemoryEditorWindow using ItemsControl table — see DataGrid note above, 52 passing tests)
+Phase 5: Activity logger (CSV output, frequency/mode/meter timestamped) — ACTIVE
 Phase 6: EMMCOM dashboard integration (push rig status to Field Comms Server)
 Phase 7: APRS beacon (beacon operating frequency as APRS object via CrossPlatformAPRS
 bridge)

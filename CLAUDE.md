@@ -34,15 +34,18 @@ conversion
 - Environment.SpecialFolder.MyDocuments resolves to the OneDrive-redirected Documents path
   on this machine (C:\Users\jrosp\OneDrive\...\Documents), not plain C:\Users\jrosp\Documents.
   Always verify actual file output location when debugging file I/O — check both locations.
+- Network-calling services (EmmcomBridge, future AprsBridge) must never throw back to the
+  Transceiver's event dispatch — catch and record errors internally (LastError property),
+  never crash the polling loop over a network hiccup.
 ## Feature Priorities (build in this order)
 Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (BcdCodec, CivCommands, CivFrame, CivFrameBuilder, CivFrameParser, ICivTransport, SerialCivTransport, 23 passing tests)
 Phase 2: Meter polling (S-meter, SWR, ALC, power, voltage, current) — COMPLETE (MeterDecoder, RadioModel, MeterSnapshot, Transceiver with async polling loop and mode/frequency/PTT event wiring, 43 passing tests)
 Phase 3: Avalonia UI — main panel with frequency display, mode selector, meter gauges — COMPLETE (live dashboard: frequency entry + display, mode selector buttons with hover styling, PTT toggle + indicator, all six meters live-updating via DemoCivTransport; MainWindowViewModel fully wired to Transceiver)
 Phase 4: Memory bulk editor (read all 99 channels, edit in DataGrid, write back) — COMPLETE (MemoryChannel record, CI-V memory select/read commands, Transceiver.ReadAllMemoriesAsync/WriteMemoryChannelAsync using TaskCompletionSource-based response correlation to avoid event-subscription race conditions, MemoryEditorViewModel + MemoryEditorWindow using ItemsControl table — see DataGrid note above, 52 passing tests)
 Phase 5: Activity logger (CSV output, frequency/mode/meter timestamped) — COMPLETE (ActivityLogger service in IcomRigControl.Services, subscribes to Transceiver.MeterUpdated, writes timestamped CSV per logging session; Start/Stop toggle button in MainWindow with live status indicator; 56 passing tests)
-Phase 6: EMMCOM dashboard integration (push rig status to Field Comms Server) — ACTIVE
+Phase 6: EMMCOM dashboard integration (push rig status to Field Comms Server) — COMPLETE (EmmcomBridge service posts MeterSnapshot as JSON to a configurable HTTP endpoint on every MeterUpdated event; Start/Stop toggle + URL entry box + status indicator in MainWindow; network failures caught and surfaced via LastError, never crash polling; 60 passing tests)
 Phase 7: APRS beacon (beacon operating frequency as APRS object via CrossPlatformAPRS
-bridge)
+bridge) — ACTIVE
 Phase 8: Spectrum scope capture and waterfall display
 Phase 9: Remote/network mode (headless Pi server + TCP client)
 Phase 10: Remote audio (NAudio on Windows; AVFoundation wrapper on macOS)
@@ -66,7 +69,8 @@ icomuk.co.uk/files/icom/PDF/productAdditionalFile/IC-7300MK2_ENG_CI-V_0.pdf
 - This master reference PDF: IcomRigControl_Master_Reference.pdf (project docs folder)
 ## Related Projects
 - CrossPlatformAPRS (KE4CON/CrossPlatformAPRS): APRS beacon target for Phase 7
-- EMMCOM Field Comms Server: dashboard integration target for Phase 6
+- EMMCOM Field Comms Server: dashboard integration target for Phase 6 — COMPLETE, real
+  endpoint URL to be confirmed and configured when available
 ## Session Start Checklist
 Before writing any code in a session:
 1. Read this file

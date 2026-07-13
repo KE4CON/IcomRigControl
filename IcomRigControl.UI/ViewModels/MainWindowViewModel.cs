@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -16,12 +17,20 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     public Transceiver TransceiverInstance => _transceiver;
 
     private readonly ActivityLogger _logger;
+    private readonly EmmcomBridge _emmcomBridge;
+    private readonly HttpClient _emmcomHttpClient = new();
 
     [ObservableProperty]
     private bool _isLogging;
 
     [ObservableProperty]
     private string _loggingStatus = "Not logging";
+
+    [ObservableProperty]
+    private bool _isEmmcomRunning;
+
+    [ObservableProperty]
+    private string _emmcomStatus = "EMMCOM: not connected";
 
     [ObservableProperty]
     private string _frequencyDisplay = "---.---.---";
@@ -61,6 +70,9 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty]
     private string _frequencyInput = "14074000";
 
+    [ObservableProperty]
+    private string _emmcomUrlInput = "http://localhost:9000/api/rigstatus";
+
     public MainWindowViewModel()
     {
         // For now: FakeCivTransport so the UI is fully demoable without hardware.
@@ -74,7 +86,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         _transceiver.ModeChanged += (_, mode) =>
             Mode = mode;
 
-        _transceiver.PttChanged += (_, active)=>
+        _transceiver.PttChanged += (_, active) =>
             PttActive = active;
 
         _transceiver.MeterUpdated += (_, snapshot) =>
@@ -89,6 +101,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
         _logger = new ActivityLogger(_transceiver, System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IcomRigControl", "Logs"));
+
+        _emmcomBridge = new EmmcomBridge(_transceiver, _emmcomHttpClient, EmmcomUrlInput);
 
         _ = ConnectAsync();
     }
@@ -153,6 +167,30 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         catch (Exception ex)
         {
             LoggingStatus = $"Logging error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleEmmcom()
+    {
+        try
+        {
+            if (IsEmmcomRunning)
+            {
+                _emmcomBridge.Stop();
+                IsEmmcomRunning = false;
+                EmmcomStatus = "EMMCOM: not connected";
+            }
+            else
+            {
+                _emmcomBridge.Start();
+                IsEmmcomRunning = true;
+                EmmcomStatus = $"EMMCOM: pushing to {EmmcomUrlInput}";
+            }
+        }
+        catch (Exception ex)
+        {
+            EmmcomStatus = $"EMMCOM error: {ex.Message}";
         }
     }
 

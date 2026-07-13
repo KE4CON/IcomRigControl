@@ -3,17 +3,18 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="580"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="660"
         x:Class="IcomRigControl.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="IcomRigControl"
-        Width="500" Height="580"
+        Width="500" Height="660"
         Background="#1a1a1a">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
+    <ScrollViewer>
     <StackPanel Margin="20" Spacing="16">
 
         <!-- Status row -->
@@ -151,6 +152,32 @@
             </StackPanel>
         </Border>
 
+        <!-- EMMCOM control -->
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="10">
+            <StackPanel Spacing="8">
+                <TextBox Text="{Binding EmmcomUrlInput}" FontSize="11" FontFamily="Courier New"
+                         PlaceholderText="http://localhost:9000/api/rigstatus"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                    <Ellipse Width="12" Height="12">
+                        <Ellipse.Fill>
+                            <SolidColorBrush Color="{Binding IsEmmcomRunning, Converter={x:Static vm:BoolToColorConverter.Instance}}"/>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <TextBlock Text="{Binding EmmcomStatus}" Foreground="White" FontSize="12" VerticalAlignment="Center"/>
+                    <Button Content="{Binding IsEmmcomRunning, Converter={x:Static vm:LoggingButtonTextConverter.Instance}}"
+                            Command="{Binding ToggleEmmcomCommand}"
+                            Width="110" Background="#2a2a2a" Foreground="White">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#00ff88"/>
+                                <Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
         <!-- Memory Editor launcher -->
         <Button Content="Open Memory Editor" Command="{Binding OpenMemoryEditorCommand}"
                 HorizontalAlignment="Center" Margin="0,4,0,0"
@@ -164,4 +191,5 @@
         </Button>
 
     </StackPanel>
+    </ScrollViewer>
 </Window>

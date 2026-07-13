@@ -1,16 +1,27 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using IcomRigControl.CivEngine;
 using IcomRigControl.RigModel;
+using IcomRigControl.Services;
 using IcomRigControl.UI.Demo;
+
 namespace IcomRigControl.UI.ViewModels;
-using System.Collections.Generic;
-using CommunityToolkit.Mvvm.Input;
 
 public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 {
     private readonly Transceiver _transceiver;
     public Transceiver TransceiverInstance => _transceiver;
+
+    private readonly ActivityLogger _logger;
+
+    [ObservableProperty]
+    private bool _isLogging;
+
+    [ObservableProperty]
+    private string _loggingStatus = "Not logging";
 
     [ObservableProperty]
     private string _frequencyDisplay = "---.---.---";
@@ -63,7 +74,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         _transceiver.ModeChanged += (_, mode) =>
             Mode = mode;
 
-        _transceiver.PttChanged += (_, active) =>
+        _transceiver.PttChanged += (_, active)=>
             PttActive = active;
 
         _transceiver.MeterUpdated += (_, snapshot) =>
@@ -76,7 +87,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             CurrentDraw = snapshot.CurrentDraw;
         };
 
-       _ = ConnectAsync();
+        _logger = new ActivityLogger(_transceiver, System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IcomRigControl", "Logs"));
+
+        _ = ConnectAsync();
     }
 
     [RelayCommand]
@@ -116,6 +130,30 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             DataContext = editorViewModel
         };
         editorWindow.Show();
+    }
+
+    [RelayCommand]
+    private void ToggleLogging()
+    {
+        try
+        {
+            if (IsLogging)
+            {
+                _logger.Stop();
+                IsLogging = false;
+                LoggingStatus = "Not logging";
+            }
+            else
+            {
+                _logger.Start();
+                IsLogging = true;
+                LoggingStatus = $"Logging to {System.IO.Path.GetFileName(_logger.CurrentFilePath)}";
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingStatus = $"Logging error: {ex.Message}";
+        }
     }
 
     private async Task ConnectAsync()

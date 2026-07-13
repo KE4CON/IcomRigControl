@@ -3,11 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="420"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="580"
         x:Class="IcomRigControl.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="IcomRigControl"
-        Width="500" Height="520"
+        Width="500" Height="580"
         Background="#1a1a1a">
 
     <Design.DataContext>
@@ -20,7 +20,7 @@
         <TextBlock Text="{Binding StatusMessage}"
                    Foreground="Gray" FontSize="12" HorizontalAlignment="Center"/>
 
-                   <!-- Frequency entry -->
+        <!-- Frequency entry -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
             <TextBox Text="{Binding FrequencyInput}" Width="150"
                      PlaceholderText="14074000" FontFamily="Courier New"/>
@@ -47,7 +47,7 @@
                            FontSize="18" Foreground="#88ccff"
                            HorizontalAlignment="Center"/>
 
-           <ItemsControl ItemsSource="{Binding AvailableModes}" Margin="0,8,0,0">
+                <ItemsControl ItemsSource="{Binding AvailableModes}" Margin="0,8,0,0">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel HorizontalAlignment="Center"/>
@@ -127,6 +127,28 @@
                     <TextBlock Text="{Binding CurrentDraw, StringFormat='{}{0:F1}A'}" Foreground="#00ff88" FontSize="20" FontWeight="Bold"/>
                 </StackPanel>
             </Grid>
+        </Border>
+
+        <!-- Activity Logging control -->
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                <Ellipse Width="12" Height="12">
+                    <Ellipse.Fill>
+                        <SolidColorBrush Color="{Binding IsLogging, Converter={x:Static vm:BoolToColorConverter.Instance}}"/>
+                    </Ellipse.Fill>
+                </Ellipse>
+                <TextBlock Text="{Binding LoggingStatus}" Foreground="White" FontSize="12" VerticalAlignment="Center"/>
+                <Button Content="{Binding IsLogging, Converter={x:Static vm:LoggingButtonTextConverter.Instance}}"
+                        Command="{Binding ToggleLoggingCommand}"
+                        Width="110" Background="#2a2a2a" Foreground="White">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </StackPanel>
         </Border>
 
         <!-- Memory Editor launcher -->

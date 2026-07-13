@@ -135,6 +135,9 @@ public class Transceiver : IAsyncDisposable
             progress?.Report((ch, totalChannels));
         }
 
+        System.IO.File.AppendAllText("memory_debug.log",
+            $"{DateTime.Now}: LOOP FINISHED, about to return {results.Count} results\n");
+
         return results;
     }
 

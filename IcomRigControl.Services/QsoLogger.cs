@@ -6,21 +6,50 @@ namespace IcomRigControl.Services;
 /// Manages the in-memory log of contacts for the current session, auto-filling
 /// frequency, mode, and band from the live Transceiver at the moment each QSO
 /// is logged. Exports the full log to a standard ADIF file via AdifWriter.
+///
+/// If constructed with a log directory, writes each QSO through to a persistent
+/// timestamped session file immediately as it's logged (not just on manual
+/// export), so a crash does not lose the session. See CLAUDE.md's Core Design
+/// Principle: this local log is the resilient backup of record, independent of
+/// any external program's (HRD, N1MM, etc.) availability.
 /// </summary>
 public class QsoLogger
 {
     private readonly Transceiver _transceiver;
     private readonly List<QsoRecord> _qsos = new();
+    private bool _sessionFileHeaderWritten;
 
     public IReadOnlyList<QsoRecord> Qsos => _qsos;
 
+    /// The persistent session file path, or null if this logger was constructed
+    /// without a log directory (in-memory only — used by existing tests/callers
+    /// that don't need write-through persistence).
+    public string? SessionFilePath { get; }
+
+    /// In-memory-only constructor (no write-through persistence).
     public QsoLogger(Transceiver transceiver)
     {
         _transceiver = transceiver;
+        SessionFilePath = null;
+    }
+
+    /// Persistent constructor: creates a timestamped session file immediately
+    /// in logDirectory, and writes each QSO through to it as LogQso is called.
+    public QsoLogger(Transceiver transceiver, string logDirectory)
+    {
+        _transceiver = transceiver;
+
+        Directory.CreateDirectory(logDirectory);
+        var fileName = $"qsolog_{DateTime.Now:yyyyMMdd_HHmmss}.adi";
+        SessionFilePath = Path.Combine(logDirectory, fileName);
+
+        File.WriteAllText(SessionFilePath, AdifWriter.GenerateHeader());
+        _sessionFileHeaderWritten = true;
     }
 
     /// Log a new QSO, auto-filling frequency/mode/band from the transceiver's
-    /// current state at the moment of the call.
+    /// current state at the moment of the call. If this logger was constructed
+    /// with a log directory, also writes through to the session file immediately.
     public QsoRecord LogQso(
         string callsign,
         string rstSent,
@@ -51,6 +80,12 @@ public class QsoLogger
         );
 
         _qsos.Add(qso);
+
+        if (SessionFilePath != null && _sessionFileHeaderWritten)
+        {
+            File.AppendAllText(SessionFilePath, AdifWriter.FormatQso(qso) + Environment.NewLine);
+        }
+
         return qso;
     }
 

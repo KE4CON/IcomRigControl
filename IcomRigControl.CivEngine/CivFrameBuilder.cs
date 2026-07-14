@@ -92,4 +92,44 @@ public class CivFrameBuilder
         int lo = channelNumber % 10;
         return new byte[] { (byte)((hi << 4) | lo) };
     }
+
+    // ── Spectrum Scope ──────────────────────────────────────────────────────
+
+    /// Turn the spectrum scope on or off (command 27h 10h).
+    public byte[] SetScopeOn(bool on) =>
+        Build(CivCommands.ScopeControl, 0x10, new byte[] { on ? (byte)0x01 : (byte)0x00 });
+
+    /// Enable or disable waveform data output to the PC (command 27h 11h).
+    public byte[] SetWaveformOutput(bool enabled) =>
+        Build(CivCommands.ScopeControl, 0x11, new byte[] { enabled ? (byte)0x01 : (byte)0x00 });
+
+    /// Set the scope span in Hz (command 27h 15h). Icom expresses span as a
+    /// 3-byte BCD code selecting one of several fixed span presets, not a raw
+    /// frequency; this maps common span values to their known codes.
+    public byte[] SetScopeSpan(long spanHz)
+    {
+        byte code = spanHz switch
+        {
+            <= 2_500 => 0x00,
+            <= 5_000 => 0x01,
+            <= 10_000 => 0x02,
+            <= 20_000 => 0x03,
+            <= 50_000 => 0x04,
+            <= 100_000 => 0x05,
+            <= 200_000 => 0x06,
+            <= 500_000 => 0x07,
+            _ => 0x08 // 1MHz
+        };
+        return Build(CivCommands.ScopeControl, 0x15, new byte[] { code });
+    }
+
+    /// Set scope mode: 0=Center, 1=Fixed (command 27h 14h).
+    public byte[] SetScopeMode(bool fixedMode) =>
+        Build(CivCommands.ScopeControl, 0x14, new byte[] { fixedMode ? (byte)0x01 : (byte)0x00 });
+
+    /// Request the current waveform data sweep (command 27h 00h).
+    /// The radio replies with a multi-byte payload containing up to 475
+    /// signal-level data points for the current span.
+    public byte[] ReadWaveformData() =>
+        Build(CivCommands.ScopeControl, 0x00);
 }

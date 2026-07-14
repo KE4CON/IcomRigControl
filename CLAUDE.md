@@ -7,13 +7,24 @@ UI Framework: Avalonia 11 (cross-platform desktop — macOS, Windows, Linux, Ras
 Target Radios: Icom IC-7300 (address 94h) and IC-7300MK2 (address B6h)
 Connection: USB serial via System.IO.Ports (115200 baud default); TCP/network mode
 planned for v2
+## Core Design Principle: Resilience / Backup-of-Record (EMCOMM discipline)
+IcomRigControl's own QsoLogger is the resilient backup of record for all logged QSOs,
+independent of whether HRD Logbook, N1MM, or any other external program is running,
+reachable, or healthy. Every QSO logged anywhere in this ecosystem (directly in
+IcomRigControl, or mirrored in from N1MM/WSJT-X via Phase 8f Direction 2) must land in
+IcomRigControl's own persistent local log. Integrations with HRD, N1MM, LoTW, etc. are
+one-way, best-effort *additions* on top of this local log — never a dependency the local
+log needs to function, and never a gate that can cause a QSO to go unrecorded if the
+external program is down. This mirrors the user's EMCOMM "always have a backup plan"
+principle, applied to logging infrastructure.
 ## Architecture Layers (never mix concerns across layers)
 Layer 1 — CivEngine: Raw CI-V framing, serial port I/O, BCD encode/decode. No UI, no
 radio model.
 Layer 2 — RigModel: Transceiver class exposing clean C# properties and events. Consumes
 CivEngine only.
 Layer 3 — Services: Logger, EMMCOM bridge, APRS beacon, backfill queue, ADIF logger,
-callsign lookup, LoTW sync, HRD bridge, N1MM/WSJT-X UDP bridge. Consume RigModel only.
+callsign lookup, LoTW sync, HRD bridge, RadioInfo UDP broadcaster, N1MM/WSJT-X UDP
+listener. Consume RigModel only.
 Layer 4 — UI: Avalonia views and view-models. Consume Services and RigModel only. Never
 touches CivEngine directly.
 ## Coding Standards
@@ -35,9 +46,13 @@ conversion
   on this machine (C:\Users\jrosp\OneDrive\...\Documents), not plain C:\Users\jrosp\Documents.
   Always verify actual file output location when debugging file I/O — check both locations.
 - Network-calling services (EmmcomBridge, future AprsBridge, callsign lookup, LoTW,
-  N1MM/WSJT-X UDP bridge) must never throw back to the Transceiver's event dispatch —
-  catch and record errors internally (LastError property), never crash the polling loop
-  over a network hiccup.
+  RadioInfo broadcaster, N1MM/WSJT-X UDP listener) must never throw back to the
+  Transceiver's event dispatch — catch and record errors internally (LastError property),
+  never crash the polling loop over a network hiccup.
+- QsoLogger must write through to a persistent local ADIF file as each QSO is logged
+  (not just held in memory until a manual export) — same "session file created on start,
+  appended as events occur" pattern as ActivityLogger — so a crash of IcomRigControl
+  itself does not lose an in-progress logging session. See Core Design Principle above.
 - Neither IC-7300 nor IC-7300MK2 has a built-in TNC or APRS engine (unlike Icom's
   IC-9700/IC-2730, which do — but those use a different, radio-specific CI-V extension
   set not covered by this project). Any APRS from this project's target radios must be
@@ -59,11 +74,21 @@ conversion
   on top of the always-reliable ADIF export path, never a replacement for it, and must
   fail silently/log-only if the schema doesn't match what's expected (never corrupt or
   crash HRD's database).
-- N1MM/WSJT-X UDP integration (Phase 8f) uses a genuinely public, documented XML-over-UDP
-  protocol (N1MM's External UDP Messages, default port 12060; WSJT-X shares the same
-  packet family on port 2333) — unlike the HRD schema, this is stable and does not carry
-  the same "could break silently" risk. Prefer this integration style over private-schema
-  reverse engineering wherever a documented protocol option exists.
+- N1MM/WSJT-X/HRD UDP integration (Phase 8f) uses a genuinely public, documented
+  XML-over-UDP protocol (N1MM's External UDP Messages, default port 12060; WSJT-X shares
+  the same packet family on port 2333; HRD Logbook has its own "UDP Receive" feature that
+  consumes this same protocol) — unlike the HRD SQLite schema, this is stable and does
+  not carry the same "could break silently" risk. Prefer this integration style over
+  private-schema reverse engineering wherever a documented protocol option exists. Build
+  the RadioInfo broadcaster once, generically, with a configurable list of destination
+  IP:port targets — the same broadcaster serves HRD's UDP Receive listener, N1MM's
+  RadioInfo consumer, and any other program on this protocol, simultaneously.
+- Do not attempt to make N1MM or HRD's own rig control literally driven by
+  IcomRigControl (replacing their CAT connection to the radio) as part of Phase 8 — that
+  requires a virtual-serial-port or network-CAT-interface mechanism, which is Phase 9
+  (Remote/network mode) territory. Phase 8's UDP broadcaster is supplementary
+  status-sharing, not a CAT replacement; revisit true CAT replacement explicitly, if
+  wanted, once Phase 9 exists.
 ## Feature Priorities (build in this order)
 Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (BcdCodec, CivCommands, CivFrame, CivFrameBuilder, CivFrameParser, ICivTransport, SerialCivTransport, 23 passing tests)
 Phase 2: Meter polling (S-meter, SWR, ALC, power, voltage, current) — COMPLETE (MeterDecoder, RadioModel, MeterSnapshot, Transceiver with async polling loop and mode/frequency/PTT event wiring, 43 passing tests)
@@ -80,15 +105,18 @@ Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/W
   in-memory QSO list with auto-fill of frequency/mode/band from the live Transceiver at
   log time, 8-band frequency-to-band mapping (160M-70CM), callsign uppercasing, ADIF
   export, and log clearing. 97 passing tests. REMAINING: logging UI panel (quick-entry
-  fields, Log QSO button, running table).
+  fields, Log QSO button, running table); persistent write-through-to-file per Core
+  Design Principle above (currently in-memory-until-export only — needs upgrade).
   8b. Contest mode — COMPLETE: ContestDefinition record (exchange field labels, scoring
   rules, valid bands/modes, dupe rules) + ContestCatalog with ARRL Field Day (points by
   mode: CW/FT8/FT4/RTTY=2, phone=1; same-station-same-band dupe rule); 10 passing tests.
   ContestScoreCalculator computes running totals (points, QSO count, sections worked as
   multiplier candidates) from a contest log; 6 passing tests. 113 passing tests total.
-  REMAINING: additional contest catalog entries beyond Field Day, added incrementally as
-  needed (each is a small addition to ContestCatalog.cs, typically 5-60 minutes including
-  tests — see conversation notes on extensibility); live running score display in UI.
+  Primary use case: casual/simple contests logged directly in IcomRigControl. For rare or
+  frequently-changing contests, the user's workflow is to run N1MM instead (which owns
+  contest-rule currency) — see 8f Direction 2 for how those QSOs still reach this
+  project's log. REMAINING: additional contest catalog entries beyond Field Day, added
+  incrementally as needed; live running score display in UI.
   8c. Callsign lookup: ICallsignLookupSource interface with multiple pluggable
   implementations — QrzLookupSource (requires paid QRZ XML Data subscription, user
   supplies their own credentials), HamQthLookupSource (free, no subscription),
@@ -105,41 +133,55 @@ Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/W
   in-house — TQSL is the correct, ARRL-sanctioned tool for this). Upload = signed .tq8
   POST to ARRL's LoTW server. Download = query LoTW's API for QSOs confirmed since a
   given date, returned as ADIF, matched back against local QsoRecords to mark confirmed.
-  8e. Ham Radio Deluxe integration (two layers, in order):
-    Layer 1 (primary, reliable) — ADIF handoff. HRD Logbook v6.9+ natively imports/
-    exports ADIF against its SQLite backend (confirmed working path, actively
-    maintained by HRD). The existing AdifWriter output should import directly with no
-    new code — verify once near a machine with HRD installed.
-    Layer 2 (bonus, best-effort) — HrdSqliteBridge direct write. HRD Logbook v6.9+
+  8e. Ham Radio Deluxe integration (three layers, in order). User's stated workflow: HRD
+  Logbook remains the primary day-to-day logger and full HRD suite (bandmap, DX cluster,
+  awards tracking) stays in active use; IcomRigControl is the preferred radio controller
+  feeding HRD accurate status; IcomRigControl's own log remains the resilient backup of
+  record per the Core Design Principle above regardless of HRD's availability.
+    Layer 1 (status feed, real-time) — the shared RadioInfoUdpBroadcaster (see 8f)
+    pointed at HRD Logbook's documented "UDP Receive" feature, so HRD's logbook fields
+    and other components auto-populate from IcomRigControl's rig control without HRD
+    needing its own CAT connection to the radio.
+    Layer 2 (primary logging bridge, reliable) — ADIF handoff. HRD Logbook v6.9+
+    natively imports/exports ADIF against its SQLite backend (confirmed working path,
+    actively maintained by HRD). The existing AdifWriter output should import directly
+    with no new code — verify once near a machine with HRD installed.
+    Layer 3 (bonus, best-effort) — HrdSqliteBridge direct write. HRD Logbook v6.9+
     replaced Access with an embedded SQLite database (default location on Windows:
     %AppData%\Simon Brown, HB9DRV\HRD Logbook\), table TABLE_HRD_CONTACTS_V01 with
     columns including col_call, col_time_on, col_mode, col_band, col_country,
     col_contest_id (schema reverse-engineered from community sources, not officially
     documented — see coding standards note above on required defensive handling). Uses
     Microsoft.Data.Sqlite (lightweight, no server process) to write each logged QSO
-    directly into HRD's live database as it's logged in IcomRigControl, so it appears
-    in HRD Logbook without a manual export/import step. Toggleable in Settings, off by
-    default, always falls back gracefully to ADIF-only if the database file or expected
-    schema isn't found.
-  8f. N1MM Logger+ and WSJT-X UDP integration: both programs share the same documented
-  XML-over-UDP "External UDP Messages" protocol family (N1MM default port 12060,
-  WSJT-X default port 2333) — see coding standards note above on why this is preferred
-  over private-schema integrations. Two directions, both worth building:
-    Direction 1 (send) — N1MmUdpBroadcastService sends RadioInfo-format XML packets
+    directly into HRD's live database as it's logged in IcomRigControl. Toggleable in
+    Settings, off by default, always falls back gracefully to ADIF-only if the database
+    file or expected schema isn't found.
+  8f. N1MM Logger+, WSJT-X, and HRD UDP integration — the shared RadioInfoUdpBroadcaster
+  and listener infrastructure. User's stated workflow: for rare/frequently-changing
+  contests, run N1MM (which owns contest-rule currency) with IcomRigControl as the radio
+  controller feeding it status; N1MM's logged contacts flow back into IcomRigControl's
+  resilient local log. Two directions:
+    Direction 1 (send) — RadioInfoUdpBroadcaster sends RadioInfo-format XML packets
     (frequency, mode, band, TX/RX state) derived from Transceiver's live state, matching
-    N1MM's documented RadioInfo packet schema. Lets N1MM+ (or any other UDP-listening
-    program, including HRD via its own UDP Receive feature) treat IcomRigControl as its
-    rig-control source instead of maintaining a separate CAT connection to the radio —
-    directly furthering the goal of preferring this project's rig control over other
-    programs' built-in CAT support.
+    the documented RadioInfo packet schema shared by N1MM, WSJT-X, and HRD's UDP Receive
+    feature. Built once, generically, with a configurable list of destination IP:port
+    targets so it can feed N1MM, HRD, and/or WSJT-X simultaneously — not three separate
+    broadcasters. Lets those programs treat IcomRigControl as their rig-status source
+    instead of maintaining their own separate CAT connection to the radio (see coding
+    standards note above on scope — this is status-sharing, not full CAT replacement).
     Direction 2 (receive) — N1mmUdpListenerService listens for Contact-format XML
     packets N1MM+ (or WSJT-X) broadcasts whenever a QSO is logged there, and mirrors
-    each into QsoLogger so contest QSOs logged through N1MM's own interface still end
-    up in this project's ADIF export/HRD bridge/LoTW pipeline without manual re-entry.
+    each into QsoLogger so contest QSOs logged through N1MM's own interface still end up
+    in this project's resilient local log and downstream ADIF/HRD/LoTW pipeline, per the
+    Core Design Principle above — without manual re-entry, and without depending on N1MM
+    staying up.
     Both directions use plain UdpClient send/receive, XML parsing via System.Xml, and
     follow the same never-crash-on-network-hiccup pattern as EmmcomBridge. Toggleable
-    and configurable (port numbers) in Settings, off by default.
-Phase 9: Remote/network mode (headless Pi server + TCP client)
+    and configurable (destination/port list) in Settings, off by default.
+Phase 9: Remote/network mode (headless Pi server + TCP client) — also the right place to
+revisit true CAT-replacement for N1MM/HRD (virtual serial port or network CAT interface)
+if wanted, once this phase's networking foundation exists — see coding standards note
+above on why this is explicitly out of scope for Phase 8.
 Phase 10: Remote audio + APRS beacon (combined) — NAudio on Windows, AVFoundation
 wrapper on macOS, for playing software-generated AFSK/AX.25 APRS packet audio out
 through an audio device into the radio's mic/data input (HF APRS on IC-7300/MK2); also
@@ -166,9 +208,12 @@ if the front panel layout is identical; separate images only if the MK2's panel 
   use a local config file excluded via .gitignore, or the OS credential store.
 - Do not write to HRD Logbook's SQLite database without defensive schema checks — a
   broken assumption here could corrupt another program's live data file.
-- Do not broadcast N1MM/WSJT-X UDP traffic to anything other than 127.0.0.1 or an
+- Do not broadcast N1MM/WSJT-X/HRD UDP traffic to anything other than 127.0.0.1 or an
   explicitly user-configured LAN address — never broadcast to wider subnets or the
   internet by default.
+- Do not make any external integration (HRD, N1MM, WSJT-X, LoTW, EMMCOM) a dependency
+  that could prevent a QSO from being recorded in IcomRigControl's own local log — see
+  Core Design Principle above.
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
@@ -186,7 +231,8 @@ icomuk.co.uk/files/icom/PDF/productAdditionalFile/IC-7300MK2_ENG_CI-V_0.pdf
 - ARRL LoTW / TQSL (Phase 8d): lotw.arrl.org
 - HRD Logbook database docs (Phase 8e): support.hamradiodeluxe.com — SQLite backend as
   of v6.9 (Oct 2025 rewrite); table/column names not officially documented, sourced from
-  community references only.
+  community references only. HRD's "UDP Receive" / QSO Forwarding feature documented at
+  the same support site.
 - N1MM External UDP Messages docs (Phase 8f): n1mmwp.hamdocs.com/appendices/external-udp-broadcasts/
   — full XML schema for RadioInfo, Contact, ContactInfo, Spot Data, Score Reporting, etc.
 ## Related Projects
@@ -195,14 +241,16 @@ icomuk.co.uk/files/icom/PDF/productAdditionalFile/IC-7300MK2_ENG_CI-V_0.pdf
   (UDP/file/etc.) not yet reviewed against this project.
 - EMMCOM Field Comms Server: dashboard integration target for Phase 6 — COMPLETE, real
   endpoint URL to be confirmed and configured when available
-- Ham Radio Deluxe (Simon Brown, HB9DRV): user's existing logging tool of choice, being
-  integrated with per Phase 8e rather than replaced — IcomRigControl's rig control is
-  intended to be preferred over HRD's own rig control, while HRD Logbook's logging
-  features remain in active use.
-- N1MM Logger+: user's existing contest logging tool of choice, being integrated with
-  per Phase 8f via the standard External UDP Messages protocol — same "prefer this
-  project's rig control" goal as the HRD integration, plus mirroring N1MM-logged
-  contacts into this project's ADIF/export pipeline.
+- Ham Radio Deluxe (Simon Brown, HB9DRV): user's PRIMARY day-to-day logger and full
+  suite (bandmap, DX cluster, awards tracking) remain in active use — not being replaced.
+  IcomRigControl's role is (1) preferred radio controller feeding HRD accurate status via
+  UDP, (2) resilient independent backup log per Core Design Principle, (3) optional
+  direct-write convenience bridge. See Phase 8e.
+- N1MM Logger+: user's preferred tool for rare/frequently-changing contests specifically
+  because N1MM owns contest-rule currency — IcomRigControl's simple built-in contest mode
+  (8b) is for casual/simple contests only, by design, not a competitor to N1MM's catalog.
+  IcomRigControl is the radio controller feeding N1MM status; N1MM's logged contacts flow
+  back into IcomRigControl's resilient local log. See Phase 8f.
 - WSJT-X: shares the same UDP protocol family as N1MM (Phase 8f), covered by the same
   integration work with a different default port.
 ## Session Start Checklist

@@ -89,6 +89,20 @@ public class QsoLogger
         return qso;
     }
 
+    /// Adds a QsoRecord that was already fully constructed elsewhere (e.g. received
+    /// over UDP from N1MM/WSJT-X/HRD via ContactUdpListener) directly into the log,
+    /// without auto-filling frequency/mode from this instance's own Transceiver —
+    /// the received record already carries its own correct frequency/mode/timestamp.
+    public void LogReceivedQso(QsoRecord qso)
+    {
+        _qsos.Add(qso);
+
+        if (SessionFilePath != null && _sessionFileHeaderWritten)
+        {
+            File.AppendAllText(SessionFilePath, AdifWriter.FormatQso(qso) + Environment.NewLine);
+        }
+    }
+
     public void ExportToAdif(string path)
     {
         AdifWriter.WriteToFile(path, _qsos);

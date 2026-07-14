@@ -37,6 +37,11 @@ conversion
 - Network-calling services (EmmcomBridge, future AprsBridge) must never throw back to the
   Transceiver's event dispatch — catch and record errors internally (LastError property),
   never crash the polling loop over a network hiccup.
+- Neither IC-7300 nor IC-7300MK2 has a built-in TNC or APRS engine (unlike Icom's
+  IC-9700/IC-2730, which do — but those use a different, radio-specific CI-V extension
+  set not covered by this project). Any APRS from this project's target radios must be
+  built as software AFSK/AX.25 packet audio and played out through an audio device into
+  the radio's mic/data input, which is why APRS beaconing is merged with the audio phase.
 ## Feature Priorities (build in this order)
 Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (BcdCodec, CivCommands, CivFrame, CivFrameBuilder, CivFrameParser, ICivTransport, SerialCivTransport, 23 passing tests)
 Phase 2: Meter polling (S-meter, SWR, ALC, power, voltage, current) — COMPLETE (MeterDecoder, RadioModel, MeterSnapshot, Transceiver with async polling loop and mode/frequency/PTT event wiring, 43 passing tests)
@@ -44,11 +49,14 @@ Phase 3: Avalonia UI — main panel with frequency display, mode selector, meter
 Phase 4: Memory bulk editor (read all 99 channels, edit in DataGrid, write back) — COMPLETE (MemoryChannel record, CI-V memory select/read commands, Transceiver.ReadAllMemoriesAsync/WriteMemoryChannelAsync using TaskCompletionSource-based response correlation to avoid event-subscription race conditions, MemoryEditorViewModel + MemoryEditorWindow using ItemsControl table — see DataGrid note above, 52 passing tests)
 Phase 5: Activity logger (CSV output, frequency/mode/meter timestamped) — COMPLETE (ActivityLogger service in IcomRigControl.Services, subscribes to Transceiver.MeterUpdated, writes timestamped CSV per logging session; Start/Stop toggle button in MainWindow with live status indicator; 56 passing tests)
 Phase 6: EMMCOM dashboard integration (push rig status to Field Comms Server) — COMPLETE (EmmcomBridge service posts MeterSnapshot as JSON to a configurable HTTP endpoint on every MeterUpdated event; Start/Stop toggle + URL entry box + status indicator in MainWindow; network failures caught and surfaced via LastError, never crash polling; 60 passing tests)
-Phase 7: APRS beacon (beacon operating frequency as APRS object via CrossPlatformAPRS
-bridge) — ACTIVE
-Phase 8: Spectrum scope capture and waterfall display
-Phase 9: Remote/network mode (headless Pi server + TCP client)
-Phase 10: Remote audio (NAudio on Windows; AVFoundation wrapper on macOS)
+Phase 7: Spectrum scope capture and waterfall display — ACTIVE
+Phase 8: Remote/network mode (headless Pi server + TCP client)
+Phase 9: Remote audio + APRS beacon (combined) — NAudio on Windows, AVFoundation wrapper
+on macOS, for playing software-generated AFSK/AX.25 APRS packet audio out through an
+audio device into the radio's mic/data input (HF APRS on IC-7300/MK2); also covers
+general remote-audio RX/TX streaming. Beacon target: APRS-Command (formerly
+CrossPlatformAPRS) — bridge mechanism (UDP/file/direct) to be determined once
+APRS-Command's ingestion method is reviewed.
 ## What NOT to do
 - Do not implement features out of phase order without explicit instruction
 - Do not add NuGet packages without listing them here first
@@ -68,7 +76,9 @@ icomuk.co.uk/files/icom/PDF/productAdditionalFile/IC-7300MK2_ENG_CI-V_0.pdf
 - wfview source (CI-V implementation reference): github.com/wf-group/wfview
 - This master reference PDF: IcomRigControl_Master_Reference.pdf (project docs folder)
 ## Related Projects
-- CrossPlatformAPRS (KE4CON/CrossPlatformAPRS): APRS beacon target for Phase 7
+- APRS-Command (formerly CrossPlatformAPRS, KE4CON): APRS beacon target for Phase 9
+  (combined audio/APRS phase) — project was archived and renamed; ingestion mechanism
+  (UDP/file/etc.) not yet reviewed against this project.
 - EMMCOM Field Comms Server: dashboard integration target for Phase 6 — COMPLETE, real
   endpoint URL to be confirmed and configured when available
 ## Session Start Checklist
@@ -78,8 +88,8 @@ Before writing any code in a session:
 3. Check that the layer being touched matches the Phase
 4. Do not refactor other layers unless the current Phase explicitly requires it
 ## Deployment Targets
-Headless CI-V server (Phase 9, no UI): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable.
-Full Avalonia UI + scope on Pi (Phase 8-9 combined): Raspberry Pi 5, 8GB RAM — standardized target for breathing room with scope waterfall, EMMCOM bridge, and APRS beacon running concurrently.
+Headless CI-V server (Phase 8, no UI): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable.
+Full Avalonia UI + scope on Pi (Phase 7-8 combined): Raspberry Pi 5, 8GB RAM — standardized target for breathing room with scope waterfall, EMMCOM bridge, and APRS beacon running concurrently.
 Storage: 16-32GB microSD (A2 rated recommended for sustained write performance from ActivityLogger).
 
 ## Supported Desktop Platforms (all four, via Avalonia 11)

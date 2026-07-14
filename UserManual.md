@@ -1,7 +1,7 @@
 # IcomRigControl User Manual
 
 **For:** Jim, KE4CON
-**Covers:** Phases 1-8 (through Phase 8f, Direction 2)
+**Covers:** Phases 1-8 (through Phase 8f, both directions complete)
 **Last updated:** with each phase completion
 
 ---
@@ -35,6 +35,7 @@ IcomRigControl is a cross-platform desktop application (Windows, macOS, Linux, R
 - Integration with an EMMCOM Field Comms Server
 - ADIF-based QSO logging, including a simple built-in contest mode
 - Automatic, resilient backup logging of QSOs from external programs (N1MM, WSJT-X, HRD Logbook)
+- Broadcasting live rig status to those same external programs
 
 ### 1.2 System Requirements
 
@@ -63,10 +64,10 @@ IC-7300MK2: CI-V address 0xB6
 Shows connection status text.
 
 ### 2.2 Frequency Entry
-Type a frequency in Hz (e.g. 14074000) and click Set Freq to tune the radio.
+Type a frequency in Hz and click Set Freq to tune the radio.
 
 ### 2.3 Frequency Display
-Large green digital readout of the current frequency. Mode buttons (LSB/USB/AM/CW/FM) change mode instantly.
+Large green digital readout. Mode buttons (LSB/USB/AM/CW/FM) change mode instantly.
 
 ### 2.4 Spectrum Scope / Waterfall
 See section 5.
@@ -75,7 +76,7 @@ See section 5.
 Red dot = transmitting, gray = receiving. Toggle PTT button manually keys/unkeys the radio.
 
 ### 2.6 Meters Grid
-S-Meter, Power, SWR, ALC, Supply Voltage, Current Draw - all updating roughly twice per second.
+S-Meter, Power, SWR, ALC, Supply Voltage, Current Draw - updating roughly twice per second.
 
 ### 2.7 Activity Logging Control
 See section 4.
@@ -94,7 +95,7 @@ Opens the Memory Channel Editor window - see section 3.
 Click Read All Channels. Takes about 45 seconds on real hardware. Progress bar shows live progress.
 
 ### 3.2 The Channel Table
-Shows Channel Number, Frequency, Mode, Name for every programmed channel. Uses a custom list display rather than a standard data grid due to a confirmed rendering bug in the underlying UI framework (see Troubleshooting 9.4).
+Shows Channel Number, Frequency, Mode, Name for every programmed channel. Uses a custom list display rather than a standard data grid due to a confirmed rendering bug in the underlying UI framework.
 
 ### 3.3 Writing Channels
 Add Channel appends a blank row. Write All Channels pushes every row back to the radio.
@@ -113,10 +114,10 @@ Click Start Logging. Creates a file at:
 Important: if your Documents folder is redirected by OneDrive, the file lands in the OneDrive-synced Documents folder.
 
 ### 4.2 CSV Columns
-Timestamp, FrequencyHz, Mode, SMeterS, SMeterDbm, RfPowerPercent, SwrRatio, AlcLevel, SupplyVoltage, CurrentDraw. One row roughly every 500ms.
+Timestamp, FrequencyHz, Mode, SMeterS, SMeterDbm, RfPowerPercent, SwrRatio, AlcLevel, SupplyVoltage, CurrentDraw.
 
 ### 4.3 Stopping
-Click Stop Logging. File remains on disk.
+Click Stop Logging.
 
 ---
 
@@ -168,26 +169,37 @@ New contest definitions are a small, isolated code change (ContestCatalog.cs).
 ## 8. External Program Integration (N1MM / WSJT-X / HRD)
 
 ### 8.1 The Core Idea
-IcomRigControl controls the radio. N1MM and HRD Logbook keep doing what they do best, while IcomRigControl keeps its own independent backup of every QSO logged anywhere.
+IcomRigControl controls the radio. N1MM and HRD Logbook keep doing what they do best, while IcomRigControl keeps its own independent backup of every QSO logged anywhere, AND shares its live rig status with those programs so they don't need their own separate CAT connection to the radio.
 
-### 8.2 Status
-Built: IcomRigControl receiving QSOs from N1MM/WSJT-X/HRD.
-Planned: sending rig status out; HRD direct-write bridge; LoTW; callsign lookup.
+### 8.2 Status (both directions now complete at the engine level)
 
-### 8.3 Configuring N1MM Logger+
-Config menu, Configure Ports, Broadcast Data tab, check Contacts box, destination 127.0.0.1:port.
+Built and tested: IcomRigControl SENDING its rig status (frequency/mode/PTT) out to N1MM, WSJT-X, and/or HRD.
+Built and tested: IcomRigControl RECEIVING QSOs broadcast by N1MM/WSJT-X/HRD (automatic backup).
+Still planned: exposing Start/Stop and destination/port settings in the app's UI (currently these exist in the underlying code but are not yet reachable through on-screen settings - a developer must wire this up before it's usable without editing code); HRD direct-write bridge; LoTW; callsign lookup.
 
-### 8.4 Configuring HRD Logbook
-QSO Forwarding dialog, UDP Send, destination 127.0.0.1:port.
+### 8.3 Configuring N1MM Logger+ to Send QSOs to IcomRigControl
+1. Config menu, Configure Ports/Mode Control/Audio/Other.
+2. Broadcast Data tab.
+3. Check the Contacts box.
+4. Destination IP:Port = 127.0.0.1:<port IcomRigControl listens on>.
+5. Save.
 
-### 8.5 Configuring WSJT-X
-File, Settings, Reporting, UDP Server, 127.0.0.1:2333.
+### 8.4 Configuring N1MM Logger+ to Receive Status FROM IcomRigControl
+Once IcomRigControl's send feature is exposed in its own Settings, you will add N1MM's listening address (typically 127.0.0.1:12060) as a destination there. N1MM will then show IcomRigControl's live frequency and mode without its own CAT connection to the radio.
 
-### 8.6 Verifying It Works
-Log a test QSO, check the session log file.
+### 8.5 Configuring HRD Logbook
+For receiving QSOs: open the QSO Forwarding dialog, under UDP Send enable broadcasting, destination 127.0.0.1:<port IcomRigControl listens on>.
+For receiving status FROM IcomRigControl: HRD's "UDP Receive" feature in the same dialog: point IcomRigControl's destination list (once exposed in Settings) at HRD's listening address.
+Important: use different ports for send vs receive if HRD does both.
 
-### 8.7 What Automatic Actually Requires
-Listener running plus one-time config in each external program.
+### 8.6 Configuring WSJT-X
+File, Settings, Reporting. Enable UDP Server broadcast, pointed at 127.0.0.1:2333 (WSJT-X default port).
+
+### 8.7 Verifying It Works
+Log a test QSO in N1MM/WSJT-X/HRD, check IcomRigControl's session log file (section 7.1) - the contact should appear within a couple seconds. Change frequency in IcomRigControl and confirm N1MM/HRD (once configured to receive) shows the update.
+
+### 8.8 What Automatic Actually Requires
+Requires: IcomRigControl's listener/broadcaster running, AND a one-time configuration step in each external program. Once configured, no further action is needed.
 
 ---
 
@@ -224,3 +236,4 @@ Network endpoint unreachable, keeps retrying, never crashes.
 ## 11. Revision History
 
 2026-07-14: Initial manual created, covering Phases 1 through 8f (Direction 2: receiving external QSOs).
+2026-07-14: Updated section 8 - Phase 8f Direction 1 (sending rig status) now also complete at the engine level. Both send and receive directions documented.

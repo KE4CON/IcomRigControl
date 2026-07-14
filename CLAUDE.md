@@ -13,7 +13,7 @@ radio model.
 Layer 2 — RigModel: Transceiver class exposing clean C# properties and events. Consumes
 CivEngine only.
 Layer 3 — Services: Logger, EMMCOM bridge, APRS beacon, backfill queue, ADIF logger,
-callsign lookup, LoTW sync. Consume RigModel only.
+callsign lookup, LoTW sync, HRD bridge. Consume RigModel only.
 Layer 4 — UI: Avalonia views and view-models. Consume Services and RigModel only. Never
 touches CivEngine directly.
 ## Coding Standards
@@ -51,6 +51,13 @@ conversion
   asset in this project. The radio front-panel image for Phase 11 must be either a photo
   the user personally took of their own hardware, a licensed/permitted image, or an
   original vector illustration — not a photo sourced from the web.
+- HRD Logbook's SQLite database schema (table TABLE_HRD_CONTACTS_V01, columns like
+  col_call/col_time_on/col_mode/col_band) is reverse-engineered from community sources,
+  not officially published by HRD — it can change without notice on any HRD update.
+  Any direct-write HRD integration (HrdSqliteBridge) must be a best-effort bonus layered
+  on top of the always-reliable ADIF export path, never a replacement for it, and must
+  fail silently/log-only if the schema doesn't match what's expected (never corrupt or
+  crash HRD's database).
 ## Feature Priorities (build in this order)
 Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (BcdCodec, CivCommands, CivFrame, CivFrameBuilder, CivFrameParser, ICivTransport, SerialCivTransport, 23 passing tests)
 Phase 2: Meter polling (S-meter, SWR, ALC, power, voltage, current) — COMPLETE (MeterDecoder, RadioModel, MeterSnapshot, Transceiver with async polling loop and mode/frequency/PTT event wiring, 43 passing tests)
@@ -59,16 +66,20 @@ Phase 4: Memory bulk editor (read all 99 channels, edit in DataGrid, write back)
 Phase 5: Activity logger (CSV output, frequency/mode/meter timestamped) — COMPLETE (ActivityLogger service in IcomRigControl.Services, subscribes to Transceiver.MeterUpdated, writes timestamped CSV per logging session; Start/Stop toggle button in MainWindow with live status indicator; 56 passing tests)
 Phase 6: EMMCOM dashboard integration (push rig status to Field Comms Server) — COMPLETE (EmmcomBridge service posts MeterSnapshot as JSON to a configurable HTTP endpoint on every MeterUpdated event; Start/Stop toggle + URL entry box + status indicator in MainWindow; network failures caught and surfaced via LastError, never crash polling; 60 passing tests)
 Phase 7: Spectrum scope capture and waterfall display — CORE COMPLETE (ScopeDataDecoder, CivFrameBuilder scope commands on/off/span/mode/waveform-output, Transceiver.StartScopeAsync/StopScope with WaveformUpdated event, WaterfallControl using WriteableBitmap with black->blue->green->yellow->red gradient, DemoCivTransport generates fixed-position synthetic signals so streaks render realistically; 74 passing tests). REMAINING: frequency axis labels above the waterfall; click-to-tune (click a point on the waterfall to jump the radio to that frequency).
-Phase 8: ADIF logging (general + contest + callsign lookup + LoTW) — ACTIVE.
-  8a. Core logging: QsoRecord model (callsign, freq, mode, band, date/time, RST sent/
-  received, contest exchange fields, serial number); AdifWriter service producing
-  standard ADIF-tagged export files any logging program can import; logging UI panel
-  with quick-entry fields auto-filled from live Transceiver frequency/mode.
-  8b. Contest mode: ContestDefinition record (exchange field labels, scoring rules,
-  valid bands/modes, dupe rules) + small built-in catalog starting with ARRL Field Day
-  (fully modeled scoring including power class and bonus points) before adding further
-  contests incrementally. Dupe-checking (same station/band = dupe) and a live running
-  score display.
+Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD integration) — ACTIVE.
+  8a. Core logging — COMPLETE: QsoRecord model (callsign, freq, mode, band, date/time,
+  RST sent/received, contest exchange fields, serial number); AdifWriter service
+  producing standard ADIF-tagged export files any logging program can import (header,
+  per-QSO formatting, optional-field omission); QsoLogger service managing the session's
+  in-memory QSO list with auto-fill of frequency/mode/band from the live Transceiver at
+  log time, 8-band frequency-to-band mapping (160M-70CM), callsign uppercasing, ADIF
+  export, and log clearing. 97 passing tests. REMAINING: logging UI panel (quick-entry
+  fields, Log QSO button, running table).
+  8b. Contest mode — ACTIVE: ContestDefinition record (exchange field labels, scoring
+  rules, valid bands/modes, dupe rules) + small built-in catalog starting with ARRL
+  Field Day (fully modeled scoring including power class and bonus points) before adding
+  further contests incrementally. Dupe-checking (same station/band = dupe) and a live
+  running score display.
   8c. Callsign lookup: ICallsignLookupSource interface with multiple pluggable
   implementations — QrzLookupSource (requires paid QRZ XML Data subscription, user
   supplies their own credentials), HamQthLookupSource (free, no subscription),
@@ -85,6 +96,27 @@ Phase 8: ADIF logging (general + contest + callsign lookup + LoTW) — ACTIVE.
   in-house — TQSL is the correct, ARRL-sanctioned tool for this). Upload = signed .tq8
   POST to ARRL's LoTW server. Download = query LoTW's API for QSOs confirmed since a
   given date, returned as ADIF, matched back against local QsoRecords to mark confirmed.
+  8e. Ham Radio Deluxe integration (two layers, in order):
+    Layer 1 (primary, reliable) — ADIF handoff. HRD Logbook v6.9+ natively imports/
+    exports ADIF against its SQLite backend (confirmed working path, actively
+    maintained by HRD). The existing AdifWriter output should import directly with no
+    new code — verify once near a machine with HRD installed.
+    Layer 2 (bonus, best-effort) — HrdSqliteBridge direct write. HRD Logbook v6.9+
+    replaced Access with an embedded SQLite database (default location on Windows:
+    %AppData%\Simon Brown, HB9DRV\HRD Logbook\), table TABLE_HRD_CONTACTS_V01 with
+    columns including col_call, col_time_on, col_mode, col_band, col_country,
+    col_contest_id (schema reverse-engineered from community sources, not officially
+    documented — see coding standards note above on required defensive handling). Uses
+    Microsoft.Data.Sqlite (lightweight, no server process) to write each logged QSO
+    directly into HRD's live database as it's logged in IcomRigControl, so it appears
+    in HRD Logbook without a manual export/import step. Toggleable in Settings, off by
+    default, always falls back gracefully to ADIF-only if the database file or expected
+    schema isn't found.
+    Longer-term alternative worth revisiting once Phase 9 (networking) exists: expose
+    IcomRigControl's own rig-status over a simple TCP/CAT-style interface so HRD's other
+    components (or third-party tools) can query it directly as a rig-control source,
+    rather than IcomRigControl reaching into HRD's database at all — more sustainable
+    than schema reverse-engineering long-term.
 Phase 9: Remote/network mode (headless Pi server + TCP client)
 Phase 10: Remote audio + APRS beacon (combined) — NAudio on Windows, AVFoundation
 wrapper on macOS, for playing software-generated AFSK/AX.25 APRS packet audio out
@@ -110,6 +142,8 @@ if the front panel layout is identical; separate images only if the MK2's panel 
 - Do not hardcode radio addresses — read from config
 - Do not store QRZ/HamQTH/LoTW credentials in plain text in source-controlled files —
   use a local config file excluded via .gitignore, or the OS credential store.
+- Do not write to HRD Logbook's SQLite database without defensive schema checks — a
+  broken assumption here could corrupt another program's live data file.
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
@@ -125,12 +159,19 @@ icomuk.co.uk/files/icom/PDF/productAdditionalFile/IC-7300MK2_ENG_CI-V_0.pdf
 - HamQTH XML API docs (Phase 8c, free): hamqth.com/developers.php
 - Callook.us API (Phase 8c, free, US calls only): callook.info
 - ARRL LoTW / TQSL (Phase 8d): lotw.arrl.org
+- HRD Logbook database docs (Phase 8e): support.hamradiodeluxe.com — SQLite backend as
+  of v6.9 (Oct 2025 rewrite); table/column names not officially documented, sourced from
+  community references only.
 ## Related Projects
 - APRS-Command (formerly CrossPlatformAPRS, KE4CON): APRS beacon target for Phase 10
   (combined audio/APRS phase) — project was archived and renamed; ingestion mechanism
   (UDP/file/etc.) not yet reviewed against this project.
 - EMMCOM Field Comms Server: dashboard integration target for Phase 6 — COMPLETE, real
   endpoint URL to be confirmed and configured when available
+- Ham Radio Deluxe (Simon Brown, HB9DRV): user's existing logging tool of choice, being
+  integrated with per Phase 8e rather than replaced — IcomRigControl's rig control is
+  intended to be preferred over HRD's own rig control, while HRD Logbook's logging
+  features remain in active use.
 ## Session Start Checklist
 Before writing any code in a session:
 1. Read this file

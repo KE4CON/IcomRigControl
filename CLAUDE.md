@@ -23,8 +23,8 @@ radio model.
 Layer 2 — RigModel: Transceiver class exposing clean C# properties and events. Consumes
 CivEngine only.
 Layer 3 — Services: Logger, EMMCOM bridge, APRS beacon, backfill queue, ADIF logger,
-callsign lookup, LoTW sync, HRD bridge, RadioInfo UDP broadcaster, N1MM/WSJT-X UDP
-listener. Consume RigModel only.
+callsign lookup (Callook/QRZ/HamQTH), LoTW sync, HRD bridge, RadioInfo UDP broadcaster,
+N1MM/WSJT-X UDP listener. Consume RigModel only.
 Layer 4 — UI: Avalonia views and view-models. Consume Services and RigModel only. Never
 touches CivEngine directly.
 ## Documentation Requirements
@@ -68,11 +68,21 @@ conversion
 - HRD Logbook's SQLite schema is reverse-engineered from community sources, not
   officially published — any direct-write integration must be best-effort, defensive,
   and never a replacement for the ADIF path.
-- N1MM/WSJT-X/HRD UDP integration uses a public, documented XML-over-UDP protocol
-  (N1MM's External UDP Messages, port 12060; WSJT-X port 2333; HRD's UDP Receive feature
-  consumes the same protocol). One shared broadcaster/listener pair serves all three.
+- N1MM/WSJT-X/HRD UDP integration uses a public, documented XML-over-UDP protocol. One
+  shared broadcaster/listener pair serves all three.
 - Do not attempt to make N1MM or HRD's own rig control literally driven by
   IcomRigControl (CAT replacement) as part of Phase 8 — that's Phase 9 territory.
+- ICallsignLookupSource implementations must NEVER throw — network failure, malformed
+  response, bad credentials, or "not found" all return null, never an exception. A
+  lookup failure must never block manual QSO entry. All three implementations
+  (CallookLookupSource, QrzLookupSource, HamQthLookupSource) follow this contract and
+  are proven against each service's real, documented XML response formats (not guessed
+  shapes) — verified via web search of each service's official API documentation before
+  implementation, not assumed from memory.
+- QRZ and HamQTH both use a session-based login pattern (login once, cache the session
+  key/ID, reuse across lookups, re-login only if the session errors out) — do not log in
+  on every single lookup call; this is both against each service's documented best
+  practice and unnecessarily slow.
 ## Feature Priorities (build in this order)
 Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (23 passing tests)
 Phase 2: Meter polling — COMPLETE (43 passing tests)
@@ -82,38 +92,25 @@ Phase 5: Activity logger (CSV) — COMPLETE (56 passing tests)
 Phase 6: EMMCOM dashboard integration — COMPLETE (60 passing tests)
 Phase 7: Spectrum scope capture and waterfall display — CORE COMPLETE (74 passing tests). REMAINING: frequency axis labels; click-to-tune.
 Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — ACTIVE.
-  8a. Core logging — COMPLETE: QsoRecord, AdifWriter, QsoLogger with persistent
-  write-through to a timestamped session file on every LogQso call. 118 passing tests.
-  REMAINING: logging UI panel (quick-entry fields, Log QSO button, running table).
-  8b. Contest mode — COMPLETE: ContestDefinition, ContestCatalog with ARRL Field Day,
-  ContestScoreCalculator. REMAINING: additional contest catalog entries beyond Field Day;
-  live running score display in UI.
-  8c. Callsign lookup — NOT YET BUILT. ICallsignLookupSource interface, QRZ/HamQTH/Callook
-  implementations, user-selectable in Settings.
-  8d. LoTW upload/download — NOT YET BUILT. LotwBridge shelling out to TQSL.
-  8e. Ham Radio Deluxe integration (three layers) — NOT YET BUILT.
-    Layer 1 (status feed) — shares RadioInfoUdpBroadcaster infrastructure from 8f,
-    pointed at HRD's UDP Receive feature. Ready to wire up now that the broadcaster
-    exists (see 8f Direction 1, COMPLETE) — just needs a destination added and UI exposure.
-    Layer 2 (ADIF handoff) — should already work via existing AdifWriter; verify once
-    near a machine with HRD installed.
-    Layer 3 (HrdSqliteBridge direct write, bonus/best-effort) — NOT YET BUILT.
-  8f. N1MM Logger+, WSJT-X, and HRD UDP integration — COMPLETE (both directions).
-    Direction 1 (send) — COMPLETE: RadioInfoUdpBroadcaster sends RadioInfo-format XML
-    packets (frequency, mode, PTT state) to a configurable list of destination IP:port
-    targets whenever Transceiver's FrequencyChanged/ModeChanged/PttChanged events fire.
-    Built generically so the same broadcaster instance can feed N1MM, HRD, and/or
-    WSJT-X simultaneously by adding multiple destinations. Proven with a real UDP
-    send/receive test over an actual loopback socket. 6 passing tests.
-    Direction 2 (receive) — COMPLETE: ContactPacketParser + ContactUdpListener receive
-    and parse Contact-format XML packets from N1MM/WSJT-X/HRD, mirroring valid contacts
-    into QsoLogger via LogReceivedQso. Proven with a real UDP integration test. 13
-    passing tests (9 parser + 4 listener).
-    137 passing tests total across all of Phase 8f. REMAINING: expose Start/Stop toggles
-    and destination/port configuration in the UI for both directions (currently only
-    instantiable in code, not user-configurable through the app itself) — this is the
-    one piece standing between "built and tested" and "usable by Jim without editing
-    code." Update UserManual.md §8 once exposed in UI, per Documentation Requirements.
+  8a. Core logging — COMPLETE (118 passing tests). REMAINING: logging UI panel.
+  8b. Contest mode — COMPLETE (Field Day). REMAINING: additional contests; live score UI.
+  8c. Callsign lookup — COMPLETE: ICallsignLookupSource interface, CallsignInfo shared
+  result record, and all three planned implementations built and tested against each
+  service's real documented API: CallookLookupSource (free, no credentials, callook.info
+  JSON API, US calls only), QrzLookupSource (paid QRZ XML Data subscription required,
+  session-key login/reuse, xmldata.qrz.com), HamQthLookupSource (free but requires a
+  registered HamQTH account, session-ID login/reuse, hamqth.com/xml.php). 20 passing
+  tests across all three (6 Callook + 7 QRZ + 7 HamQTH). REMAINING: user-facing source
+  selection in Settings (radio button or dropdown) — currently only instantiable in code
+  with the user's chosen source and credentials passed to the constructor; wiring the
+  selected source into the actual QSO logging UI panel (which itself is still pending
+  from 8a) to auto-fill name/grid/address when a callsign is typed.
+  8d. LoTW upload/download — NOT YET BUILT.
+  8e. Ham Radio Deluxe integration (three layers) — NOT YET BUILT. Layer 1 (status feed)
+  ready to wire up now that RadioInfoUdpBroadcaster exists (8f).
+  8f. N1MM Logger+, WSJT-X, and HRD UDP integration — COMPLETE (both directions, 137
+  passing tests). REMAINING: expose Start/Stop toggles and destination/port
+  configuration in the UI.
 Phase 9: Remote/network mode (headless Pi server + TCP client) — also the right place to
 revisit true CAT-replacement for N1MM/HRD, if wanted, once this phase's networking
 foundation exists.
@@ -131,13 +128,18 @@ must be the user's own photo, a licensed image, or an original illustration.
 - Do not use Thread.Sleep — use Task.Delay with CancellationToken
 - Do not swallow exceptions silently — log and surface them
 - Do not hardcode radio addresses — read from config
-- Do not store QRZ/HamQTH/LoTW credentials in plain text in source-controlled files
+- Do not store QRZ/HamQTH/LoTW credentials in plain text in source-controlled files —
+  use a local config file excluded via .gitignore, or the OS credential store. This
+  applies now that QrzLookupSource and HamQthLookupSource both take live credentials —
+  do not commit any real username/password anywhere in this repo.
 - Do not write to HRD Logbook's SQLite database without defensive schema checks
 - Do not broadcast N1MM/WSJT-X/HRD UDP traffic to anything other than 127.0.0.1 or an
   explicitly user-configured LAN address
 - Do not make any external integration a dependency that could prevent a QSO from being
   recorded in IcomRigControl's own local log
 - Do not mark a phase COMPLETE without also updating UserManual.md in the same commit
+- Do not let any ICallsignLookupSource implementation throw an exception under any
+  condition — see coding standards note above
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
@@ -146,9 +148,10 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 - wfview source: github.com/wf-group/wfview
 - Master reference PDF: IcomRigControl_Master_Reference.pdf
 - ADIF spec: adif.org
-- QRZ.com XML API (Phase 8c): xml.qrz.com
-- HamQTH XML API (Phase 8c): hamqth.com/developers.php
-- Callook.us API (Phase 8c): callook.info
+- QRZ.com XML API (Phase 8c, requires paid subscription): xml.qrz.com,
+  full spec at qrz.com/docs/xml/current_spec.html
+- HamQTH XML API (Phase 8c, free with registration): hamqth.com/developers.php
+- Callook.info API (Phase 8c, free, no signup, US calls only): callook.info/api_reference.php
 - ARRL LoTW / TQSL (Phase 8d): lotw.arrl.org
 - HRD Logbook docs (Phase 8e): support.hamradiodeluxe.com
 - N1MM External UDP Messages docs (Phase 8f): n1mmwp.hamdocs.com/appendices/external-udp-broadcasts/
@@ -157,7 +160,7 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 - APRS-Command (formerly CrossPlatformAPRS, KE4CON): APRS beacon target for Phase 10
 - EMMCOM Field Comms Server: Phase 6 — COMPLETE
 - Ham Radio Deluxe: user's PRIMARY day-to-day logger, not being replaced — see Phase 8e
-- N1MM Logger+: user's preferred tool for rare/frequently-changing contests — see Phase 8f, COMPLETE
+- N1MM Logger+: user's preferred tool for rare/frequently-changing contests — Phase 8f COMPLETE
 - WSJT-X: shares the same UDP protocol family as N1MM (Phase 8f, COMPLETE)
 ## Session Start Checklist
 1. Read this file

@@ -20,6 +20,9 @@ public class Transceiver : IAsyncDisposable
     private TaskCompletionSource<long>? _pendingFreqResponse;
     private TaskCompletionSource<string>? _pendingModeResponse;
 
+    private CancellationTokenSource? _scopeCts;
+    private Task? _scopeTask;
+
     public bool IsConnected { get; private set; }
     public long FrequencyHz { get; private set; }
     public string Mode { get; private set; } = string.Empty;
@@ -33,10 +36,14 @@ public class Transceiver : IAsyncDisposable
     public double SupplyVoltage { get; private set; }
     public double CurrentDraw { get; private set; }
 
+    public bool IsScopeRunning { get; private set; }
+    public int[] LastWaveform { get; private set; } = Array.Empty<int>();
+
     public event EventHandler<MeterSnapshot>? MeterUpdated;
     public event EventHandler<long>? FrequencyChanged;
     public event EventHandler<string>? ModeChanged;
     public event EventHandler<bool>? PttChanged;
+    public event EventHandler<int[]>? WaveformUpdated;
 
     public Transceiver(ICivTransport transport, RadioModel model)
     {
@@ -59,6 +66,7 @@ public class Transceiver : IAsyncDisposable
     public async Task DisconnectAsync()
     {
         StopPolling();
+        StopScope();
         await _transport.CloseAsync();
         IsConnected = false;
     }
@@ -259,6 +267,57 @@ public class Transceiver : IAsyncDisposable
         MeterUpdated?.Invoke(this, snapshot);
     }
 
+    /// Start the spectrum scope: turns it on, enables waveform output, and
+    /// begins a background loop requesting a new sweep at the given interval.
+    public async Task StartScopeAsync(TimeSpan sweepInterval, CancellationToken ct = default)
+    {
+        StopScope();
+
+        await _transport.WriteAsync(_builder.SetScopeOn(true), ct);
+        await Task.Delay(50, ct);
+        await _transport.WriteAsync(_builder.SetWaveformOutput(true), ct);
+        await Task.Delay(50, ct);
+
+        IsScopeRunning = true;
+        _scopeCts = new CancellationTokenSource();
+        _scopeTask = Task.Run(() => ScopeLoopAsync(sweepInterval, _scopeCts.Token));
+    }
+
+    public void StopScope()
+    {
+        _scopeCts?.Cancel();
+        _scopeCts = null;
+        IsScopeRunning = false;
+    }
+
+    private async Task ScopeLoopAsync(TimeSpan interval, CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await _transport.WriteAsync(_builder.ReadWaveformData(), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch
+            {
+                // Swallow transient scope read errors — same pattern as meter polling.
+            }
+
+            try
+            {
+                await Task.Delay(interval, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+    }
+
     private void OnDataReceived(object? sender, byte[] data)
     {
         var frames = _parser.Feed(data);
@@ -320,12 +379,18 @@ public class Transceiver : IAsyncDisposable
                     PttChanged?.Invoke(this, PttActive);
                 }
                 break;
+
+            case CivCommands.ScopeControl when frame.SubCommand == 0x00:
+                LastWaveform = ScopeDataDecoder.Decode(frame.Data);
+                WaveformUpdated?.Invoke(this, LastWaveform);
+                break;
         }
     }
 
     public async ValueTask DisposeAsync()
     {
         StopPolling();
+        StopScope();
         _transport.DataReceived -= OnDataReceived;
         await _transport.DisposeAsync();
     }

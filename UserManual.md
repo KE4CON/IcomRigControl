@@ -203,6 +203,31 @@ Requires: IcomRigControl's listener/broadcaster running, AND a one-time configur
 
 ---
 
+---
+
+## 8.9 Logbook of the World (LoTW) Upload and Download
+
+*(Note: as of this writing, this feature exists at the code level but has no on-screen settings yet - a developer must configure it directly. This section documents current capability for reference.)*
+
+### Prerequisites
+LoTW upload/download relies on ARRL's own free TQSL (Trusted QSL) tool being already installed and your station's certificate already configured with ARRL - this is a one-time setup done through ARRL directly, separate from IcomRigControl. IcomRigControl does not replace TQSL and never handles your certificate or signing directly; it launches TQSL as an external program to do the actual signing, exactly as ARRL intends third-party software to do.
+
+### How Upload Works
+1. IcomRigControl hands your ADIF log file to TQSL.
+2. TQSL signs it into a .tq8 file using your installed certificate.
+3. IcomRigControl uploads the signed .tq8 file to ARRL's LoTW server.
+
+If TQSL is not installed, your station location is not configured, or the network is unreachable, the upload fails with a clear message and nothing is lost - your local ADIF log is untouched either way.
+
+### How Download Works
+IcomRigControl can query LoTW for QSOs confirmed since a given date, and will parse the returned confirmations. As of this writing, downloaded confirmations are not yet automatically matched against your local log to mark contacts as confirmed - that matching step is still to be built.
+
+### Status
+Built: signing via TQSL, uploading, downloading and parsing confirmations.
+Not yet built: on-screen settings for the TQSL program location, upload/download buttons in the app, and automatic matching of downloaded confirmations against your local QSO log.
+
+---
+
 ## 9. Troubleshooting
 
 ### 9.1 Finding Your Radio's Serial Port Name

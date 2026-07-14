@@ -27,6 +27,19 @@ callsign lookup, LoTW sync, HRD bridge, RadioInfo UDP broadcaster, N1MM/WSJT-X U
 listener. Consume RigModel only.
 Layer 4 — UI: Avalonia views and view-models. Consume Services and RigModel only. Never
 touches CivEngine directly.
+## Documentation Requirements
+Two documents must be kept current, together, as a single discipline:
+- CLAUDE.md (this file) — the developer/AI-facing project rules and phase status.
+- UserManual.md (project root) — the end-user-facing manual covering everything a
+  completed phase adds or changes for the person actually using the app (new screens,
+  buttons, file locations, external-program configuration steps, troubleshooting notes).
+Whenever a phase (or sub-phase, e.g. 8a/8b/8f) is marked COMPLETE in the Feature
+Priorities section below, UserManual.md MUST be updated in the same commit to document
+what that phase added from the user's perspective — not just noted as done in CLAUDE.md.
+Do not consider a phase's documentation finished until both files reflect it. UserManual.md
+has no automatic "read at session start" mechanism the way CLAUDE.md does for Claude
+tools — this rule is what keeps it current in place of that automation, so treat it as a
+non-optional step of phase completion, not an occasional nice-to-have.
 ## Coding Standards
 - C# 12 features are fine (.NET 10 target)
 - async/await everywhere I/O is involved — no blocking calls on the UI thread
@@ -52,7 +65,8 @@ conversion
 - QsoLogger must write through to a persistent local ADIF file as each QSO is logged
   (not just held in memory until a manual export) — same "session file created on start,
   appended as events occur" pattern as ActivityLogger — so a crash of IcomRigControl
-  itself does not lose an in-progress logging session. See Core Design Principle above.
+  itself does not lose an in-progress logging session. COMPLETE — see Core Design
+  Principle above.
 - Neither IC-7300 nor IC-7300MK2 has a built-in TNC or APRS engine (unlike Icom's
   IC-9700/IC-2730, which do — but those use a different, radio-specific CI-V extension
   set not covered by this project). Any APRS from this project's target radios must be
@@ -104,19 +118,18 @@ Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/W
   per-QSO formatting, optional-field omission); QsoLogger service managing the session's
   in-memory QSO list with auto-fill of frequency/mode/band from the live Transceiver at
   log time, 8-band frequency-to-band mapping (160M-70CM), callsign uppercasing, ADIF
-  export, and log clearing. 97 passing tests. REMAINING: logging UI panel (quick-entry
-  fields, Log QSO button, running table); persistent write-through-to-file per Core
-  Design Principle above (currently in-memory-until-export only — needs upgrade).
+  export, log clearing, AND persistent write-through to a timestamped session file on
+  every LogQso call (resilient backup, see Core Design Principle). 118 passing tests.
+  REMAINING: logging UI panel (quick-entry fields, Log QSO button, running table).
   8b. Contest mode — COMPLETE: ContestDefinition record (exchange field labels, scoring
   rules, valid bands/modes, dupe rules) + ContestCatalog with ARRL Field Day (points by
-  mode: CW/FT8/FT4/RTTY=2, phone=1; same-station-same-band dupe rule); 10 passing tests.
-  ContestScoreCalculator computes running totals (points, QSO count, sections worked as
-  multiplier candidates) from a contest log; 6 passing tests. 113 passing tests total.
+  mode: CW/FT8/FT4/RTTY=2, phone=1; same-station-same-band dupe rule); ContestScoreCalculator
+  computes running totals (points, QSO count, sections worked as multiplier candidates).
   Primary use case: casual/simple contests logged directly in IcomRigControl. For rare or
   frequently-changing contests, the user's workflow is to run N1MM instead (which owns
-  contest-rule currency) — see 8f Direction 2 for how those QSOs still reach this
-  project's log. REMAINING: additional contest catalog entries beyond Field Day, added
-  incrementally as needed; live running score display in UI.
+  contest-rule currency) — see 8f for how those QSOs still reach this project's log.
+  REMAINING: additional contest catalog entries beyond Field Day, added incrementally as
+  needed; live running score display in UI.
   8c. Callsign lookup: ICallsignLookupSource interface with multiple pluggable
   implementations — QrzLookupSource (requires paid QRZ XML Data subscription, user
   supplies their own credentials), HamQthLookupSource (free, no subscription),
@@ -141,7 +154,7 @@ Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/W
     Layer 1 (status feed, real-time) — the shared RadioInfoUdpBroadcaster (see 8f)
     pointed at HRD Logbook's documented "UDP Receive" feature, so HRD's logbook fields
     and other components auto-populate from IcomRigControl's rig control without HRD
-    needing its own CAT connection to the radio.
+    needing its own CAT connection to the radio. NOT YET BUILT.
     Layer 2 (primary logging bridge, reliable) — ADIF handoff. HRD Logbook v6.9+
     natively imports/exports ADIF against its SQLite backend (confirmed working path,
     actively maintained by HRD). The existing AdifWriter output should import directly
@@ -155,29 +168,34 @@ Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/W
     Microsoft.Data.Sqlite (lightweight, no server process) to write each logged QSO
     directly into HRD's live database as it's logged in IcomRigControl. Toggleable in
     Settings, off by default, always falls back gracefully to ADIF-only if the database
-    file or expected schema isn't found.
+    file or expected schema isn't found. NOT YET BUILT.
   8f. N1MM Logger+, WSJT-X, and HRD UDP integration — the shared RadioInfoUdpBroadcaster
   and listener infrastructure. User's stated workflow: for rare/frequently-changing
   contests, run N1MM (which owns contest-rule currency) with IcomRigControl as the radio
   controller feeding it status; N1MM's logged contacts flow back into IcomRigControl's
   resilient local log. Two directions:
-    Direction 1 (send) — RadioInfoUdpBroadcaster sends RadioInfo-format XML packets
-    (frequency, mode, band, TX/RX state) derived from Transceiver's live state, matching
-    the documented RadioInfo packet schema shared by N1MM, WSJT-X, and HRD's UDP Receive
-    feature. Built once, generically, with a configurable list of destination IP:port
-    targets so it can feed N1MM, HRD, and/or WSJT-X simultaneously — not three separate
-    broadcasters. Lets those programs treat IcomRigControl as their rig-status source
-    instead of maintaining their own separate CAT connection to the radio (see coding
-    standards note above on scope — this is status-sharing, not full CAT replacement).
-    Direction 2 (receive) — N1mmUdpListenerService listens for Contact-format XML
-    packets N1MM+ (or WSJT-X) broadcasts whenever a QSO is logged there, and mirrors
-    each into QsoLogger so contest QSOs logged through N1MM's own interface still end up
-    in this project's resilient local log and downstream ADIF/HRD/LoTW pipeline, per the
-    Core Design Principle above — without manual re-entry, and without depending on N1MM
-    staying up.
+    Direction 1 (send) — NOT YET BUILT. RadioInfoUdpBroadcaster will send RadioInfo-format
+    XML packets (frequency, mode, band, TX/RX state) derived from Transceiver's live
+    state, matching the documented RadioInfo packet schema shared by N1MM, WSJT-X, and
+    HRD's UDP Receive feature. To be built once, generically, with a configurable list
+    of destination IP:port targets so it can feed N1MM, HRD, and/or WSJT-X
+    simultaneously — not three separate broadcasters.
+    Direction 2 (receive) — COMPLETE: ContactPacketParser parses Contact-format XML
+    packets (9 passing tests) into QsoRecord; ContactUdpListener listens on a
+    configurable UDP port, receives real packets via UdpClient (proven with an actual
+    loopback socket send/receive integration test, not just mocked), and mirrors valid
+    contacts into QsoLogger via the new LogReceivedQso method (bypasses local-radio
+    auto-fill since the received record already carries its own correct
+    frequency/mode/timestamp from the sending program). Malformed packets are silently
+    ignored without crashing the listener. 4 passing tests. This is the piece that
+    fulfills the Core Design Principle for externally-logged QSOs — N1MM/WSJT-X/HRD
+    contacts now flow automatically into IcomRigControl's resilient local log once the
+    external program's own UDP broadcast is configured to point at this listener (a
+    one-time setup step in each external program, not a per-session step). REMAINING:
+    expose Start/Stop toggle and port configuration in the UI (currently only
+    instantiable in code); update UserManual.md §8 once exposed in UI.
     Both directions use plain UdpClient send/receive, XML parsing via System.Xml, and
-    follow the same never-crash-on-network-hiccup pattern as EmmcomBridge. Toggleable
-    and configurable (destination/port list) in Settings, off by default.
+    follow the same never-crash-on-network-hiccup pattern as EmmcomBridge.
 Phase 9: Remote/network mode (headless Pi server + TCP client) — also the right place to
 revisit true CAT-replacement for N1MM/HRD (virtual serial port or network CAT interface)
 if wanted, once this phase's networking foundation exists — see coding standards note
@@ -214,6 +232,8 @@ if the front panel layout is identical; separate images only if the MK2's panel 
 - Do not make any external integration (HRD, N1MM, WSJT-X, LoTW, EMMCOM) a dependency
   that could prevent a QSO from being recorded in IcomRigControl's own local log — see
   Core Design Principle above.
+- Do not mark a phase COMPLETE in this file without also updating UserManual.md in the
+  same commit — see Documentation Requirements above.
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
@@ -235,6 +255,8 @@ icomuk.co.uk/files/icom/PDF/productAdditionalFile/IC-7300MK2_ENG_CI-V_0.pdf
   the same support site.
 - N1MM External UDP Messages docs (Phase 8f): n1mmwp.hamdocs.com/appendices/external-udp-broadcasts/
   — full XML schema for RadioInfo, Contact, ContactInfo, Spot Data, Score Reporting, etc.
+- UserManual.md (project root): end-user-facing documentation — see Documentation
+  Requirements above for the maintenance rule.
 ## Related Projects
 - APRS-Command (formerly CrossPlatformAPRS, KE4CON): APRS beacon target for Phase 10
   (combined audio/APRS phase) — project was archived and renamed; ingestion mechanism
@@ -250,7 +272,7 @@ icomuk.co.uk/files/icom/PDF/productAdditionalFile/IC-7300MK2_ENG_CI-V_0.pdf
   because N1MM owns contest-rule currency — IcomRigControl's simple built-in contest mode
   (8b) is for casual/simple contests only, by design, not a competitor to N1MM's catalog.
   IcomRigControl is the radio controller feeding N1MM status; N1MM's logged contacts flow
-  back into IcomRigControl's resilient local log. See Phase 8f.
+  back into IcomRigControl's resilient local log. See Phase 8f — receive direction COMPLETE.
 - WSJT-X: shares the same UDP protocol family as N1MM (Phase 8f), covered by the same
   integration work with a different default port.
 ## Session Start Checklist
@@ -259,6 +281,8 @@ Before writing any code in a session:
 2. Confirm which Phase is active
 3. Check that the layer being touched matches the Phase
 4. Do not refactor other layers unless the current Phase explicitly requires it
+5. When completing a phase this session, update UserManual.md in the same commit — see
+   Documentation Requirements above. This step is not optional.
 ## Deployment Targets
 Headless CI-V server (Phase 9, no UI): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable.
 Full Avalonia UI + scope on Pi (Phase 7-9 combined): Raspberry Pi 5, 8GB RAM — standardized target for breathing room with scope waterfall, EMMCOM bridge, and APRS beacon running concurrently.

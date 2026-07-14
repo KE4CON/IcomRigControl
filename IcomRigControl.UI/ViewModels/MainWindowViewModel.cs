@@ -206,6 +206,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             {
                 await _transceiver.SetFrequencyAsync(14_074_000);
                 _transceiver.StartPolling(TimeSpan.FromMilliseconds(500));
+                await _transceiver.StartScopeAsync(TimeSpan.FromMilliseconds(300));
             }
         }
         catch (Exception ex)

@@ -13,15 +13,27 @@ public class DemoCivTransport : ICivTransport
     private long _frequencyHz = 14_074_000;
     private byte _modeCode = 0x01; // USB
     private int _selectedMemoryChannel = 0;
+    private bool _scopeOn = false;
+
+    // Fixed demo "signals" that stay at the same position across sweeps,
+    // like real transmissions do, so the waterfall shows recognizable
+    // vertical streaks instead of random flicker.
+    private readonly (int center, int width, int baseHeight)[] _demoSignals =
+    {
+        (80, 6, 200),
+        (220, 4, 160),
+        (340, 8, 220),
+        (410, 3, 130),
+    };
 
     private static readonly Dictionary<int, (long freq, byte mode)> _demoMemories = new()
     {
-        { 1,  (14_074_000, 0x01) }, // FT8 20m, USB
-        { 2,  (7_074_000,  0x01) }, // FT8 40m, USB
-        { 3,  (146_520_000, 0x05) }, // 2m FM calling
-        { 4,  (28_074_000, 0x01) }, // FT8 10m, USB
-        { 5,  (3_573_000,  0x03) }, // CW 80m
-        { 10, (50_313_000, 0x01) }, // 6m calling, USB
+        { 1,  (14_074_000, 0x01) },
+        { 2,  (7_074_000,  0x01) },
+        { 3,  (146_520_000, 0x05) },
+        { 4,  (28_074_000, 0x01) },
+        { 5,  (3_573_000,  0x03) },
+        { 10, (50_313_000, 0x01) },
     };
 
     public bool IsOpen { get; private set; }
@@ -89,7 +101,7 @@ public class DemoCivTransport : ICivTransport
                 }
                 else if (_selectedMemoryChannel > 0)
                 {
-                    // Empty channel — no reply, simulating an unprogrammed channel
+                    // Empty channel — no reply
                 }
                 else
                 {
@@ -103,6 +115,20 @@ public class DemoCivTransport : ICivTransport
 
             case CivCommands.ReadMode:
                 SimulateReply(BuildModeReply());
+                break;
+
+            case CivCommands.ScopeControl when subCommand == 0x10:
+                if (data.Length >= 7)
+                {
+                    _scopeOn = data[6] == 0x01;
+                }
+                break;
+
+            case CivCommands.ScopeControl when subCommand == 0x11:
+                break;
+
+            case CivCommands.ScopeControl when subCommand == 0x00:
+                SimulateReply(BuildWaveformReply());
                 break;
         }
 
@@ -142,6 +168,37 @@ public class DemoCivTransport : ICivTransport
         byte b1 = (byte)(((lo / 10) << 4) | (lo % 10));
 
         return new byte[] { 0xFE, 0xFE, 0xE0, 0x94, CivCommands.ReadMeter, subCommand, b0, b1, 0xFD };
+    }
+
+    private byte[] BuildWaveformReply()
+    {
+        // Low, gently-varying noise floor (small variation frame to frame,
+        // not a full re-roll) plus a few FIXED-position signals that persist
+        // across sweeps, so they render as real-looking vertical streaks.
+        var data = new byte[475];
+        for (int i = 0; i < data.Length; i++)
+        {
+            data[i] = (byte)_rng.Next(8, 25);
+        }
+
+        foreach (var (center, width, baseHeight) in _demoSignals)
+        {
+            // Small random jitter in strength so it's not perfectly static,
+            // but the position never moves — that's what makes it look real.
+            int height = Math.Clamp(baseHeight + _rng.Next(-20, 20), 0, 255);
+
+            for (int x = Math.Max(0, center - width); x < Math.Min(data.Length, center + width); x++)
+            {
+                int dist = Math.Abs(x - center);
+                int falloff = Math.Max(0, height - dist * (height / Math.Max(1, width)));
+                data[x] = (byte)Math.Max(data[x], falloff);
+            }
+        }
+
+        var frame = new List<byte> { 0xFE, 0xFE, 0xE0, 0x94, CivCommands.ScopeControl, 0x00 };
+        frame.AddRange(data);
+        frame.Add(0xFD);
+        return frame.ToArray();
     }
 
     private void SimulateReply(byte[] frame)

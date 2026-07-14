@@ -3,11 +3,12 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="660"
+        xmlns:views="using:IcomRigControl.UI.Views"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="880"
         x:Class="IcomRigControl.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="IcomRigControl"
-        Width="500" Height="660"
+        Width="500" Height="880"
         Background="#1a1a1a">
 
     <Design.DataContext>
@@ -73,6 +74,14 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- Spectrum Scope / Waterfall -->
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="10" HorizontalAlignment="Stretch">
+            <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+                <TextBlock Text="Spectrum Scope" Foreground="Gray" FontSize="11"/>
+                <views:WaterfallControl x:Name="Waterfall" Height="300" HorizontalAlignment="Stretch"/>
             </StackPanel>
         </Border>
 

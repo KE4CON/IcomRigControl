@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -20,6 +20,13 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly EmmcomBridge _emmcomBridge;
     private readonly HttpClient _emmcomHttpClient = new();
     private readonly SettingsService _settingsService;
+    private readonly QsoLogger _qsoLogger;
+
+    private RadioInfoUdpBroadcaster? _radioInfoBroadcaster;
+    private ContactUdpListener? _contactListener;
+    private ICallsignLookupSource? _callsignLookupSource;
+    private LotwBridge? _lotwBridge;
+    private HrdSqliteBridge? _hrdBridge;
 
     [ObservableProperty]
     private bool _isLogging;
@@ -32,6 +39,9 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
     [ObservableProperty]
     private string _emmcomStatus = "EMMCOM: not connected";
+
+    [ObservableProperty]
+    private string _integrationsStatus = "Integrations: not started";
 
     [ObservableProperty]
     private string _frequencyDisplay = "---.---.---";
@@ -100,15 +110,85 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             CurrentDraw = snapshot.CurrentDraw;
         };
 
-        _logger = new ActivityLogger(_transceiver, System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IcomRigControl", "Logs"));
+        var docsFolder = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IcomRigControl");
 
+        _logger = new ActivityLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
         _emmcomBridge = new EmmcomBridge(_transceiver, _emmcomHttpClient, EmmcomUrlInput);
+        _qsoLogger = new QsoLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
 
-        _settingsService = new SettingsService(System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IcomRigControl", "settings.json"));
+        _settingsService = new SettingsService(System.IO.Path.Combine(docsFolder, "settings.json"));
+
+        ApplySettings(_settingsService.Load());
 
         _ = ConnectAsync();
+    }
+
+    /// Reads the saved AppSettings and configures the real services for
+    /// callsign lookup, LoTW, HRD, and N1MM/WSJT-X UDP integration accordingly.
+    /// This is the piece that connects the Settings window to actual runtime
+    /// behavior — previously the Settings UI only saved values that nothing
+    /// consumed. See CLAUDE.md Phase 8 "remaining" note.
+    private void ApplySettings(AppSettings settings)
+    {
+        try
+        {
+            // Callsign lookup source selection (Phase 8c)
+            _callsignLookupSource = settings.CallsignLookupSource switch
+            {
+                "QRZ" when !string.IsNullOrWhiteSpace(settings.QrzUsername) =>
+                    new QrzLookupSource(new HttpClient(), settings.QrzUsername, settings.QrzPassword),
+                "HamQTH" when !string.IsNullOrWhiteSpace(settings.HamQthUsername) =>
+                    new HamQthLookupSource(new HttpClient(), settings.HamQthUsername, settings.HamQthPassword),
+                _ => new CallookLookupSource(new HttpClient())
+            };
+
+            // LoTW (Phase 8d) — only configured if a TQSL path was provided
+            if (!string.IsNullOrWhiteSpace(settings.TqslExecutablePath))
+            {
+                var tqslRunner = new TqslProcessRunner(settings.TqslExecutablePath);
+                _lotwBridge = new LotwBridge(tqslRunner, new HttpClient());
+            }
+
+            // HRD Logbook direct-write bridge (Phase 8e, Layer 3) — only if enabled
+            if (settings.HrdBridgeEnabled && !string.IsNullOrWhiteSpace(settings.HrdDatabasePath))
+            {
+                _hrdBridge = new HrdSqliteBridge(settings.HrdDatabasePath);
+            }
+
+            // N1MM/WSJT-X/HRD UDP integration (Phase 8f)
+            if (settings.N1mmSendEnabled)
+            {
+                _radioInfoBroadcaster = new RadioInfoUdpBroadcaster(_transceiver);
+                foreach (var (ip, port) in settings.N1mmDestinations)
+                {
+                    _radioInfoBroadcaster.AddDestination(ip, port);
+                }
+                _radioInfoBroadcaster.Start();
+            }
+
+            if (settings.N1mmReceiveEnabled)
+            {
+                _contactListener = new ContactUdpListener(_qsoLogger, settings.ContactListenPort);
+                _contactListener.Start();
+            }
+
+            var activeIntegrations = new List<string>();
+            if (settings.N1mmSendEnabled) activeIntegrations.Add("N1MM send");
+            if (settings.N1mmReceiveEnabled) activeIntegrations.Add("N1MM receive");
+            if (_hrdBridge != null) activeIntegrations.Add("HRD bridge");
+            if (_lotwBridge != null) activeIntegrations.Add("LoTW ready");
+
+            IntegrationsStatus = activeIntegrations.Count > 0
+                ? $"Integrations: {string.Join(", ", activeIntegrations)}"
+                : "Integrations: none enabled (see Settings)";
+        }
+        catch (Exception ex)
+        {
+            // Never let a settings misconfiguration prevent the app from starting —
+            // per the never-crash pattern used throughout this project.
+            IntegrationsStatus = $"Integrations: error applying settings ({ex.Message})";
+        }
     }
 
     [RelayCommand]
@@ -157,6 +237,14 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         var settingsWindow = new Views.SettingsWindow
         {
             DataContext = settingsViewModel
+        };
+        settingsWindow.Closed += (_, _) =>
+        {
+            // Re-apply settings when the Settings window closes, so changes
+            // take effect without requiring a full app restart.
+            _contactListener?.Stop();
+            _radioInfoBroadcaster?.Stop();
+            ApplySettings(_settingsService.Load());
         };
         settingsWindow.Show();
     }
@@ -239,6 +327,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _contactListener?.Stop();
+        _radioInfoBroadcaster?.Stop();
         await _transceiver.DisposeAsync();
     }
 }

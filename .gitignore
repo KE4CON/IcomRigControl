@@ -16,3 +16,4 @@ obj/
 memory_debug.log
 activitylogger_debug.log
 *.csv
+settings.json

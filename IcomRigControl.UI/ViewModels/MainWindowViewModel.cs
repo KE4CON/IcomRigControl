@@ -192,6 +192,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+
     private async Task SetMode(string mode)
     {
         if (!IsConnected) return;
@@ -228,6 +229,17 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             DataContext = editorViewModel
         };
         editorWindow.Show();
+    }
+
+    [RelayCommand]
+    private void OpenQsoLogger()
+    {
+        var loggerViewModel = new QsoLoggerViewModel(_qsoLogger, _callsignLookupSource);
+        var loggerWindow = new Views.QsoLoggerWindow
+        {
+            DataContext = loggerViewModel
+        };
+        loggerWindow.Show();
     }
 
     [RelayCommand]

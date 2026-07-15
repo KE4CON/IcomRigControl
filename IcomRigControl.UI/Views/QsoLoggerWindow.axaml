@@ -1,0 +1,105 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:IcomRigControl.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="650" d:DesignHeight="700"
+        x:Class="IcomRigControl.UI.Views.QsoLoggerWindow"
+        x:DataType="vm:QsoLoggerViewModel"
+        Title="QSO Logger"
+        Width="650" Height="700"
+        Background="#1a1a1a">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+
+        <!-- Entry form -->
+        <Border Grid.Row="0" Background="#0d0d0d" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox Text="{Binding CallsignInput}" Width="140" PlaceholderText="Callsign"/>
+                    <Button Content="Lookup" Command="{Binding LookupCallsignCommand}"
+                            Background="#2a2a2a" Foreground="White" Padding="10,6">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#00ff88"/>
+                                <Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <TextBlock Text="{Binding LookupStatus}" Foreground="Gray" FontSize="11" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox Text="{Binding RstSentInput}" Width="70" PlaceholderText="RST Sent"/>
+                    <TextBox Text="{Binding RstReceivedInput}" Width="70" PlaceholderText="RST Rcvd"/>
+                    <TextBox Text="{Binding NameInput}" Width="150" PlaceholderText="Name"/>
+                    <TextBox Text="{Binding GridSquareInput}" Width="90" PlaceholderText="Grid"/>
+                </StackPanel>
+
+                <TextBox Text="{Binding NotesInput}" PlaceholderText="Notes"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Log QSO" Command="{Binding LogQsoCommand}"
+                            Width="120" Background="#2a2a2a" Foreground="White" Padding="10,6">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#00ff88"/>
+                                <Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Content="Export ADIF" Command="{Binding ExportAdifCommand}"
+                            Width="120" Background="#2a2a2a" Foreground="White" Padding="10,6">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#00ff88"/>
+                                <Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <TextBlock Text="{Binding LogStatus}" Foreground="#00ff88" FontSize="11" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- QSO list -->
+        <ScrollViewer Grid.Row="1">
+            <StackPanel>
+                <Grid ColumnDefinitions="70,90,70,60,90,*" Background="#2a2a2a" Margin="0,0,0,2">
+                    <TextBlock Grid.Column="0" Text="Time" Foreground="White" FontWeight="Bold" Padding="6,4"/>
+                    <TextBlock Grid.Column="1" Text="Callsign" Foreground="White" FontWeight="Bold" Padding="6,4"/>
+                    <TextBlock Grid.Column="2" Text="Band" Foreground="White" FontWeight="Bold" Padding="6,4"/>
+                    <TextBlock Grid.Column="3" Text="Mode" Foreground="White" FontWeight="Bold" Padding="6,4"/>
+                    <TextBlock Grid.Column="4" Text="RST S/R" Foreground="White" FontWeight="Bold" Padding="6,4"/>
+                    <TextBlock Grid.Column="5" Text="Name" Foreground="White" FontWeight="Bold" Padding="6,4"/>
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding Qsos}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="70,90,70,60,90,*" Background="#0d0d0d" Margin="0,0,0,1">
+                                <TextBlock Grid.Column="0" Text="{Binding DateTimeUtc, StringFormat='{}{0:HH:mm}'}" Foreground="#00ff88" Padding="6,4"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Callsign}" Foreground="#00ff88" Padding="6,4"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Band}" Foreground="#88ccff" Padding="6,4"/>
+                                <TextBlock Grid.Column="3" Text="{Binding Mode}" Foreground="#88ccff" Padding="6,4"/>
+                                <TextBlock Grid.Column="4" Padding="6,4">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0}/{1}">
+                                            <Binding Path="RstSent"/>
+                                            <Binding Path="RstReceived"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                                <TextBlock Grid.Column="5" Text="{Binding Name}" Foreground="White" Padding="6,4"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <TextBlock Grid.Row="2" Text="{Binding Qsos.Count, StringFormat='{}{0} QSOs logged this session'}"
+                   Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
+    </Grid>
+</Window>

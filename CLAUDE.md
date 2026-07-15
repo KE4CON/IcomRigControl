@@ -78,21 +78,24 @@ conversion
   SQLitePCLRaw.lib.e_sqlite3 to 3.50.3 or later to remediate this.
 - Never store QRZ/HamQTH credentials or any other secrets in AppSettings' backing JSON
   file within source control — settings.json is in .gitignore; keep it that way.
-- LARGE FILE PASTES INTO EXISTING TABS CAN SILENTLY TRUNCATE. Confirmed on this machine:
-  pasting long multi-line content (roughly 100+ lines / several KB) into an already-open
-  VS Code tab, or into a Windows Terminal command (including PowerShell here-strings and
-  multi-line Add-Content), can silently cut off partway through with NO error at paste
-  time — the truncation is only discovered later as an XML/XAML/C# parse error, often far
-  from the actual cut point. This happened repeatedly to MainWindow.axaml, and then to
-  this very file (CLAUDE.md), despite several different retry strategies (re-pasting into
-  the same tab, PowerShell here-strings, chunked Add-Content calls) all producing the
-  identical truncated byte count. The reliable fix: File -> New File (a genuinely blank,
-  new tab) -> paste the complete content once -> File -> Save As -> navigate to the
-  target path -> Overwrite. Editing or re-pasting into an already-open tab that has
-  previously shown this problem is NOT reliable even after closing/reopening it — start
-  from a brand-new empty tab every time. After any large-file rewrite, verify actual size
-  with `dir <file>` (Windows) or a character count, not just "the command ran with no
-  error" — silence does not confirm success for large pastes on this machine.
+- LARGE CODE BLOCKS FROM CLAUDE CAN GET COPIED INCOMPLETE IF THE COPY BUTTON IS CLICKED
+  BEFORE THE BLOCK HAS FULLY SCROLLED INTO VIEW. Root-caused on this machine: the chat
+  UI appears to only have the currently-rendered/scrolled portion of a long code block
+  available at copy time — clicking Copy without first scrolling all the way to the
+  bottom of the block can silently copy only the rendered portion, producing a
+  truncated paste with no error at copy time, paste time, or save time. The truncation
+  only surfaces later as an XML/XAML/C# parse error, often far from the actual cut
+  point, or (worse) as a file that looks fine but is missing its later content entirely.
+  This caused real problems across a full session (MainWindow.axaml repeatedly, and one
+  file — TqslProcessRunner.cs — was lost between sessions this way). CONFIRMED FIX:
+  scroll all the way to the bottom of a long code block BEFORE clicking Copy. A plain
+  select-all/delete/paste into an already-open tab works completely reliably once this
+  is done — the earlier workaround of File -> New File -> Save As was masking the
+  symptom, not fixing the actual cause, and is no longer necessary. Still good practice
+  after any large-file rewrite: verify actual size with `dir <file>` (Windows) and, for
+  anything safety-critical, spot check that the last line of the intended content is
+  actually present (e.g. `type <file> | findstr "<last line text>"`) before trusting a
+  large paste completed correctly.
 ## Feature Priorities (build in this order)
 Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (23 passing tests)
 Phase 2: Meter polling — COMPLETE (43 passing tests)
@@ -101,31 +104,31 @@ Phase 4: Memory bulk editor — COMPLETE (52 passing tests)
 Phase 5: Activity logger (CSV) — COMPLETE (56 passing tests)
 Phase 6: EMMCOM dashboard integration — COMPLETE (60 passing tests)
 Phase 7: Spectrum scope capture and waterfall display — CORE COMPLETE (74 passing tests). REMAINING: frequency axis labels; click-to-tune.
-Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — ENGINE COMPLETE, SETTINGS UI IN PROGRESS.
+Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — ENGINE + SETTINGS WIRING COMPLETE.
   All six sub-phases (8a-8f) are functionally complete at the engine/service level (173
-  passing tests project-wide). A SettingsWindow now exists (AppSettings model,
-  SettingsService JSON persistence, SettingsViewModel, SettingsWindow.axaml with sections
-  for all six integrations) and is reachable from the main dashboard's Settings button —
-  built and confirmed opening/displaying correctly.
-  REMAINING (the actual next step): MainWindowViewModel does not yet READ AppSettings
-  back out to construct/configure the real services (ICallsignLookupSource selection,
-  LotwBridge with the saved TQSL path, HrdSqliteBridge if enabled, RadioInfoUdpBroadcaster
-  destinations, ContactUdpListener port) — the Settings UI currently only saves values,
-  nothing consumes them yet. This is the single remaining piece connecting the Settings
-  UI to actual runtime behavior. Straightforward but real work: load AppSettings once at
-  MainWindowViewModel construction, conditionally instantiate/configure each service
-  based on the loaded values, following the exact patterns already used for
-  ActivityLogger/EmmcomBridge in the same constructor.
+  passing tests project-wide). SettingsWindow exists and is reachable from the main
+  dashboard's Settings button. MainWindowViewModel now reads AppSettings at startup
+  (ApplySettings method) and instantiates the real services accordingly:
+  ICallsignLookupSource (Callook/QRZ/HamQTH per saved selection), LotwBridge (if a TQSL
+  path is configured), HrdSqliteBridge (if enabled with a database path),
+  RadioInfoUdpBroadcaster and ContactUdpListener (if their respective toggles are on).
+  Settings are re-applied automatically when the Settings window closes (stops and
+  restarts the UDP broadcaster/listener with the new values), so changes take effect
+  without an app restart. An IntegrationsStatus display property summarizes what's
+  active. Confirmed building and running cleanly with default (empty) settings.
   8a. Core logging — COMPLETE (118 tests). REMAINING: logging UI panel.
   8b. Contest mode — COMPLETE (Field Day). REMAINING: additional contests; live score UI.
-  8c. Callsign lookup — COMPLETE, all three sources (20 tests). REMAINING: wiring into
-  runtime per note above; wiring into the logging UI panel once it exists.
-  8d. LoTW upload/download — COMPLETE (6 tests). REMAINING: wiring into runtime;
-  upload/download buttons; matching downloaded confirmations against local QsoRecords.
-  8e. Ham Radio Deluxe integration — COMPLETE (Layer 3: 6 tests). REMAINING: wiring
-  Layer 1/3 into runtime per note above.
+  8c. Callsign lookup — COMPLETE, all three sources (20 tests), now wired into runtime.
+  REMAINING: wiring into the logging UI panel once it exists.
+  8d. LoTW upload/download — COMPLETE (6 tests), now wired into runtime. REMAINING:
+  upload/download buttons in the UI; matching downloaded confirmations against local
+  QsoRecords.
+  8e. Ham Radio Deluxe integration — COMPLETE (Layer 3: 6 tests), now wired into runtime.
   8f. N1MM Logger+, WSJT-X, and HRD UDP integration — COMPLETE, both directions (137
-  tests). REMAINING: wiring into runtime per note above.
+  tests), now wired into runtime and confirmed re-applying correctly on Settings close.
+  REMAINING FOR PHASE 8 OVERALL: display IntegrationsStatus in the main dashboard's UI
+  (currently exists as a ViewModel property but has no corresponding XAML binding yet);
+  the logging UI panel (8a); contest score UI (8b); LoTW upload/download buttons (8d).
 Phase 9: Remote/network mode (headless Pi server + TCP client) — also the right place to
 revisit true CAT-replacement for N1MM/HRD, if wanted, once this phase's networking
 foundation exists.
@@ -157,6 +160,8 @@ must be the user's own photo, a licensed image, or an original illustration.
   Microsoft.Data.Sqlite without confirming the underlying CVE is resolved upstream first
 - Do not trust a large paste into an already-open editor tab or terminal command without
   verifying actual file size afterward — see the large-paste-truncation note above
+- Do not assume a prior session's file set is intact — run `dotnet build` at the start
+  of any session to catch files silently lost to paste truncation before building on them
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
@@ -182,11 +187,13 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 - WSJT-X: shares the same UDP protocol family as N1MM (Phase 8f, COMPLETE)
 ## Session Start Checklist
 1. Read this file
-2. Confirm which Phase is active
-3. Check that the layer being touched matches the Phase
-4. Do not refactor other layers unless the current Phase explicitly requires it
-5. When completing a phase this session, update UserManual.md in the same commit
-6. For any file edit exceeding roughly 100 lines, use the File -> New File -> Save As
+2. Run `dotnet build` before making any changes to confirm the prior session's file set
+   is genuinely intact — see the large-paste-truncation note above
+3. Confirm which Phase is active
+4. Check that the layer being touched matches the Phase
+5. Do not refactor other layers unless the current Phase explicitly requires it
+6. When completing a phase this session, update UserManual.md in the same commit
+7. For any file edit exceeding roughly 100 lines, use the File -> New File -> Save As
    approach rather than pasting into an existing tab — see the large-paste-truncation
    note in Coding Standards above
 ## Deployment Targets

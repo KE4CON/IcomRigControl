@@ -18,11 +18,9 @@
     <ScrollViewer>
     <StackPanel Margin="20" Spacing="16">
 
-        <!-- Status row -->
         <TextBlock Text="{Binding StatusMessage}"
                    Foreground="Gray" FontSize="12" HorizontalAlignment="Center"/>
 
-        <!-- Frequency entry -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
             <TextBox Text="{Binding FrequencyInput}" Width="150"
                      PlaceholderText="14074000" FontFamily="Courier New"/>
@@ -37,7 +35,6 @@
             </Button>
         </StackPanel>
 
-        <!-- Frequency display -->
         <Border Background="#0d0d0d" CornerRadius="6" Padding="16">
             <StackPanel HorizontalAlignment="Center" Spacing="4">
                 <TextBlock Text="{Binding FrequencyDisplay}"
@@ -77,7 +74,6 @@
             </StackPanel>
         </Border>
 
-        <!-- Spectrum Scope / Waterfall -->
         <Border Background="#0d0d0d" CornerRadius="6" Padding="10" HorizontalAlignment="Stretch">
             <StackPanel Spacing="8" HorizontalAlignment="Stretch">
                 <TextBlock Text="Spectrum Scope" Foreground="Gray" FontSize="11"/>
@@ -85,7 +81,6 @@
             </StackPanel>
         </Border>
 
-        <!-- PTT indicator -->
         <Border Background="#0d0d0d" CornerRadius="6" Padding="10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                 <Ellipse Width="16" Height="16">
@@ -93,7 +88,7 @@
                         <SolidColorBrush Color="{Binding PttActive, Converter={x:Static vm:BoolToColorConverter.Instance}}"/>
                     </Ellipse.Fill>
                 </Ellipse>
-                <TextBlock Text="{Binding PttActive, StringFormat='PTT: {0}'}"
+                <TextBlock Text="{Binding PttActive, StringFormat='{}PTT: {0}'}"
                            Foreground="White" VerticalAlignment="Center"/>
                 <Button Content="Toggle PTT" Command="{Binding TogglePttCommand}"
                         Width="100" Background="#2a2a2a" Foreground="White">
@@ -107,7 +102,6 @@
             </StackPanel>
         </Border>
 
-        <!-- Meters grid -->
         <Border Background="#0d0d0d" CornerRadius="6" Padding="16">
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" >
                 <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2" Margin="0,0,0,10">
@@ -139,7 +133,6 @@
             </Grid>
         </Border>
 
-        <!-- Activity Logging control -->
         <Border Background="#0d0d0d" CornerRadius="6" Padding="10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                 <Ellipse Width="12" Height="12">
@@ -161,7 +154,6 @@
             </StackPanel>
         </Border>
 
-        <!-- EMMCOM control -->
         <Border Background="#0d0d0d" CornerRadius="6" Padding="10">
             <StackPanel Spacing="8">
                 <TextBox Text="{Binding EmmcomUrlInput}" FontSize="11" FontFamily="Courier New"
@@ -187,17 +179,26 @@
             </StackPanel>
         </Border>
 
-        <!-- Memory Editor launcher -->
-        <Button Content="Open Memory Editor" Command="{Binding OpenMemoryEditorCommand}"
-                HorizontalAlignment="Center" Margin="0,4,0,0"
-                Background="#2a2a2a" Foreground="White" Padding="10,6">
-            <Button.Styles>
-                <Style Selector="Button:pointerover /template/ ContentPresenter">
-                    <Setter Property="Background" Value="#00ff88"/>
-                    <Setter Property="TextBlock.Foreground" Value="Black"/>
-                </Style>
-            </Button.Styles>
-        </Button>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,4,0,0">
+            <Button Content="Open Memory Editor" Command="{Binding OpenMemoryEditorCommand}"
+                    Background="#2a2a2a" Foreground="White" Padding="10,6">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#00ff88"/>
+                        <Setter Property="TextBlock.Foreground" Value="Black"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+            <Button Content="Settings" Command="{Binding OpenSettingsCommand}"
+                    Background="#2a2a2a" Foreground="White" Padding="10,6">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#00ff88"/>
+                        <Setter Property="TextBlock.Foreground" Value="Black"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </StackPanel>
 
     </StackPanel>
     </ScrollViewer>

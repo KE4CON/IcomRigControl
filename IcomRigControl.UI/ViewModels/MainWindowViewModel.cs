@@ -19,6 +19,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly ActivityLogger _logger;
     private readonly EmmcomBridge _emmcomBridge;
     private readonly HttpClient _emmcomHttpClient = new();
+    private readonly SettingsService _settingsService;
 
     [ObservableProperty]
     private bool _isLogging;
@@ -104,6 +105,9 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
         _emmcomBridge = new EmmcomBridge(_transceiver, _emmcomHttpClient, EmmcomUrlInput);
 
+        _settingsService = new SettingsService(System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IcomRigControl", "settings.json"));
+
         _ = ConnectAsync();
     }
 
@@ -144,6 +148,17 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             DataContext = editorViewModel
         };
         editorWindow.Show();
+    }
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        var settingsViewModel = new SettingsViewModel(_settingsService);
+        var settingsWindow = new Views.SettingsWindow
+        {
+            DataContext = settingsViewModel
+        };
+        settingsWindow.Show();
     }
 
     [RelayCommand]

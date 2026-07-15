@@ -83,19 +83,21 @@ conversion
   UI appears to only have the currently-rendered/scrolled portion of a long code block
   available at copy time — clicking Copy without first scrolling all the way to the
   bottom of the block can silently copy only the rendered portion, producing a
-  truncated paste with no error at copy time, paste time, or save time. The truncation
-  only surfaces later as an XML/XAML/C# parse error, often far from the actual cut
-  point, or (worse) as a file that looks fine but is missing its later content entirely.
-  This caused real problems across a full session (MainWindow.axaml repeatedly, and one
-  file — TqslProcessRunner.cs — was lost between sessions this way). CONFIRMED FIX:
+  truncated paste with no error at copy time, paste time, or save time. CONFIRMED FIX:
   scroll all the way to the bottom of a long code block BEFORE clicking Copy. A plain
   select-all/delete/paste into an already-open tab works completely reliably once this
-  is done — the earlier workaround of File -> New File -> Save As was masking the
-  symptom, not fixing the actual cause, and is no longer necessary. Still good practice
-  after any large-file rewrite: verify actual size with `dir <file>` (Windows) and, for
-  anything safety-critical, spot check that the last line of the intended content is
-  actually present (e.g. `type <file> | findstr "<last line text>"`) before trusting a
-  large paste completed correctly.
+  is done. Still good practice after any large-file rewrite: verify actual size with
+  `dir <file>` (Windows) and spot check the last line of intended content is present.
+- WHEN PASTING A CODE SNIPPET, VERIFY IT LANDED IN THE INTENDED FILE, NOT AN ADJACENT
+  OPEN TAB. Confirmed on this machine twice in one session: a XAML button block meant
+  for a .axaml file was instead pasted into the paired .cs code-behind file (and vice
+  versa on an earlier occasion), producing a wall of unrelated C# compiler errors (CS1519,
+  CS1002, CS1525 etc. pointing at XML-looking tokens) that can look like file corruption
+  but is actually just "content in the wrong tab." When a build error shows XML-like
+  syntax (`<`, `>`, `Content=`) inside a `.cs` file's error list, or C#-like syntax inside
+  a `.axaml` file's parse error, check with `findstr` which file the content actually
+  landed in before assuming corruption — it is usually a simple wrong-tab paste, fixed by
+  deleting the block from the wrong file and re-pasting it into the correct one.
 ## Feature Priorities (build in this order)
 Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (23 passing tests)
 Phase 2: Meter polling — COMPLETE (43 passing tests)
@@ -104,31 +106,31 @@ Phase 4: Memory bulk editor — COMPLETE (52 passing tests)
 Phase 5: Activity logger (CSV) — COMPLETE (56 passing tests)
 Phase 6: EMMCOM dashboard integration — COMPLETE (60 passing tests)
 Phase 7: Spectrum scope capture and waterfall display — CORE COMPLETE (74 passing tests). REMAINING: frequency axis labels; click-to-tune.
-Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — ENGINE + SETTINGS WIRING COMPLETE.
+Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — ENGINE + SETTINGS + LOGGING UI COMPLETE.
   All six sub-phases (8a-8f) are functionally complete at the engine/service level (173
-  passing tests project-wide). SettingsWindow exists and is reachable from the main
-  dashboard's Settings button. MainWindowViewModel now reads AppSettings at startup
-  (ApplySettings method) and instantiates the real services accordingly:
-  ICallsignLookupSource (Callook/QRZ/HamQTH per saved selection), LotwBridge (if a TQSL
-  path is configured), HrdSqliteBridge (if enabled with a database path),
-  RadioInfoUdpBroadcaster and ContactUdpListener (if their respective toggles are on).
-  Settings are re-applied automatically when the Settings window closes (stops and
-  restarts the UDP broadcaster/listener with the new values), so changes take effect
-  without an app restart. An IntegrationsStatus display property summarizes what's
-  active. Confirmed building and running cleanly with default (empty) settings.
-  8a. Core logging — COMPLETE (118 tests). REMAINING: logging UI panel.
-  8b. Contest mode — COMPLETE (Field Day). REMAINING: additional contests; live score UI.
-  8c. Callsign lookup — COMPLETE, all three sources (20 tests), now wired into runtime.
-  REMAINING: wiring into the logging UI panel once it exists.
-  8d. LoTW upload/download — COMPLETE (6 tests), now wired into runtime. REMAINING:
+  passing tests project-wide). SettingsWindow, MainWindowViewModel's AppSettings
+  consumption, and the IntegrationsStatus dashboard display are all complete and
+  confirmed working. QsoLoggerViewModel + QsoLoggerWindow (Phase 8a's remaining UI piece)
+  are built and confirmed working end-to-end: callsign entry, Lookup button (uses the
+  configured ICallsignLookupSource), RST/name/grid/notes fields, Log QSO button (writes
+  through QsoLogger, including the persistent ADIF session file), a live running table of
+  the session's QSOs, and an Export ADIF button. Reachable from the main dashboard's
+  "QSO Logger" button.
+  8a. Core logging — COMPLETE, engine and UI (118 tests + working UI).
+  8b. Contest mode — COMPLETE (Field Day) at the engine level. REMAINING: additional
+  contests; live score UI (not yet surfaced in QsoLoggerWindow — the window currently
+  only exposes general logging fields, not the contest exchange/serial fields
+  QsoLogger.LogQso already supports).
+  8c. Callsign lookup — COMPLETE, all three sources (20 tests), wired into runtime AND
+  into the logging UI panel's Lookup button.
+  8d. LoTW upload/download — COMPLETE (6 tests), wired into runtime. REMAINING:
   upload/download buttons in the UI; matching downloaded confirmations against local
   QsoRecords.
-  8e. Ham Radio Deluxe integration — COMPLETE (Layer 3: 6 tests), now wired into runtime.
+  8e. Ham Radio Deluxe integration — COMPLETE (Layer 3: 6 tests), wired into runtime.
   8f. N1MM Logger+, WSJT-X, and HRD UDP integration — COMPLETE, both directions (137
-  tests), now wired into runtime and confirmed re-applying correctly on Settings close.
-  REMAINING FOR PHASE 8 OVERALL: display IntegrationsStatus in the main dashboard's UI
-  (currently exists as a ViewModel property but has no corresponding XAML binding yet);
-  the logging UI panel (8a); contest score UI (8b); LoTW upload/download buttons (8d).
+  tests), wired into runtime, confirmed re-applying correctly on Settings close.
+  REMAINING FOR PHASE 8 OVERALL: contest exchange fields in the logging UI (8b); LoTW
+  upload/download buttons (8d). Everything else is complete and reachable through the UI.
 Phase 9: Remote/network mode (headless Pi server + TCP client) — also the right place to
 revisit true CAT-replacement for N1MM/HRD, if wanted, once this phase's networking
 foundation exists.
@@ -158,8 +160,8 @@ must be the user's own photo, a licensed image, or an original illustration.
 - Do not reimplement ARRL's TQSL signing/certificate logic
 - Do not remove the SQLitePCLRaw.lib.e_sqlite3 version pin from any project referencing
   Microsoft.Data.Sqlite without confirming the underlying CVE is resolved upstream first
-- Do not trust a large paste into an already-open editor tab or terminal command without
-  verifying actual file size afterward — see the large-paste-truncation note above
+- Do not trust a large paste without verifying it scrolled fully into view before the
+  copy click, and that it landed in the intended file — see the notes above
 - Do not assume a prior session's file set is intact — run `dotnet build` at the start
   of any session to catch files silently lost to paste truncation before building on them
 ## Radio Addresses
@@ -193,9 +195,9 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 4. Check that the layer being touched matches the Phase
 5. Do not refactor other layers unless the current Phase explicitly requires it
 6. When completing a phase this session, update UserManual.md in the same commit
-7. For any file edit exceeding roughly 100 lines, use the File -> New File -> Save As
-   approach rather than pasting into an existing tab — see the large-paste-truncation
-   note in Coding Standards above
+7. Before any large paste: scroll to the bottom of the code block first. After any
+   paste into an existing file: verify it landed in the intended file, not a sibling
+   .cs/.axaml tab — see the notes in Coding Standards above.
 ## Deployment Targets
 Headless CI-V server (Phase 9, no UI): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable.
 Full Avalonia UI + scope on Pi: Raspberry Pi 5, 8GB RAM.

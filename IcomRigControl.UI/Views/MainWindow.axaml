@@ -179,6 +179,9 @@
             </StackPanel>
         </Border>
 
+        <TextBlock Text="{Binding IntegrationsStatus}" Foreground="#88ccff" FontSize="11"
+                   HorizontalAlignment="Center" TextWrapping="Wrap" Margin="0,4,0,0"/>
+
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,4,0,0">
             <Button Content="Open Memory Editor" Command="{Binding OpenMemoryEditorCommand}"
                     Background="#2a2a2a" Foreground="White" Padding="10,6">

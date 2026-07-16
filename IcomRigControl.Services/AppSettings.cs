@@ -2,8 +2,8 @@ namespace IcomRigControl.Services;
 
 /// <summary>
 /// All user-configurable settings for the external integrations built in
-/// Phase 8 (callsign lookup, LoTW, HRD, N1MM/WSJT-X) and the remote
-/// connection mode built in Phase 9. Serialized to a local JSON file by
+/// Phase 8, the remote connection mode built in Phase 9, and the APRS
+/// beacon settings built in Phase 10. Serialized to a local JSON file by
 /// SettingsService — never committed to source control (see CLAUDE.md's
 /// credential-storage rule).
 /// </summary>
@@ -18,6 +18,16 @@ public class AppSettings
     public string RemoteHost { get; set; } = "";
     public int RemotePort { get; set; } = 7300;
     public string RemoteAuthToken { get; set; } = "";
+
+    // ── Phase 10: APRS beacon settings ──────────────────────────────────
+    public string AprsCallsign { get; set; } = "";
+    public int AprsSsid { get; set; } = 9; // 9 is the conventional SSID for mobile/HF APRS
+    public char AprsSymbolTable { get; set; } = '/';
+    public char AprsSymbolCode { get; set; } = '>'; // car/mobile symbol
+    public string AprsComment { get; set; } = "";
+    public double AprsLatitude { get; set; } = 0;
+    public double AprsLongitude { get; set; } = 0;
+    public string AudioOutputDeviceName { get; set; } = ""; // empty = system default
 
     // ── Phase 8c: Callsign lookup ────────────────────────────────────────
     public string CallsignLookupSource { get; set; } = "Callook"; // "Callook", "QRZ", or "HamQTH"

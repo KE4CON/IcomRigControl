@@ -92,9 +92,25 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
     public MainWindowViewModel()
     {
-        // For now: FakeCivTransport so the UI is fully demoable without hardware.
-        // Swap to SerialCivTransport("/dev/tty.usbserial-XXXX") once the radio is connected.
-        var transport = new DemoCivTransport();
+        var docsFolder = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IcomRigControl");
+
+        _settingsService = new SettingsService(System.IO.Path.Combine(docsFolder, "settings.json"));
+        var settings = _settingsService.Load();
+
+        // Phase 9: choose the real transport based on saved connection mode.
+        // Demo (default) needs no hardware/network; Serial connects to a
+        // local USB radio; Remote connects to a CivTcpServer over TCP,
+        // possibly reachable via LAN, VPN, or 44Net/AMPRNet.
+        ICivTransport transport = settings.ConnectionMode switch
+        {
+            "Serial" when !string.IsNullOrWhiteSpace(settings.SerialPortName) =>
+                new SerialCivTransport(settings.SerialPortName),
+            "Remote" when !string.IsNullOrWhiteSpace(settings.RemoteHost) =>
+                new TcpCivTransport(settings.RemoteHost, settings.RemotePort, settings.RemoteAuthToken),
+            _ => new DemoCivTransport()
+        };
+
         _transceiver = new Transceiver(transport, RadioModel.IC7300);
 
         _transceiver.FrequencyChanged += (_, hz) =>
@@ -119,16 +135,11 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             CurrentDraw = snapshot.CurrentDraw;
         };
 
-        var docsFolder = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IcomRigControl");
-
         _logger = new ActivityLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
         _emmcomBridge = new EmmcomBridge(_transceiver, _emmcomHttpClient, EmmcomUrlInput);
         _qsoLogger = new QsoLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
 
-        _settingsService = new SettingsService(System.IO.Path.Combine(docsFolder, "settings.json"));
-
-        ApplySettings(_settingsService.Load());
+        ApplySettings(settings);
 
         _ = ConnectAsync();
     }
@@ -215,6 +226,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             }
 
             var activeIntegrations = new List<string>();
+            if (settings.ConnectionMode == "Remote") activeIntegrations.Add($"Remote radio ({settings.RemoteHost}:{settings.RemotePort})");
+            if (settings.ConnectionMode == "Serial") activeIntegrations.Add($"Serial radio ({settings.SerialPortName})");
             if (settings.N1mmSendEnabled) activeIntegrations.Add("N1MM send");
             if (settings.N1mmReceiveEnabled) activeIntegrations.Add("N1MM receive");
             if (_hrdBridge != null) activeIntegrations.Add("HRD bridge");
@@ -292,8 +305,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         };
         settingsWindow.Closed += (_, _) =>
         {
-            // Re-apply settings when the Settings window closes, so changes
-            // take effect without requiring a full app restart.
+            // Re-apply integration settings when the Settings window closes.
+            // Note: connection mode (Demo/Serial/Remote) requires a full app
+            // restart to take effect, since it determines the Transceiver's
+            // transport at construction time.
             _contactListener?.Stop();
             _radioInfoBroadcaster?.Stop();
             ApplySettings(_settingsService.Load());
@@ -355,7 +370,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         {
             await _transceiver.ConnectAsync();
             IsConnected = _transceiver.IsConnected;
-            StatusMessage = IsConnected ? "Connected (demo mode)" : "Connection failed";
+            StatusMessage = IsConnected ? "Connected" : "Connection failed";
 
             if (IsConnected)
             {

@@ -3,22 +3,20 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="650" d:DesignHeight="760"
+        mc:Ignorable="d" d:DesignWidth="650" d:DesignHeight="820"
         x:Class="IcomRigControl.UI.Views.QsoLoggerWindow"
         x:DataType="vm:QsoLoggerViewModel"
         Title="QSO Logger"
-        Width="650" Height="760"
+        Width="650" Height="820"
         Background="#1a1a1a">
 
-    <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
 
-        <!-- Entry form -->
         <Border Grid.Row="0" Background="#0d0d0d" CornerRadius="6" Padding="12" Margin="0,0,0,10">
             <StackPanel Spacing="8">
                 <ToggleButton Content="{Binding IsContestMode, Converter={x:Static vm:ContestModeButtonTextConverter.Instance}}"
                               IsChecked="{Binding IsContestMode}"
-                              Width="220" HorizontalAlignment="Left"
-                              Background="#2a2a2a" Foreground="White">
+                              Foreground="#88ccff" FontSize="13" Height="30" Width="280" HorizontalAlignment="Left">
                     <ToggleButton.Styles>
                         <Style Selector="ToggleButton:checked /template/ ContentPresenter">
                             <Setter Property="Background" Value="#00ff88"/>
@@ -91,22 +89,51 @@
             </StackPanel>
         </Border>
 
-        <!-- QSO list -->
-        <ScrollViewer Grid.Row="1">
+        <Border Grid.Row="1" Background="#0d0d0d" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Logbook of the World" Foreground="#88ccff" FontSize="12" FontWeight="Bold"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Upload Log" Command="{Binding UploadToLotwCommand}"
+                            IsEnabled="{Binding !LotwOperationInProgress}"
+                            Width="110" Background="#2a2a2a" Foreground="White" Padding="10,6">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#00ff88"/>
+                                <Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <Button Content="Check Confirmations" Command="{Binding DownloadFromLotwCommand}"
+                            IsEnabled="{Binding !LotwOperationInProgress}"
+                            Width="150" Background="#2a2a2a" Foreground="White" Padding="10,6">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#00ff88"/>
+                                <Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                </StackPanel>
+                <TextBlock Text="{Binding LotwStatus}" Foreground="#88ccff" FontSize="11" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="2">
             <StackPanel>
-                <Grid ColumnDefinitions="70,90,70,60,90,*" Background="#2a2a2a" Margin="0,0,0,2">
+                <Grid ColumnDefinitions="70,90,70,60,90,50,*" Background="#2a2a2a" Margin="0,0,0,2">
                     <TextBlock Grid.Column="0" Text="Time" Foreground="White" FontWeight="Bold" Padding="6,4"/>
                     <TextBlock Grid.Column="1" Text="Callsign" Foreground="White" FontWeight="Bold" Padding="6,4"/>
                     <TextBlock Grid.Column="2" Text="Band" Foreground="White" FontWeight="Bold" Padding="6,4"/>
                     <TextBlock Grid.Column="3" Text="Mode" Foreground="White" FontWeight="Bold" Padding="6,4"/>
                     <TextBlock Grid.Column="4" Text="RST S/R" Foreground="White" FontWeight="Bold" Padding="6,4"/>
-                    <TextBlock Grid.Column="5" Text="Name" Foreground="White" FontWeight="Bold" Padding="6,4"/>
+                    <TextBlock Grid.Column="5" Text="LoTW" Foreground="White" FontWeight="Bold" Padding="6,4"/>
+                    <TextBlock Grid.Column="6" Text="Name" Foreground="White" FontWeight="Bold" Padding="6,4"/>
                 </Grid>
 
                 <ItemsControl ItemsSource="{Binding Qsos}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid ColumnDefinitions="70,90,70,60,90,*" Background="#0d0d0d" Margin="0,0,0,1">
+                            <Grid ColumnDefinitions="70,90,70,60,90,50,*" Background="#0d0d0d" Margin="0,0,0,1">
                                 <TextBlock Grid.Column="0" Text="{Binding DateTimeUtc, StringFormat='{}{0:HH:mm}'}" Foreground="#00ff88" Padding="6,4"/>
                                 <TextBlock Grid.Column="1" Text="{Binding Callsign}" Foreground="#00ff88" Padding="6,4"/>
                                 <TextBlock Grid.Column="2" Text="{Binding Band}" Foreground="#88ccff" Padding="6,4"/>
@@ -119,7 +146,15 @@
                                         </MultiBinding>
                                     </TextBlock.Text>
                                 </TextBlock>
-                                <TextBlock Grid.Column="5" Text="{Binding Name}" Foreground="White" Padding="6,4"/>
+                                <TextBlock Grid.Column="5" Foreground="#00ff88" FontWeight="Bold" Padding="6,4">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{x:Static vm:LotwConfirmedConverter.Instance}">
+                                            <Binding Path="Callsign"/>
+                                            <Binding Path="$parent[ItemsControl].((vm:QsoLoggerViewModel)DataContext).ConfirmedCallsigns"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                                <TextBlock Grid.Column="6" Text="{Binding Name}" Foreground="White" Padding="6,4"/>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -127,8 +162,7 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Footer -->
-        <TextBlock Grid.Row="2" Text="{Binding Qsos.Count, StringFormat='{}{0} QSOs logged this session'}"
+        <TextBlock Grid.Row="3" Text="{Binding Qsos.Count, StringFormat='{}{0} QSOs logged this session'}"
                    Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
     </Grid>
 </Window>

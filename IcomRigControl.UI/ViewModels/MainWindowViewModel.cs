@@ -287,7 +287,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void OpenQsoLogger()
     {
-        var loggerViewModel = new QsoLoggerViewModel(_qsoLogger, _callsignLookupSource);
+        var loggerViewModel = new QsoLoggerViewModel(_qsoLogger, _callsignLookupSource, _lotwBridge);
         var loggerWindow = new Views.QsoLoggerWindow
         {
             DataContext = loggerViewModel

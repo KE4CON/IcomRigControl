@@ -9,8 +9,15 @@ public partial class QsoLoggerViewModel : ViewModelBase
 {
     private readonly QsoLogger _qsoLogger;
     private readonly ICallsignLookupSource? _lookupSource;
+    private readonly LotwBridge? _lotwBridge;
 
     public ObservableCollection<QsoRecord> Qsos { get; } = new();
+
+    /// Callsigns confirmed via LoTW download-and-match (Phase 8d). A QSO's
+    /// callsign appearing here means at least one contact with that station
+    /// has a matching LoTW confirmation — checked by the UI to show a
+    /// confirmed indicator next to matching rows.
+    public ObservableCollection<string> ConfirmedCallsigns { get; } = new();
 
     [ObservableProperty]
     private string _callsignInput = "";
@@ -54,13 +61,20 @@ public partial class QsoLoggerViewModel : ViewModelBase
     [ObservableProperty]
     private string _contestScoreDisplay = "";
 
+    [ObservableProperty]
+    private string _lotwStatus = "";
+
+    [ObservableProperty]
+    private bool _lotwOperationInProgress;
+
     private readonly ContestDefinition _activeContest = ContestCatalog.FieldDay;
     private int _nextSerialNumber = 1;
 
-    public QsoLoggerViewModel(QsoLogger qsoLogger, ICallsignLookupSource? lookupSource)
+    public QsoLoggerViewModel(QsoLogger qsoLogger, ICallsignLookupSource? lookupSource, LotwBridge? lotwBridge = null)
     {
         _qsoLogger = qsoLogger;
         _lookupSource = lookupSource;
+        _lotwBridge = lotwBridge;
 
         foreach (var qso in _qsoLogger.Qsos)
         {
@@ -68,6 +82,11 @@ public partial class QsoLoggerViewModel : ViewModelBase
         }
 
         UpdateScoreDisplay();
+
+        if (_lotwBridge == null)
+        {
+            LotwStatus = "LoTW not configured (see Settings)";
+        }
     }
 
     [RelayCommand]
@@ -169,6 +188,94 @@ public partial class QsoLoggerViewModel : ViewModelBase
         catch (Exception ex)
         {
             LogStatus = $"Export error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task UploadToLotw()
+    {
+        if (_lotwBridge == null)
+        {
+            LotwStatus = "LoTW not configured (see Settings — set TQSL path).";
+            return;
+        }
+
+        if (Qsos.Count == 0)
+        {
+            LotwStatus = "No QSOs to upload.";
+            return;
+        }
+
+        LotwOperationInProgress = true;
+        LotwStatus = "Signing and uploading...";
+
+        try
+        {
+            var tempAdif = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(), $"lotw_upload_{DateTime.Now:yyyyMMdd_HHmmss}.adi");
+
+            _qsoLogger.ExportToAdif(tempAdif);
+
+            var result = await _lotwBridge.UploadAsync(tempAdif);
+
+            LotwStatus = result.Success
+                ? $"Upload successful ({Qsos.Count} QSOs)."
+                : $"Upload failed: {result.Message}";
+        }
+        catch (Exception ex)
+        {
+            LotwStatus = $"Upload error: {ex.Message}";
+        }
+        finally
+        {
+            LotwOperationInProgress = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task DownloadFromLotw()
+    {
+        if (_lotwBridge == null)
+        {
+            LotwStatus = "LoTW not configured (see Settings — set TQSL path).";
+            return;
+        }
+
+        LotwOperationInProgress = true;
+        LotwStatus = "Checking for confirmations...";
+
+        try
+        {
+            // Check confirmations from the last 90 days by default — a
+            // reasonable window for "recent activity" without re-fetching
+            // a station's entire multi-year history every time.
+            var sinceDate = DateTime.UtcNow.AddDays(-90);
+            var confirmed = await _lotwBridge.DownloadConfirmedQsosAsync(sinceDate);
+
+            int matchCount = 0;
+            foreach (var confirmedQso in confirmed)
+            {
+                bool hasLocalMatch = Qsos.Any(q =>
+                    q.Callsign.Equals(confirmedQso.Callsign, StringComparison.OrdinalIgnoreCase) &&
+                    q.Band.Equals(confirmedQso.Band, StringComparison.OrdinalIgnoreCase) &&
+                    q.DateTimeUtc.Date == confirmedQso.DateTimeUtc.Date);
+
+                if (hasLocalMatch && !ConfirmedCallsigns.Contains(confirmedQso.Callsign))
+                {
+                    ConfirmedCallsigns.Add(confirmedQso.Callsign);
+                    matchCount++;
+                }
+            }
+
+            LotwStatus = $"Checked {confirmed.Count} LoTW confirmations, matched {matchCount} against local log.";
+        }
+        catch (Exception ex)
+        {
+            LotwStatus = $"Download error: {ex.Message}";
+        }
+        finally
+        {
+            LotwOperationInProgress = false;
         }
     }
 

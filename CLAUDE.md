@@ -46,6 +46,21 @@ ObservableCollections
 - Unit tests required for: BCD encode/decode, frame builder, frame parser, frequency
 conversion
 - For DataGrid-style tabular UI: prefer ItemsControl + DataTemplate over Avalonia.Controls.DataGrid.
+- AVOID Avalonia's CheckBox control in this project — CONFIRMED BUG: the checkbox glyph
+  (and, depending on styling, its label) does not paint on initial render, is invisible
+  until clicked once, and does not respond to any repaint-forcing trick tried (Opened
+  event handler, InvalidateVisual/Arrange/Measure, ApplyTemplate, window resize/move,
+  removing the (also-buggy, since fixed) duplicate FluentTheme registration in
+  App.axaml). Binding and click behavior are otherwise completely correct once clicked.
+  Use a ToggleButton bound to the same boolean property instead, with a value converter
+  for the Content text (see ContestModeButtonTextConverter for the pattern) and explicit
+  :checked / :pointerover / :checked:pointerover style selectors on
+  /template/ ContentPresenter for correct visual states. This is now the third distinct
+  confirmed Avalonia control rendering bug found in this project (after the DataGrid
+  Phase 4 bug and the WaterfallControl Image repaint bug in Phase 7) — treat any new
+  control that "looks blank/wrong until interacted with" as a candidate for this same
+  class of issue and test a substitute control early rather than debugging the original
+  at length.
 - Environment.SpecialFolder.MyDocuments resolves to the OneDrive-redirected Documents path
   on this machine, not plain C:\Users\jrosp\Documents. Always verify actual file output
   location when debugging file I/O.
@@ -79,25 +94,23 @@ conversion
 - Never store QRZ/HamQTH credentials or any other secrets in AppSettings' backing JSON
   file within source control — settings.json is in .gitignore; keep it that way.
 - LARGE CODE BLOCKS FROM CLAUDE CAN GET COPIED INCOMPLETE IF THE COPY BUTTON IS CLICKED
-  BEFORE THE BLOCK HAS FULLY SCROLLED INTO VIEW. Root-caused on this machine: the chat
-  UI appears to only have the currently-rendered/scrolled portion of a long code block
-  available at copy time — clicking Copy without first scrolling all the way to the
-  bottom of the block can silently copy only the rendered portion, producing a
-  truncated paste with no error at copy time, paste time, or save time. CONFIRMED FIX:
-  scroll all the way to the bottom of a long code block BEFORE clicking Copy. A plain
-  select-all/delete/paste into an already-open tab works completely reliably once this
-  is done. Still good practice after any large-file rewrite: verify actual size with
-  `dir <file>` (Windows) and spot check the last line of intended content is present.
+  BEFORE THE BLOCK HAS FULLY SCROLLED INTO VIEW. CONFIRMED FIX: scroll all the way to the
+  bottom of a long code block BEFORE clicking Copy. A plain select-all/delete/paste into
+  an already-open tab works reliably once this is done.
 - WHEN PASTING A CODE SNIPPET, VERIFY IT LANDED IN THE INTENDED FILE, NOT AN ADJACENT
-  OPEN TAB. Confirmed on this machine twice in one session: a XAML button block meant
-  for a .axaml file was instead pasted into the paired .cs code-behind file (and vice
-  versa on an earlier occasion), producing a wall of unrelated C# compiler errors (CS1519,
-  CS1002, CS1525 etc. pointing at XML-looking tokens) that can look like file corruption
-  but is actually just "content in the wrong tab." When a build error shows XML-like
-  syntax (`<`, `>`, `Content=`) inside a `.cs` file's error list, or C#-like syntax inside
-  a `.axaml` file's parse error, check with `findstr` which file the content actually
-  landed in before assuming corruption — it is usually a simple wrong-tab paste, fixed by
-  deleting the block from the wrong file and re-pasting it into the correct one.
+  OPEN TAB. When a build error shows XML-like syntax inside a `.cs` file's error list, or
+  C#-like syntax inside a `.axaml` file's parse error, check with `findstr` which file the
+  content actually landed in before assuming corruption.
+## UI Design (flagged for future work, not yet scheduled as a phase)
+User has indicated the current UI ("functional-first, each feature bolted on as its own
+bordered box in a single scrolling window") is not satisfying and wants a real design
+pass at some point. Not urgent, but should be picked up deliberately rather than by
+continuing to bolt on more boxes. When that work starts, clarify with the user first:
+color palette/theme direction (stay dark, or open to alternatives), whether to lean into
+a real-transceiver-panel aesthetic (ties into Phase 11's clickable radio image) versus a
+modern flat dashboard look, and whether to move off one long scrolling window toward tabs
+or a more deliberate panel layout now that there are many features. Do not start a redesign
+without this input.
 ## Feature Priorities (build in this order)
 Phase 1: CI-V engine + serial connection + frequency read/set + mode read/set — COMPLETE (23 passing tests)
 Phase 2: Meter polling — COMPLETE (43 passing tests)
@@ -106,31 +119,27 @@ Phase 4: Memory bulk editor — COMPLETE (52 passing tests)
 Phase 5: Activity logger (CSV) — COMPLETE (56 passing tests)
 Phase 6: EMMCOM dashboard integration — COMPLETE (60 passing tests)
 Phase 7: Spectrum scope capture and waterfall display — CORE COMPLETE (74 passing tests). REMAINING: frequency axis labels; click-to-tune.
-Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — ENGINE + SETTINGS + LOGGING UI COMPLETE.
-  All six sub-phases (8a-8f) are functionally complete at the engine/service level (173
-  passing tests project-wide). SettingsWindow, MainWindowViewModel's AppSettings
-  consumption, and the IntegrationsStatus dashboard display are all complete and
-  confirmed working. QsoLoggerViewModel + QsoLoggerWindow (Phase 8a's remaining UI piece)
-  are built and confirmed working end-to-end: callsign entry, Lookup button (uses the
-  configured ICallsignLookupSource), RST/name/grid/notes fields, Log QSO button (writes
-  through QsoLogger, including the persistent ADIF session file), a live running table of
-  the session's QSOs, and an Export ADIF button. Reachable from the main dashboard's
-  "QSO Logger" button.
-  8a. Core logging — COMPLETE, engine and UI (118 tests + working UI).
-  8b. Contest mode — COMPLETE (Field Day) at the engine level. REMAINING: additional
-  contests; live score UI (not yet surfaced in QsoLoggerWindow — the window currently
-  only exposes general logging fields, not the contest exchange/serial fields
-  QsoLogger.LogQso already supports).
-  8c. Callsign lookup — COMPLETE, all three sources (20 tests), wired into runtime AND
-  into the logging UI panel's Lookup button.
-  8d. LoTW upload/download — COMPLETE (6 tests), wired into runtime. REMAINING:
+Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — COMPLETE.
+  All six sub-phases (8a-8f) are functionally complete at both the engine/service level
+  AND reachable through working UI (173 passing tests project-wide). SettingsWindow,
+  runtime AppSettings consumption, IntegrationsStatus dashboard display, and
+  QsoLoggerWindow (general logging + contest mode with a working ToggleButton-based
+  Contest Mode switch, exchange/serial fields, live score display, dupe checking) are
+  all built and confirmed working end-to-end.
+  8a. Core logging — COMPLETE, engine and UI.
+  8b. Contest mode — COMPLETE, engine and UI (Field Day). REMAINING: additional contest
+  catalog entries beyond Field Day, added incrementally as needed (see ContestCatalog.cs
+  extensibility notes from earlier sessions).
+  8c. Callsign lookup — COMPLETE, all three sources, wired into runtime and the UI.
+  8d. LoTW upload/download — COMPLETE at the engine level, wired into runtime. REMAINING:
   upload/download buttons in the UI; matching downloaded confirmations against local
-  QsoRecords.
-  8e. Ham Radio Deluxe integration — COMPLETE (Layer 3: 6 tests), wired into runtime.
-  8f. N1MM Logger+, WSJT-X, and HRD UDP integration — COMPLETE, both directions (137
-  tests), wired into runtime, confirmed re-applying correctly on Settings close.
-  REMAINING FOR PHASE 8 OVERALL: contest exchange fields in the logging UI (8b); LoTW
-  upload/download buttons (8d). Everything else is complete and reachable through the UI.
+  QsoRecords to mark them confirmed.
+  8e. Ham Radio Deluxe integration — COMPLETE, wired into runtime.
+  8f. N1MM Logger+, WSJT-X, and HRD UDP integration — COMPLETE, both directions, wired
+  into runtime.
+  REMAINING FOR PHASE 8 OVERALL: only LoTW upload/download buttons (8d) — everything
+  else is complete and reachable through the UI. Phase 8 can be considered essentially
+  finished; 8d's remaining piece is optional polish, not a blocker.
 Phase 9: Remote/network mode (headless Pi server + TCP client) — also the right place to
 revisit true CAT-replacement for N1MM/HRD, if wanted, once this phase's networking
 foundation exists.
@@ -139,7 +148,8 @@ wrapper on macOS. Beacon target: APRS-Command (formerly CrossPlatformAPRS) — b
 mechanism to be determined once APRS-Command's ingestion method is reviewed.
 Phase 11: Clickable radio front-panel control — user-photographed or vector image with
 transparent clickable regions overlaid, wired to existing CI-V commands. Image source
-must be the user's own photo, a licensed image, or an original illustration.
+must be the user's own photo, a licensed image, or an original illustration. See UI
+Design note above — may be a natural companion to a broader UI redesign pass.
 ## What NOT to do
 - Do not implement features out of phase order without explicit instruction
 - Do not add NuGet packages without listing them here first
@@ -164,6 +174,10 @@ must be the user's own photo, a licensed image, or an original illustration.
   copy click, and that it landed in the intended file — see the notes above
 - Do not assume a prior session's file set is intact — run `dotnet build` at the start
   of any session to catch files silently lost to paste truncation before building on them
+- Do not use Avalonia's CheckBox control in this project — see the confirmed rendering
+  bug note above; use ToggleButton instead
+- Do not begin a UI redesign pass without first getting the user's input on theme/layout
+  direction — see UI Design note above
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
@@ -197,7 +211,8 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 6. When completing a phase this session, update UserManual.md in the same commit
 7. Before any large paste: scroll to the bottom of the code block first. After any
    paste into an existing file: verify it landed in the intended file, not a sibling
-   .cs/.axaml tab — see the notes in Coding Standards above.
+   .cs/.axaml tab.
+8. Never use CheckBox in new UI work — use ToggleButton (see Coding Standards above)
 ## Deployment Targets
 Headless CI-V server (Phase 9, no UI): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable.
 Full Avalonia UI + scope on Pi: Raspberry Pi 5, 8GB RAM.

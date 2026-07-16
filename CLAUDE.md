@@ -60,6 +60,12 @@ conversion
 - FOR EVENLY-SPACED ITEMS ACROSS A CONTAINER'S WIDTH: use ItemsControl with a UniformGrid
   (Rows="1") as the ItemsPanel, NOT Canvas positioning with a value converter computing
   pixel offsets from a fraction — confirmed unreliable in Phase 7.
+- FOR PER-ROW LOOKUPS AGAINST A VIEWMODEL-LEVEL COLLECTION (e.g. "is this row's callsign
+  in the ViewModel's ConfirmedCallsigns list?"): a single-value IValueConverter cannot see
+  the ViewModel's collection — use IMultiValueConverter with a MultiBinding instead,
+  passing the row's own property plus a binding to the ViewModel collection via
+  $parent[ItemsControl].((vm:YourViewModel)DataContext).YourCollection. See
+  LotwConfirmedConverter for the working pattern (Phase 8d).
 - Environment.SpecialFolder.MyDocuments resolves to the OneDrive-redirected Documents path
   on this machine, not plain C:\Users\jrosp\Documents. Always verify actual file output
   location when debugging file I/O.
@@ -82,7 +88,11 @@ conversion
 - ICallsignLookupSource implementations must NEVER throw. QRZ and HamQTH both use
   session-based login (login once, cache, reuse, re-login only on session error).
 - LoTW signing MUST be delegated to ARRL's own TQSL tool via ITqslProcessRunner — never
-  reimplement ARRL's certificate/signing logic in-house.
+  reimplement ARRL's certificate/signing logic in-house. Download-and-match (checking
+  which local QSOs have LoTW confirmations) matches on callsign + band + date, and stores
+  matches in QsoLoggerViewModel.ConfirmedCallsigns rather than mutating QsoRecord (which
+  is an immutable record) — the UI checks membership in this collection per-row via
+  LotwConfirmedConverter. COMPLETE — see Phase 8d.
 - Microsoft.Data.Sqlite (used by HrdSqliteBridge) transitively pulls a vulnerable native
   SQLite build via SQLitePCLRaw.lib.e_sqlite3 2.1.11 (CVE-2025-6965 / GHSA-2m69-gcr7-jv3q),
   unpatched by Microsoft as of this writing. Every project referencing
@@ -93,19 +103,18 @@ conversion
   applies to Phase 9's RemoteAuthToken.
 - LARGE CODE BLOCKS FROM CLAUDE CAN GET COPIED INCOMPLETE IF THE COPY BUTTON IS CLICKED
   BEFORE THE BLOCK HAS FULLY SCROLLED INTO VIEW. CONFIRMED FIX: scroll all the way to the
-  bottom of a long code block BEFORE clicking Copy.
+  bottom of a long code block BEFORE clicking Copy. If a full-file replacement still
+  doesn't seem to land correctly on the FIRST attempt (verified by checking with findstr
+  after "saving"), do not keep re-pasting into the same tab — switch immediately to
+  File -> New File -> paste -> Save As -> Overwrite. Confirmed in Phase 8d: a
+  same-tab paste can silently fail to take effect even when the user believes it saved.
 - WHEN PASTING A CODE SNIPPET, VERIFY IT LANDED IN THE INTENDED FILE, NOT AN ADJACENT
   OPEN TAB. Check with `findstr` if a build error shows syntax from the wrong file type.
 - Phase 9's remote CI-V protocol requires a non-empty auth token before a CivTcpServer
-  will relay any traffic — ValidateToken() rejects an empty expected token by design, to
-  prevent an accidentally-unauthenticated server. Token comparison is constant-time
-  (CryptographicOperations.FixedTimeEquals) since this authenticates control of a live
-  transmitter over a network link, including potentially 44Net/AMPRNet.
-- Avalonia UI projects built with OutputType=WinExe (the default for desktop apps, no
-  console window) will silently swallow Console.WriteLine output — confirmed in Phase 9
-  when building headless server mode. Fix: call AttachConsole(ATTACH_PARENT_PROCESS) via
-  P/Invoke on Windows specifically (harmless no-op on macOS/Linux) before writing to
-  Console in any code path meant to run as a CLI tool from the same executable as a GUI app.
+  will relay any traffic — ValidateToken() rejects an empty expected token by design.
+- Avalonia UI projects built with OutputType=WinExe will silently swallow
+  Console.WriteLine output — fix via AttachConsole(ATTACH_PARENT_PROCESS) P/Invoke on
+  Windows specifically, for any code path meant to run as a CLI tool.
 ## UI Design (flagged for future work, not yet scheduled as a phase)
 User has indicated the current UI ("functional-first, each feature bolted on as its own
 bordered box in a single scrolling window") is not satisfying and wants a real design
@@ -123,36 +132,20 @@ Phase 3: Avalonia UI — main panel — COMPLETE
 Phase 4: Memory bulk editor — COMPLETE (52 passing tests)
 Phase 5: Activity logger (CSV) — COMPLETE (56 passing tests)
 Phase 6: EMMCOM dashboard integration — COMPLETE (60 passing tests)
-Phase 7: Spectrum scope capture and waterfall display — COMPLETE.
-  Axis labels above the waterfall and click-to-tune both built and confirmed working
-  live, alongside the full scope/waveform engine from earlier sessions. 180 passing tests.
-Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — COMPLETE.
-  All six sub-phases (8a-8f) functionally complete at both the engine/service level AND
-  reachable through working UI. REMAINING (optional polish only): LoTW upload/download
-  buttons in the UI (engine complete, wired into runtime, just needs buttons); additional
-  contest catalog entries beyond Field Day, as needed.
-Phase 9: Remote/network mode — COMPLETE.
-  Full client-server remote CI-V control pipeline, designed to work over LAN, VPN, or
-  44Net/AMPRNet: CivNetworkProtocol (token-based auth handshake, constant-time
-  comparison, 8 tests), CivTcpServer (Pi-side listener wrapping a real ICivTransport,
-  authenticates clients before relaying any CI-V bytes, 5 tests with real socket
-  communication), TcpCivTransport (client-side ICivTransport — a drop-in replacement for
-  SerialCivTransport, so the entire rest of the app including all Phase 8 integrations
-  works unchanged against a remote radio, 5 tests with real end-to-end socket auth+relay),
-  a headless console launch mode (--headless-server CLI flag with --port/--tcpport/
-  --token/--model arguments, confirmed working with real console output on Windows after
-  fixing a WinExe console-output bug via AttachConsole), and a full connection-mode
-  Settings UI (Demo/Serial/Remote dropdown with host/port/token fields, wired end-to-end
-  from SettingsViewModel through AppSettings to MainWindowViewModel's transport
-  selection at construction time). 198 passing tests project-wide.
-  REMAINING: real-world testing against actual IC-7300 hardware over an actual network
-  link (everything to date has been proven via localhost sockets and the demo/fake
-  transport — genuinely working, but not yet exercised against a real radio + real
-  network path, including 44Net specifically); the true CAT-replacement concept for
-  N1MM/HRD (letting those programs drive the radio through this project's connection
-  instead of their own CAT link) remains explicitly out of scope per earlier Phase 8
-  decisions, though the TCP transport built here could theoretically support it in the
-  future if reconsidered.
+Phase 7: Spectrum scope capture and waterfall display — COMPLETE (180 passing tests).
+Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — COMPLETE, ZERO REMAINING ITEMS.
+  All six sub-phases (8a-8f) fully complete at both the engine/service level AND
+  reachable through working UI, including the final piece (8d's LoTW upload/download
+  buttons, wired to LotwBridge, with a per-row confirmed indicator using
+  LotwConfirmedConverter's IMultiValueConverter pattern). Confirmed working live
+  end-to-end, including correct "not configured" messaging when TQSL isn't set up.
+  198 passing tests project-wide. No remaining items in Phase 8 at all.
+Phase 9: Remote/network mode — COMPLETE (198 passing tests, included in the count above).
+  Full client-server remote CI-V control pipeline designed for LAN, VPN, or
+  44Net/AMPRNet. REMAINING: real-world testing against actual IC-7300 hardware over an
+  actual network link — everything proven via localhost sockets and the demo transport
+  to date, genuinely working but not yet exercised against real hardware + a real
+  network path.
 Phase 10: Remote audio + APRS beacon (combined) — NAudio on Windows, AVFoundation
 wrapper on macOS. Beacon target: APRS-Command (formerly CrossPlatformAPRS) — bridge
 mechanism to be determined once APRS-Command's ingestion method is reviewed.
@@ -181,20 +174,22 @@ Design note above — may be a natural companion to a broader UI redesign pass.
 - Do not remove the SQLitePCLRaw.lib.e_sqlite3 version pin from any project referencing
   Microsoft.Data.Sqlite without confirming the underlying CVE is resolved upstream first
 - Do not trust a large paste without verifying it scrolled fully into view before the
-  copy click, and that it landed in the intended file
+  copy click, and that it landed in the intended file — if a same-tab paste doesn't
+  verifiably take effect on the first try, switch to File -> New File -> Save As
 - Do not assume a prior session's file set is intact — run `dotnet build` at the start
   of any session to catch files silently lost to paste truncation before building on them
 - Do not use Avalonia's CheckBox control in this project — use ToggleButton instead
 - Do not use Canvas + IValueConverter for evenly-spaced item layout — use
   ItemsControl + UniformGrid instead
+- Do not use a single-value IValueConverter to check a row against a ViewModel-level
+  collection — use IMultiValueConverter + MultiBinding instead
 - Do not begin a UI redesign pass without first getting the user's input on theme/layout
   direction — see UI Design note above
 - Do not downgrade Avalonia to 11.x without new evidence — see Avalonia Version Decision
   above; this has already been researched and decided
-- Do not run a CivTcpServer with a blank/empty auth token — ValidateToken rejects this
-  by design, but never attempt to work around it
+- Do not run a CivTcpServer with a blank/empty auth token
 - Do not assume Console.WriteLine output is visible in a WinExe-built app without
-  AttachConsole — see the Phase 9 coding standards note above
+  AttachConsole
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
@@ -222,19 +217,22 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 ## Session Start Checklist
 1. Read this file
 2. Run `dotnet build` before making any changes to confirm the prior session's file set
-   is genuinely intact — see the large-paste-truncation note above
+   is genuinely intact
 3. Confirm which Phase is active
 4. Check that the layer being touched matches the Phase
 5. Do not refactor other layers unless the current Phase explicitly requires it
 6. When completing a phase this session, update UserManual.md in the same commit
 7. Before any large paste: scroll to the bottom of the code block first. After any
-   paste into an existing file: verify it landed in the intended file, not a sibling
-   .cs/.axaml tab.
+   paste into an existing file: verify it landed correctly (findstr/dir), and if a
+   same-tab paste doesn't verifiably take on the first try, switch to
+   File -> New File -> Save As rather than retrying the same tab
 8. Never use CheckBox in new UI work — use ToggleButton
 9. For evenly-spaced item layout, use ItemsControl + UniformGrid, not Canvas + converter
+10. For per-row lookups against a ViewModel collection, use IMultiValueConverter +
+    MultiBinding, not a single-value converter
 ## Deployment Targets
 Headless CI-V server (Phase 9): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable —
-now genuinely runnable via `IcomRigControl.UI --headless-server`.
+runnable via `IcomRigControl.UI --headless-server`.
 Full Avalonia UI + scope on Pi: Raspberry Pi 5, 8GB RAM.
 Storage: 16-32GB microSD (A2 rated recommended).
 ## Supported Desktop Platforms (all four, via Avalonia 12)

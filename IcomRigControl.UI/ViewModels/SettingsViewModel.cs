@@ -8,6 +8,24 @@ public partial class SettingsViewModel : ViewModelBase
 {
     private readonly SettingsService _settingsService;
 
+    // ── Phase 9: Connection mode ────────────────────────────────────────
+    [ObservableProperty]
+    private string _connectionMode = "Demo";
+
+    public List<string> AvailableConnectionModes { get; } = new() { "Demo", "Serial", "Remote" };
+
+    [ObservableProperty]
+    private string _serialPortName = "";
+
+    [ObservableProperty]
+    private string _remoteHost = "";
+
+    [ObservableProperty]
+    private int _remotePort = 7300;
+
+    [ObservableProperty]
+    private string _remoteAuthToken = "";
+
     [ObservableProperty]
     private string _callsignLookupSource = "Callook";
 
@@ -57,6 +75,12 @@ public partial class SettingsViewModel : ViewModelBase
 
     private void LoadFromSettings(AppSettings settings)
     {
+        ConnectionMode = settings.ConnectionMode;
+        SerialPortName = settings.SerialPortName;
+        RemoteHost = settings.RemoteHost;
+        RemotePort = settings.RemotePort;
+        RemoteAuthToken = settings.RemoteAuthToken;
+
         CallsignLookupSource = settings.CallsignLookupSource;
         QrzUsername = settings.QrzUsername;
         QrzPassword = settings.QrzPassword;
@@ -90,6 +114,12 @@ public partial class SettingsViewModel : ViewModelBase
 
             var settings = new AppSettings
             {
+                ConnectionMode = ConnectionMode,
+                SerialPortName = SerialPortName,
+                RemoteHost = RemoteHost,
+                RemotePort = RemotePort,
+                RemoteAuthToken = RemoteAuthToken,
+
                 CallsignLookupSource = CallsignLookupSource,
                 QrzUsername = QrzUsername,
                 QrzPassword = QrzPassword,
@@ -105,7 +135,7 @@ public partial class SettingsViewModel : ViewModelBase
             };
 
             _settingsService.Save(settings);
-            StatusMessage = "Settings saved.";
+            StatusMessage = "Settings saved. Connection mode changes require an app restart to take effect.";
         }
         catch (Exception ex)
         {

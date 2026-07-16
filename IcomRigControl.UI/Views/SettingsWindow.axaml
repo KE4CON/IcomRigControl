@@ -3,15 +3,37 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="850"
         x:Class="IcomRigControl.UI.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
-        Width="500" Height="700"
+        Width="500" Height="850"
         Background="#1a1a1a">
 
     <ScrollViewer>
     <StackPanel Margin="20" Spacing="16">
+
+        <TextBlock Text="Radio Connection (Phase 9)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Connection Mode" Foreground="Gray" FontSize="11"/>
+                <ComboBox ItemsSource="{Binding AvailableConnectionModes}"
+                          SelectedItem="{Binding ConnectionMode}"
+                          HorizontalAlignment="Stretch"/>
+                <TextBlock Text="Demo: no hardware needed. Serial: local USB radio. Remote: connect to a CivTcpServer over TCP (e.g. a Pi running --headless-server, possibly over 44Net/AMPRNet)."
+                           Foreground="Gray" FontSize="10" TextWrapping="Wrap"/>
+
+                <TextBlock Text="Serial Port (Serial mode)" Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
+                <TextBox Text="{Binding SerialPortName}" PlaceholderText="COM3 or /dev/tty.usbserial-XXXX"/>
+
+                <TextBlock Text="Remote Host (Remote mode)" Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
+                <TextBox Text="{Binding RemoteHost}" PlaceholderText="44.xx.xx.xx or hostname"/>
+                <TextBlock Text="Remote Port" Foreground="Gray" FontSize="11"/>
+                <NumericUpDown Value="{Binding RemotePort}" Minimum="1" Maximum="65535"/>
+                <TextBlock Text="Remote Auth Token" Foreground="Gray" FontSize="11"/>
+                <TextBox Text="{Binding RemoteAuthToken}" PasswordChar="*"/>
+            </StackPanel>
+        </Border>
 
         <TextBlock Text="Callsign Lookup (Phase 8c)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
         <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
@@ -43,7 +65,10 @@
         <TextBlock Text="Ham Radio Deluxe (Phase 8e)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
         <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
             <StackPanel Spacing="8">
-                <CheckBox Content="Enable direct-write bridge to HRD Logbook" IsChecked="{Binding HrdBridgeEnabled}"/>
+                <ToggleButton Content="{Binding HrdBridgeEnabled, Converter={x:Static vm:LoggingButtonTextConverter.Instance}}"
+                              IsChecked="{Binding HrdBridgeEnabled}"
+                              Width="200" HorizontalAlignment="Left"
+                              Background="#2a2a2a" Foreground="White"/>
                 <TextBlock Text="HRD Logbook database path" Foreground="Gray" FontSize="11"/>
                 <TextBox Text="{Binding HrdDatabasePath}"
                          PlaceholderText="C:\Users\...\AppData\Roaming\Simon Brown, HB9DRV\HRD Logbook\..."/>
@@ -53,10 +78,16 @@
         <TextBlock Text="N1MM / WSJT-X Integration (Phase 8f)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
         <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
             <StackPanel Spacing="8">
-                <CheckBox Content="Send rig status (frequency/mode/PTT) to N1MM/HRD/WSJT-X" IsChecked="{Binding N1mmSendEnabled}"/>
+                <ToggleButton Content="{Binding N1mmSendEnabled, Converter={x:Static vm:LoggingButtonTextConverter.Instance}}"
+                              IsChecked="{Binding N1mmSendEnabled}"
+                              Width="200" HorizontalAlignment="Left"
+                              Background="#2a2a2a" Foreground="White"/>
                 <TextBlock Text="Destination (IP:Port)" Foreground="Gray" FontSize="11"/>
                 <TextBox Text="{Binding N1mmDestinationInput}" PlaceholderText="127.0.0.1:12060"/>
-                <CheckBox Content="Receive QSOs logged in N1MM/WSJT-X (automatic backup)" IsChecked="{Binding N1mmReceiveEnabled}" Margin="0,8,0,0"/>
+                <ToggleButton Content="{Binding N1mmReceiveEnabled, Converter={x:Static vm:LoggingButtonTextConverter.Instance}}"
+                              IsChecked="{Binding N1mmReceiveEnabled}"
+                              Width="200" HorizontalAlignment="Left"
+                              Background="#2a2a2a" Foreground="White" Margin="0,8,0,0"/>
                 <TextBlock Text="Listen Port" Foreground="Gray" FontSize="11"/>
                 <NumericUpDown Value="{Binding ContactListenPort}" Minimum="1" Maximum="65535"/>
             </StackPanel>
@@ -73,7 +104,7 @@
                 </Button.Styles>
             </Button>
         </StackPanel>
-        <TextBlock Text="{Binding StatusMessage}" Foreground="#00ff88" FontSize="12" HorizontalAlignment="Center"/>
+        <TextBlock Text="{Binding StatusMessage}" Foreground="#00ff88" FontSize="12" HorizontalAlignment="Center" TextWrapping="Wrap"/>
 
     </StackPanel>
     </ScrollViewer>

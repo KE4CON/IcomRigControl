@@ -26,19 +26,11 @@ interaction (Avalonia 12)"), explicitly reported as new to the 12.x line ("This 
 happen in Avalonia 11") and affecting basic controls generally (Button, TextBox), not
 just CheckBox — matching this project's pattern. The issue was closed for lack of a
 reliable repro, not because it was fixed, so it may still be present in current 12.x
-patch releases. Downgrading to 11.3.12 (the last 11.x release) was seriously considered:
-it would require reverting package versions, re-checking compiled-bindings-by-default
-behavior, reverting the SystemDecorations->WindowDecorations rename if used (not
-currently used in this project), and — critically — carries real regression risk across
-every screen already built (Main dashboard, Memory Editor, Settings, QSO Logger), with no
-guarantee the Phase 4 DataGrid bug wasn't *also* present in 11.x (in which case
-downgrading buys nothing there). DECISION: stay on 12.x. We already have working,
-tested fixes for all three known rendering bugs (ItemsControl instead of DataGrid,
-explicit child-element InvalidateVisual() for WaterfallControl, ToggleButton instead of
-CheckBox). The known-working-fixes-in-hand path is lower risk than a full-codebase
-regression test against a downgrade. Revisit this decision only if a new, genuinely
-unexplainable rendering bug appears that these three known workarounds don't help with —
-at that point the calculus changes and downgrading should be reconsidered seriously.
+patch releases. DECISION: stay on 12.x. We already have working, tested fixes for all
+three known rendering bugs (ItemsControl instead of DataGrid, explicit child-element
+InvalidateVisual() for WaterfallControl, ToggleButton instead of CheckBox). Revisit only
+if a new, genuinely unexplainable rendering bug appears that these known workarounds
+don't help with.
 ## Architecture Layers (never mix concerns across layers)
 Layer 1 — CivEngine: Raw CI-V framing, serial port I/O, BCD encode/decode. No UI, no
 radio model.
@@ -71,10 +63,17 @@ conversion
 - For DataGrid-style tabular UI: prefer ItemsControl + DataTemplate over Avalonia.Controls.DataGrid.
 - AVOID Avalonia's CheckBox control in this project — CONFIRMED BUG, and confirmed as a
   known upstream Avalonia 12 issue (see Avalonia Version Decision above). Use a
-  ToggleButton bound to the same boolean property instead, with a value converter for
-  the Content text (see ContestModeButtonTextConverter for the pattern) and explicit
-  :checked / :pointerover / :checked:pointerover style selectors on
-  /template/ ContentPresenter for correct visual states.
+  ToggleButton bound to the same boolean property instead.
+- FOR EVENLY-SPACED ITEMS ACROSS A CONTAINER'S WIDTH (e.g. axis labels, tick marks): use
+  ItemsControl with a UniformGrid (Rows="1") as the ItemsPanel, NOT Canvas positioning
+  with a value converter computing pixel offsets from a fraction. Confirmed on this
+  project (Phase 7 waterfall axis labels): a Canvas + IValueConverter approach compiled
+  and bound correctly (proven via a Count-bound diagnostic label showing the right
+  number of items) but the individual items never rendered at their computed Canvas.Left
+  positions — switching to UniformGrid fixed it immediately with less code and no
+  converter needed. Prefer UniformGrid/Grid-based even-spacing over Canvas+converter
+  positioning as the default approach; only reach for Canvas when you genuinely need
+  data-driven, non-uniform positions.
 - Environment.SpecialFolder.MyDocuments resolves to the OneDrive-redirected Documents path
   on this machine, not plain C:\Users\jrosp\Documents. Always verify actual file output
   location when debugging file I/O.
@@ -109,12 +108,9 @@ conversion
   file within source control — settings.json is in .gitignore; keep it that way.
 - LARGE CODE BLOCKS FROM CLAUDE CAN GET COPIED INCOMPLETE IF THE COPY BUTTON IS CLICKED
   BEFORE THE BLOCK HAS FULLY SCROLLED INTO VIEW. CONFIRMED FIX: scroll all the way to the
-  bottom of a long code block BEFORE clicking Copy. A plain select-all/delete/paste into
-  an already-open tab works reliably once this is done.
+  bottom of a long code block BEFORE clicking Copy.
 - WHEN PASTING A CODE SNIPPET, VERIFY IT LANDED IN THE INTENDED FILE, NOT AN ADJACENT
-  OPEN TAB. When a build error shows XML-like syntax inside a `.cs` file's error list, or
-  C#-like syntax inside a `.axaml` file's parse error, check with `findstr` which file the
-  content actually landed in before assuming corruption.
+  OPEN TAB. Check with `findstr` if a build error shows syntax from the wrong file type.
 ## UI Design (flagged for future work, not yet scheduled as a phase)
 User has indicated the current UI ("functional-first, each feature bolted on as its own
 bordered box in a single scrolling window") is not satisfying and wants a real design
@@ -132,14 +128,20 @@ Phase 3: Avalonia UI — main panel — COMPLETE
 Phase 4: Memory bulk editor — COMPLETE (52 passing tests)
 Phase 5: Activity logger (CSV) — COMPLETE (56 passing tests)
 Phase 6: EMMCOM dashboard integration — COMPLETE (60 passing tests)
-Phase 7: Spectrum scope capture and waterfall display — CORE COMPLETE (74 passing tests). REMAINING: frequency axis labels; click-to-tune.
+Phase 7: Spectrum scope capture and waterfall display — COMPLETE.
+  ScopeDataDecoder, CivFrameBuilder scope commands, Transceiver.StartScopeAsync/StopScope
+  (now sends SetScopeSpan and tracks CurrentSpanHz), WaterfallControl with correct
+  repaint behavior, DemoCivTransport realistic signal generation, WaterfallFrequencyMapper
+  (pixel-to-frequency math, axis label generation, formatting — 7 tests), frequency axis
+  labels above the waterfall (UniformGrid layout, updates live with frequency changes),
+  and click-to-tune (click a point on the waterfall, radio tunes there) — all built and
+  confirmed working live. 180 passing tests project-wide.
 Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — COMPLETE.
   All six sub-phases (8a-8f) are functionally complete at both the engine/service level
-  AND reachable through working UI (173 passing tests project-wide). SettingsWindow,
-  runtime AppSettings consumption, IntegrationsStatus dashboard display, and
-  QsoLoggerWindow (general logging + contest mode with a working ToggleButton-based
-  Contest Mode switch, exchange/serial fields, live score display, dupe checking) are
-  all built and confirmed working end-to-end.
+  AND reachable through working UI. SettingsWindow, runtime AppSettings consumption,
+  IntegrationsStatus dashboard display, and QsoLoggerWindow (general logging + contest
+  mode with a working ToggleButton-based Contest Mode switch, exchange/serial fields,
+  live score display, dupe checking) are all built and confirmed working end-to-end.
   8a. Core logging — COMPLETE, engine and UI.
   8b. Contest mode — COMPLETE, engine and UI (Field Day). REMAINING: additional contest
   catalog entries beyond Field Day, added incrementally as needed.
@@ -150,9 +152,8 @@ Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/W
   8e. Ham Radio Deluxe integration — COMPLETE, wired into runtime.
   8f. N1MM Logger+, WSJT-X, and HRD UDP integration — COMPLETE, both directions, wired
   into runtime.
-  REMAINING FOR PHASE 8 OVERALL: only LoTW upload/download buttons (8d) — everything
-  else is complete and reachable through the UI. Phase 8 can be considered essentially
-  finished; 8d's remaining piece is optional polish, not a blocker.
+  REMAINING FOR PHASE 8 OVERALL: only LoTW upload/download buttons (8d) — optional
+  polish, not a blocker.
 Phase 9: Remote/network mode (headless Pi server + TCP client) — also the right place to
 revisit true CAT-replacement for N1MM/HRD, if wanted, once this phase's networking
 foundation exists.
@@ -184,10 +185,12 @@ Design note above — may be a natural companion to a broader UI redesign pass.
 - Do not remove the SQLitePCLRaw.lib.e_sqlite3 version pin from any project referencing
   Microsoft.Data.Sqlite without confirming the underlying CVE is resolved upstream first
 - Do not trust a large paste without verifying it scrolled fully into view before the
-  copy click, and that it landed in the intended file — see the notes above
+  copy click, and that it landed in the intended file
 - Do not assume a prior session's file set is intact — run `dotnet build` at the start
   of any session to catch files silently lost to paste truncation before building on them
 - Do not use Avalonia's CheckBox control in this project — use ToggleButton instead
+- Do not use Canvas + IValueConverter for evenly-spaced item layout — use
+  ItemsControl + UniformGrid instead (see Coding Standards above)
 - Do not begin a UI redesign pass without first getting the user's input on theme/layout
   direction — see UI Design note above
 - Do not downgrade Avalonia to 11.x without new evidence — see Avalonia Version Decision
@@ -227,7 +230,8 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 7. Before any large paste: scroll to the bottom of the code block first. After any
    paste into an existing file: verify it landed in the intended file, not a sibling
    .cs/.axaml tab.
-8. Never use CheckBox in new UI work — use ToggleButton (see Coding Standards above)
+8. Never use CheckBox in new UI work — use ToggleButton
+9. For evenly-spaced item layout, use ItemsControl + UniformGrid, not Canvas + converter
 ## Deployment Targets
 Headless CI-V server (Phase 9, no UI): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable.
 Full Avalonia UI + scope on Pi: Raspberry Pi 5, 8GB RAM.

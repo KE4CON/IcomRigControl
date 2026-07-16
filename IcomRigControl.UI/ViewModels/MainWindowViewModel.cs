@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -84,6 +85,11 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty]
     private string _emmcomUrlInput = "http://localhost:9000/api/rigstatus";
 
+    /// Waterfall frequency axis labels (Phase 7). Each entry has a formatted
+    /// frequency string and a 0.0-1.0 fraction the UI multiplies by the
+    /// waterfall's actual rendered width to position it.
+    public ObservableCollection<WaterfallAxisLabelViewModel> AxisLabels { get; } = new();
+
     public MainWindowViewModel()
     {
         // For now: FakeCivTransport so the UI is fully demoable without hardware.
@@ -92,7 +98,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         _transceiver = new Transceiver(transport, RadioModel.IC7300);
 
         _transceiver.FrequencyChanged += (_, hz) =>
+        {
             FrequencyDisplay = FormatFrequency(hz);
+            UpdateAxisLabels();
+        };
 
         _transceiver.ModeChanged += (_, mode) =>
             Mode = mode;
@@ -122,6 +131,38 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         ApplySettings(_settingsService.Load());
 
         _ = ConnectAsync();
+    }
+
+    /// Recomputes the waterfall's frequency axis labels based on the
+    /// Transceiver's current frequency and span. Called whenever frequency
+    /// changes, and once after the scope starts.
+    private void UpdateAxisLabels()
+    {
+        var labels = WaterfallFrequencyMapper.GenerateAxisLabels(
+            _transceiver.FrequencyHz, _transceiver.CurrentSpanHz, labelCount: 5);
+
+        AxisLabels.Clear();
+        foreach (var label in labels)
+        {
+            AxisLabels.Add(new WaterfallAxisLabelViewModel(
+                WaterfallFrequencyMapper.FormatFrequencyLabel(label.FrequencyHz),
+                label.PixelX));
+        }
+    }
+
+    /// Called by the waterfall control when the user clicks a point on it.
+    /// clickFraction is 0.0 (left edge) to 1.0 (right edge) of the rendered
+    /// waterfall width. Computes the corresponding frequency and tunes there.
+    [RelayCommand]
+    private async Task TuneToWaterfallPosition(double clickFraction)
+    {
+        if (!IsConnected) return;
+
+        int pixelX = (int)(clickFraction * 474); // 475 data points, 0-474
+        long targetFreq = WaterfallFrequencyMapper.PixelToFrequency(
+            pixelX, dataPointCount: 475, _transceiver.FrequencyHz, _transceiver.CurrentSpanHz);
+
+        await _transceiver.SetFrequencyAsync(targetFreq);
     }
 
     /// Reads the saved AppSettings and configures the real services for
@@ -192,7 +233,6 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
-
     private async Task SetMode(string mode)
     {
         if (!IsConnected) return;
@@ -322,6 +362,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
                 await _transceiver.SetFrequencyAsync(14_074_000);
                 _transceiver.StartPolling(TimeSpan.FromMilliseconds(500));
                 await _transceiver.StartScopeAsync(TimeSpan.FromMilliseconds(300));
+                UpdateAxisLabels();
             }
         }
         catch (Exception ex)
@@ -344,3 +385,6 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         await _transceiver.DisposeAsync();
     }
 }
+
+/// One frequency axis label for the waterfall display.
+public record WaterfallAxisLabelViewModel(string Text, double PixelFraction);

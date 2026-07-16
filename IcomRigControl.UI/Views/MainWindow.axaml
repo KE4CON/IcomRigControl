@@ -4,11 +4,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
         xmlns:views="using:IcomRigControl.UI.Views"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="880"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="900"
         x:Class="IcomRigControl.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="IcomRigControl"
-        Width="500" Height="880"
+        Width="500" Height="900"
         Background="#1a1a1a">
 
     <Design.DataContext>
@@ -75,9 +75,25 @@
         </Border>
 
         <Border Background="#0d0d0d" CornerRadius="6" Padding="10" HorizontalAlignment="Stretch">
-            <StackPanel Spacing="8" HorizontalAlignment="Stretch">
-                <TextBlock Text="Spectrum Scope" Foreground="Gray" FontSize="11"/>
-                <views:WaterfallControl x:Name="Waterfall" Height="300" HorizontalAlignment="Stretch"/>
+            <StackPanel Spacing="4" HorizontalAlignment="Stretch">
+                <TextBlock Text="Spectrum Scope (click to tune)" Foreground="Gray" FontSize="11"/>
+
+            <!-- Frequency axis labels -->
+                <ItemsControl ItemsSource="{Binding AxisLabels}" HorizontalAlignment="Stretch">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" HorizontalAlignment="Stretch"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Text}" Foreground="#88ccff" FontSize="9" HorizontalAlignment="Center"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <views:WaterfallControl x:Name="Waterfall" Height="300" HorizontalAlignment="Stretch"
+                                         PointerPressed="Waterfall_PointerPressed"/>
             </StackPanel>
         </Border>
 

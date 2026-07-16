@@ -36,6 +36,27 @@ public partial class QsoLoggerViewModel : ViewModelBase
     [ObservableProperty]
     private string _logStatus = "";
 
+    [ObservableProperty]
+    private bool _isContestMode;
+
+    [ObservableProperty]
+    private string _contestExchangeSentInput = "";
+
+    [ObservableProperty]
+    private string _contestExchangeReceivedInput = "";
+
+    [ObservableProperty]
+    private string _serialNumberSentInput = "";
+
+    [ObservableProperty]
+    private string _serialNumberReceivedInput = "";
+
+    [ObservableProperty]
+    private string _contestScoreDisplay = "";
+
+    private readonly ContestDefinition _activeContest = ContestCatalog.FieldDay;
+    private int _nextSerialNumber = 1;
+
     public QsoLoggerViewModel(QsoLogger qsoLogger, ICallsignLookupSource? lookupSource)
     {
         _qsoLogger = qsoLogger;
@@ -45,6 +66,8 @@ public partial class QsoLoggerViewModel : ViewModelBase
         {
             Qsos.Add(qso);
         }
+
+        UpdateScoreDisplay();
     }
 
     [RelayCommand]
@@ -87,23 +110,43 @@ public partial class QsoLoggerViewModel : ViewModelBase
 
         try
         {
+            if (IsContestMode && _activeContest.IsDuplicate(_qsoLogger.Qsos, CallsignInput, GetCurrentBand(), GetCurrentMode()))
+            {
+                LogStatus = $"DUPE: {CallsignInput.ToUpperInvariant()} already worked on this band.";
+                return;
+            }
+
+            int? serialSent = IsContestMode && int.TryParse(SerialNumberSentInput, out int ss) ? ss : null;
+            int? serialReceived = IsContestMode && int.TryParse(SerialNumberReceivedInput, out int sr) ? sr : null;
+
             var qso = _qsoLogger.LogQso(
                 CallsignInput,
                 RstSentInput,
                 RstReceivedInput,
                 string.IsNullOrWhiteSpace(NameInput) ? null : NameInput,
                 string.IsNullOrWhiteSpace(GridSquareInput) ? null : GridSquareInput,
-                string.IsNullOrWhiteSpace(NotesInput) ? null : NotesInput);
+                string.IsNullOrWhiteSpace(NotesInput) ? null : NotesInput,
+                IsContestMode && !string.IsNullOrWhiteSpace(ContestExchangeSentInput) ? ContestExchangeSentInput : null,
+                IsContestMode && !string.IsNullOrWhiteSpace(ContestExchangeReceivedInput) ? ContestExchangeReceivedInput : null,
+                serialSent,
+                serialReceived);
 
             Qsos.Insert(0, qso);
             LogStatus = $"Logged {qso.Callsign} at {qso.DateTimeUtc:HH:mm} UTC.";
 
-            // Clear entry fields for the next QSO, but keep RST defaults.
             CallsignInput = "";
             NameInput = "";
             GridSquareInput = "";
             NotesInput = "";
+            ContestExchangeReceivedInput = "";
             LookupStatus = "";
+
+            if (IsContestMode)
+            {
+                _nextSerialNumber++;
+                SerialNumberSentInput = _nextSerialNumber.ToString();
+                UpdateScoreDisplay();
+            }
         }
         catch (Exception ex)
         {
@@ -128,4 +171,32 @@ public partial class QsoLoggerViewModel : ViewModelBase
             LogStatus = $"Export error: {ex.Message}";
         }
     }
+
+    partial void OnIsContestModeChanged(bool value)
+    {
+        if (value)
+        {
+            SerialNumberSentInput = _nextSerialNumber.ToString();
+            RstSentInput = "59";
+            UpdateScoreDisplay();
+        }
+    }
+
+    private void UpdateScoreDisplay()
+    {
+        if (!IsContestMode)
+        {
+            ContestScoreDisplay = "";
+            return;
+        }
+
+        var result = ContestScoreCalculator.CalculateScore(_activeContest, _qsoLogger.Qsos);
+        ContestScoreDisplay = $"{_activeContest.Name}: {result.QsoCount} QSOs, {result.TotalPoints} points, {result.SectionsWorked.Count} sections";
+    }
+
+    // Best-effort current band/mode for dupe checking, based on the most
+    // recently logged QSO's own captured values (QsoLogger auto-fills from
+    // the live radio at log time, so we don't have direct radio access here).
+    private string GetCurrentBand() => _qsoLogger.Qsos.Count > 0 ? _qsoLogger.Qsos[^1].Band : "";
+    private string GetCurrentMode() => _qsoLogger.Qsos.Count > 0 ? _qsoLogger.Qsos[^1].Mode : "";
 }

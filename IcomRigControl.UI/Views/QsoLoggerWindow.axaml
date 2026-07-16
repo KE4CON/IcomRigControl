@@ -3,11 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="650" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="650" d:DesignHeight="760"
         x:Class="IcomRigControl.UI.Views.QsoLoggerWindow"
         x:DataType="vm:QsoLoggerViewModel"
         Title="QSO Logger"
-        Width="650" Height="700"
+        Width="650" Height="760"
         Background="#1a1a1a">
 
     <Grid RowDefinitions="Auto,*,Auto" Margin="16">
@@ -15,6 +15,26 @@
         <!-- Entry form -->
         <Border Grid.Row="0" Background="#0d0d0d" CornerRadius="6" Padding="12" Margin="0,0,0,10">
             <StackPanel Spacing="8">
+                <ToggleButton Content="{Binding IsContestMode, Converter={x:Static vm:ContestModeButtonTextConverter.Instance}}"
+                              IsChecked="{Binding IsContestMode}"
+                              Width="220" HorizontalAlignment="Left"
+                              Background="#2a2a2a" Foreground="White">
+                    <ToggleButton.Styles>
+                        <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3a3a3a"/>
+                            <Setter Property="TextBlock.Foreground" Value="White"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00cc70"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </ToggleButton.Styles>
+                </ToggleButton>
+
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBox Text="{Binding CallsignInput}" Width="140" PlaceholderText="Callsign"/>
                     <Button Content="Lookup" Command="{Binding LookupCallsignCommand}"
@@ -34,6 +54,12 @@
                     <TextBox Text="{Binding RstReceivedInput}" Width="70" PlaceholderText="RST Rcvd"/>
                     <TextBox Text="{Binding NameInput}" Width="150" PlaceholderText="Name"/>
                     <TextBox Text="{Binding GridSquareInput}" Width="90" PlaceholderText="Grid"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsContestMode}">
+                    <TextBox Text="{Binding ContestExchangeSentInput}" Width="100" PlaceholderText="Exch Sent (3A GA)"/>
+                    <TextBox Text="{Binding ContestExchangeReceivedInput}" Width="100" PlaceholderText="Exch Rcvd"/>
+                    <TextBox Text="{Binding SerialNumberSentInput}" Width="70" PlaceholderText="Serial #"/>
                 </StackPanel>
 
                 <TextBox Text="{Binding NotesInput}" PlaceholderText="Notes"/>
@@ -59,6 +85,9 @@
                     </Button>
                     <TextBlock Text="{Binding LogStatus}" Foreground="#00ff88" FontSize="11" VerticalAlignment="Center"/>
                 </StackPanel>
+
+                <TextBlock Text="{Binding ContestScoreDisplay}" Foreground="#00ff88" FontSize="12" FontWeight="Bold"
+                           IsVisible="{Binding IsContestMode}" Margin="0,4,0,0"/>
             </StackPanel>
         </Border>
 

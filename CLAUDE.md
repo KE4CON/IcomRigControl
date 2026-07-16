@@ -7,7 +7,7 @@ UI Framework: Avalonia 12.x (cross-platform desktop — macOS, Windows, Linux, R
 See "Avalonia Version Decision" below before considering any version change.
 Target Radios: Icom IC-7300 (address 94h) and IC-7300MK2 (address B6h)
 Connection: USB serial via System.IO.Ports (115200 baud default); TCP/network mode
-planned for v2
+COMPLETE — see Phase 9.
 ## Core Design Principle: Resilience / Backup-of-Record (EMCOMM discipline)
 IcomRigControl's own QsoLogger is the resilient backup of record for all logged QSOs,
 independent of whether HRD Logbook, N1MM, or any other external program is running,
@@ -21,21 +21,15 @@ principle, applied to logging infrastructure.
 This project stays on Avalonia 12.x. Researched and decided after the third confirmed UI
 rendering bug (CheckBox, following the DataGrid and WaterfallControl Image repaint bugs).
 Findings: the "control invisible until interaction" symptom is a real, filed upstream
-Avalonia issue (AvaloniaUI/Avalonia#20726, "Controls randomly not rendering until
-interaction (Avalonia 12)"), explicitly reported as new to the 12.x line ("This did not
-happen in Avalonia 11") and affecting basic controls generally (Button, TextBox), not
-just CheckBox — matching this project's pattern. The issue was closed for lack of a
-reliable repro, not because it was fixed, so it may still be present in current 12.x
-patch releases. DECISION: stay on 12.x. We already have working, tested fixes for all
-three known rendering bugs (ItemsControl instead of DataGrid, explicit child-element
-InvalidateVisual() for WaterfallControl, ToggleButton instead of CheckBox). Revisit only
-if a new, genuinely unexplainable rendering bug appears that these known workarounds
-don't help with.
+Avalonia issue (AvaloniaUI/Avalonia#20726), explicitly reported as new to the 12.x line.
+DECISION: stay on 12.x. Working, tested fixes exist for all three known rendering bugs.
+Revisit only if a new, genuinely unexplainable rendering bug appears.
 ## Architecture Layers (never mix concerns across layers)
 Layer 1 — CivEngine: Raw CI-V framing, serial port I/O, BCD encode/decode. No UI, no
 radio model.
 Layer 2 — RigModel: Transceiver class exposing clean C# properties and events. Consumes
-CivEngine only.
+CivEngine only. Also hosts the Phase 9 network layer (CivNetworkProtocol, CivTcpServer,
+TcpCivTransport) since these implement/wrap ICivTransport, which is defined here.
 Layer 3 — Services: Logger, EMMCOM bridge, APRS beacon, backfill queue, ADIF logger,
 callsign lookup (Callook/QRZ/HamQTH), LoTW bridge (via TQSL), HRD SQLite bridge,
 RadioInfo UDP broadcaster, N1MM/WSJT-X UDP listener, SettingsService. Consume RigModel only.
@@ -61,19 +55,11 @@ ObservableCollections
 - Unit tests required for: BCD encode/decode, frame builder, frame parser, frequency
 conversion
 - For DataGrid-style tabular UI: prefer ItemsControl + DataTemplate over Avalonia.Controls.DataGrid.
-- AVOID Avalonia's CheckBox control in this project — CONFIRMED BUG, and confirmed as a
-  known upstream Avalonia 12 issue (see Avalonia Version Decision above). Use a
-  ToggleButton bound to the same boolean property instead.
-- FOR EVENLY-SPACED ITEMS ACROSS A CONTAINER'S WIDTH (e.g. axis labels, tick marks): use
-  ItemsControl with a UniformGrid (Rows="1") as the ItemsPanel, NOT Canvas positioning
-  with a value converter computing pixel offsets from a fraction. Confirmed on this
-  project (Phase 7 waterfall axis labels): a Canvas + IValueConverter approach compiled
-  and bound correctly (proven via a Count-bound diagnostic label showing the right
-  number of items) but the individual items never rendered at their computed Canvas.Left
-  positions — switching to UniformGrid fixed it immediately with less code and no
-  converter needed. Prefer UniformGrid/Grid-based even-spacing over Canvas+converter
-  positioning as the default approach; only reach for Canvas when you genuinely need
-  data-driven, non-uniform positions.
+- AVOID Avalonia's CheckBox control in this project — CONFIRMED BUG (see Avalonia Version
+  Decision above). Use a ToggleButton bound to the same boolean property instead.
+- FOR EVENLY-SPACED ITEMS ACROSS A CONTAINER'S WIDTH: use ItemsControl with a UniformGrid
+  (Rows="1") as the ItemsPanel, NOT Canvas positioning with a value converter computing
+  pixel offsets from a fraction — confirmed unreliable in Phase 7.
 - Environment.SpecialFolder.MyDocuments resolves to the OneDrive-redirected Documents path
   on this machine, not plain C:\Users\jrosp\Documents. Always verify actual file output
   location when debugging file I/O.
@@ -93,8 +79,6 @@ conversion
   ADIF export path, never a replacement for it. COMPLETE — see Phase 8e.
 - N1MM/WSJT-X/HRD UDP integration uses a public, documented XML-over-UDP protocol. One
   shared broadcaster/listener pair serves all three.
-- Do not attempt to make N1MM or HRD's own rig control literally driven by
-  IcomRigControl (CAT replacement) as part of Phase 8 — that's Phase 9 territory.
 - ICallsignLookupSource implementations must NEVER throw. QRZ and HamQTH both use
   session-based login (login once, cache, reuse, re-login only on session error).
 - LoTW signing MUST be delegated to ARRL's own TQSL tool via ITqslProcessRunner — never
@@ -105,12 +89,23 @@ conversion
   Microsoft.Data.Sqlite (currently Services and Tests) MUST also explicitly pin
   SQLitePCLRaw.lib.e_sqlite3 to 3.50.3 or later to remediate this.
 - Never store QRZ/HamQTH credentials or any other secrets in AppSettings' backing JSON
-  file within source control — settings.json is in .gitignore; keep it that way.
+  file within source control — settings.json is in .gitignore; keep it that way. The same
+  applies to Phase 9's RemoteAuthToken.
 - LARGE CODE BLOCKS FROM CLAUDE CAN GET COPIED INCOMPLETE IF THE COPY BUTTON IS CLICKED
   BEFORE THE BLOCK HAS FULLY SCROLLED INTO VIEW. CONFIRMED FIX: scroll all the way to the
   bottom of a long code block BEFORE clicking Copy.
 - WHEN PASTING A CODE SNIPPET, VERIFY IT LANDED IN THE INTENDED FILE, NOT AN ADJACENT
   OPEN TAB. Check with `findstr` if a build error shows syntax from the wrong file type.
+- Phase 9's remote CI-V protocol requires a non-empty auth token before a CivTcpServer
+  will relay any traffic — ValidateToken() rejects an empty expected token by design, to
+  prevent an accidentally-unauthenticated server. Token comparison is constant-time
+  (CryptographicOperations.FixedTimeEquals) since this authenticates control of a live
+  transmitter over a network link, including potentially 44Net/AMPRNet.
+- Avalonia UI projects built with OutputType=WinExe (the default for desktop apps, no
+  console window) will silently swallow Console.WriteLine output — confirmed in Phase 9
+  when building headless server mode. Fix: call AttachConsole(ATTACH_PARENT_PROCESS) via
+  P/Invoke on Windows specifically (harmless no-op on macOS/Linux) before writing to
+  Console in any code path meant to run as a CLI tool from the same executable as a GUI app.
 ## UI Design (flagged for future work, not yet scheduled as a phase)
 User has indicated the current UI ("functional-first, each feature bolted on as its own
 bordered box in a single scrolling window") is not satisfying and wants a real design
@@ -129,34 +124,35 @@ Phase 4: Memory bulk editor — COMPLETE (52 passing tests)
 Phase 5: Activity logger (CSV) — COMPLETE (56 passing tests)
 Phase 6: EMMCOM dashboard integration — COMPLETE (60 passing tests)
 Phase 7: Spectrum scope capture and waterfall display — COMPLETE.
-  ScopeDataDecoder, CivFrameBuilder scope commands, Transceiver.StartScopeAsync/StopScope
-  (now sends SetScopeSpan and tracks CurrentSpanHz), WaterfallControl with correct
-  repaint behavior, DemoCivTransport realistic signal generation, WaterfallFrequencyMapper
-  (pixel-to-frequency math, axis label generation, formatting — 7 tests), frequency axis
-  labels above the waterfall (UniformGrid layout, updates live with frequency changes),
-  and click-to-tune (click a point on the waterfall, radio tunes there) — all built and
-  confirmed working live. 180 passing tests project-wide.
+  Axis labels above the waterfall and click-to-tune both built and confirmed working
+  live, alongside the full scope/waveform engine from earlier sessions. 180 passing tests.
 Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) — COMPLETE.
-  All six sub-phases (8a-8f) are functionally complete at both the engine/service level
-  AND reachable through working UI. SettingsWindow, runtime AppSettings consumption,
-  IntegrationsStatus dashboard display, and QsoLoggerWindow (general logging + contest
-  mode with a working ToggleButton-based Contest Mode switch, exchange/serial fields,
-  live score display, dupe checking) are all built and confirmed working end-to-end.
-  8a. Core logging — COMPLETE, engine and UI.
-  8b. Contest mode — COMPLETE, engine and UI (Field Day). REMAINING: additional contest
-  catalog entries beyond Field Day, added incrementally as needed.
-  8c. Callsign lookup — COMPLETE, all three sources, wired into runtime and the UI.
-  8d. LoTW upload/download — COMPLETE at the engine level, wired into runtime. REMAINING:
-  upload/download buttons in the UI; matching downloaded confirmations against local
-  QsoRecords to mark them confirmed.
-  8e. Ham Radio Deluxe integration — COMPLETE, wired into runtime.
-  8f. N1MM Logger+, WSJT-X, and HRD UDP integration — COMPLETE, both directions, wired
-  into runtime.
-  REMAINING FOR PHASE 8 OVERALL: only LoTW upload/download buttons (8d) — optional
-  polish, not a blocker.
-Phase 9: Remote/network mode (headless Pi server + TCP client) — also the right place to
-revisit true CAT-replacement for N1MM/HRD, if wanted, once this phase's networking
-foundation exists.
+  All six sub-phases (8a-8f) functionally complete at both the engine/service level AND
+  reachable through working UI. REMAINING (optional polish only): LoTW upload/download
+  buttons in the UI (engine complete, wired into runtime, just needs buttons); additional
+  contest catalog entries beyond Field Day, as needed.
+Phase 9: Remote/network mode — COMPLETE.
+  Full client-server remote CI-V control pipeline, designed to work over LAN, VPN, or
+  44Net/AMPRNet: CivNetworkProtocol (token-based auth handshake, constant-time
+  comparison, 8 tests), CivTcpServer (Pi-side listener wrapping a real ICivTransport,
+  authenticates clients before relaying any CI-V bytes, 5 tests with real socket
+  communication), TcpCivTransport (client-side ICivTransport — a drop-in replacement for
+  SerialCivTransport, so the entire rest of the app including all Phase 8 integrations
+  works unchanged against a remote radio, 5 tests with real end-to-end socket auth+relay),
+  a headless console launch mode (--headless-server CLI flag with --port/--tcpport/
+  --token/--model arguments, confirmed working with real console output on Windows after
+  fixing a WinExe console-output bug via AttachConsole), and a full connection-mode
+  Settings UI (Demo/Serial/Remote dropdown with host/port/token fields, wired end-to-end
+  from SettingsViewModel through AppSettings to MainWindowViewModel's transport
+  selection at construction time). 198 passing tests project-wide.
+  REMAINING: real-world testing against actual IC-7300 hardware over an actual network
+  link (everything to date has been proven via localhost sockets and the demo/fake
+  transport — genuinely working, but not yet exercised against a real radio + real
+  network path, including 44Net specifically); the true CAT-replacement concept for
+  N1MM/HRD (letting those programs drive the radio through this project's connection
+  instead of their own CAT link) remains explicitly out of scope per earlier Phase 8
+  decisions, though the TCP transport built here could theoretically support it in the
+  future if reconsidered.
 Phase 10: Remote audio + APRS beacon (combined) — NAudio on Windows, AVFoundation
 wrapper on macOS. Beacon target: APRS-Command (formerly CrossPlatformAPRS) — bridge
 mechanism to be determined once APRS-Command's ingestion method is reviewed.
@@ -172,7 +168,7 @@ Design note above — may be a natural companion to a broader UI redesign pass.
 - Do not use Thread.Sleep — use Task.Delay with CancellationToken
 - Do not swallow exceptions silently — log and surface them
 - Do not hardcode radio addresses — read from config
-- Do not store QRZ/HamQTH/LoTW credentials in plain text in source-controlled files
+- Do not store QRZ/HamQTH/LoTW/Remote auth credentials in plain text in source-controlled files
 - Do not write to HRD Logbook's SQLite database without defensive schema checks
 - Do not broadcast N1MM/WSJT-X/HRD UDP traffic to anything other than 127.0.0.1 or an
   explicitly user-configured LAN address
@@ -190,11 +186,15 @@ Design note above — may be a natural companion to a broader UI redesign pass.
   of any session to catch files silently lost to paste truncation before building on them
 - Do not use Avalonia's CheckBox control in this project — use ToggleButton instead
 - Do not use Canvas + IValueConverter for evenly-spaced item layout — use
-  ItemsControl + UniformGrid instead (see Coding Standards above)
+  ItemsControl + UniformGrid instead
 - Do not begin a UI redesign pass without first getting the user's input on theme/layout
   direction — see UI Design note above
 - Do not downgrade Avalonia to 11.x without new evidence — see Avalonia Version Decision
   above; this has already been researched and decided
+- Do not run a CivTcpServer with a blank/empty auth token — ValidateToken rejects this
+  by design, but never attempt to work around it
+- Do not assume Console.WriteLine output is visible in a WinExe-built app without
+  AttachConsole — see the Phase 9 coding standards note above
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
@@ -233,7 +233,8 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 8. Never use CheckBox in new UI work — use ToggleButton
 9. For evenly-spaced item layout, use ItemsControl + UniformGrid, not Canvas + converter
 ## Deployment Targets
-Headless CI-V server (Phase 9, no UI): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable.
+Headless CI-V server (Phase 9): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable —
+now genuinely runnable via `IcomRigControl.UI --headless-server`.
 Full Avalonia UI + scope on Pi: Raspberry Pi 5, 8GB RAM.
 Storage: 16-32GB microSD (A2 rated recommended).
 ## Supported Desktop Platforms (all four, via Avalonia 12)

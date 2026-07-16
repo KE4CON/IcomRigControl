@@ -37,6 +37,8 @@ public class Transceiver : IAsyncDisposable
     public double CurrentDraw { get; private set; }
 
     public bool IsScopeRunning { get; private set; }
+
+    public long CurrentSpanHz { get; private set; } = 50_000;
     public int[] LastWaveform { get; private set; } = Array.Empty<int>();
 
     public event EventHandler<MeterSnapshot>? MeterUpdated;
@@ -266,10 +268,11 @@ public class Transceiver : IAsyncDisposable
         );
         MeterUpdated?.Invoke(this, snapshot);
     }
-
-    /// Start the spectrum scope: turns it on, enables waveform output, and
-    /// begins a background loop requesting a new sweep at the given interval.
-    public async Task StartScopeAsync(TimeSpan sweepInterval, CancellationToken ct = default)
+    /// Start the spectrum scope: turns it on, enables waveform output, sets
+    /// the requested span, and begins a background loop requesting a new
+    /// sweep at the given interval. CurrentSpanHz is updated so the UI can
+    /// compute accurate frequency axis labels and click-to-tune positions.
+    public async Task StartScopeAsync(TimeSpan sweepInterval, long spanHz = 50_000, CancellationToken ct = default)
     {
         StopScope();
 
@@ -277,11 +280,17 @@ public class Transceiver : IAsyncDisposable
         await Task.Delay(50, ct);
         await _transport.WriteAsync(_builder.SetWaveformOutput(true), ct);
         await Task.Delay(50, ct);
+        await _transport.WriteAsync(_builder.SetScopeSpan(spanHz), ct);
+        await Task.Delay(50, ct);
 
+        CurrentSpanHz = spanHz;
         IsScopeRunning = true;
         _scopeCts = new CancellationTokenSource();
         _scopeTask = Task.Run(() => ScopeLoopAsync(sweepInterval, _scopeCts.Token));
     }
+    
+
+    
 
     public void StopScope()
     {

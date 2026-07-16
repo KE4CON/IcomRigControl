@@ -3,7 +3,8 @@
 Name: IcomRigControl
 Author: Jim, KE4CON
 Language: C# (.NET 10)
-UI Framework: Avalonia 11 (cross-platform desktop — macOS, Windows, Linux, Raspberry Pi)
+UI Framework: Avalonia 12.x (cross-platform desktop — macOS, Windows, Linux, Raspberry Pi).
+See "Avalonia Version Decision" below before considering any version change.
 Target Radios: Icom IC-7300 (address 94h) and IC-7300MK2 (address B6h)
 Connection: USB serial via System.IO.Ports (115200 baud default); TCP/network mode
 planned for v2
@@ -16,6 +17,28 @@ one-way, best-effort *additions* on top of this local log — never a dependency
 log needs to function, and never a gate that can cause a QSO to go unrecorded if the
 external program is down. This mirrors the user's EMCOMM "always have a backup plan"
 principle, applied to logging infrastructure.
+## Avalonia Version Decision (researched and decided — do not revisit without new evidence)
+This project stays on Avalonia 12.x. Researched and decided after the third confirmed UI
+rendering bug (CheckBox, following the DataGrid and WaterfallControl Image repaint bugs).
+Findings: the "control invisible until interaction" symptom is a real, filed upstream
+Avalonia issue (AvaloniaUI/Avalonia#20726, "Controls randomly not rendering until
+interaction (Avalonia 12)"), explicitly reported as new to the 12.x line ("This did not
+happen in Avalonia 11") and affecting basic controls generally (Button, TextBox), not
+just CheckBox — matching this project's pattern. The issue was closed for lack of a
+reliable repro, not because it was fixed, so it may still be present in current 12.x
+patch releases. Downgrading to 11.3.12 (the last 11.x release) was seriously considered:
+it would require reverting package versions, re-checking compiled-bindings-by-default
+behavior, reverting the SystemDecorations->WindowDecorations rename if used (not
+currently used in this project), and — critically — carries real regression risk across
+every screen already built (Main dashboard, Memory Editor, Settings, QSO Logger), with no
+guarantee the Phase 4 DataGrid bug wasn't *also* present in 11.x (in which case
+downgrading buys nothing there). DECISION: stay on 12.x. We already have working,
+tested fixes for all three known rendering bugs (ItemsControl instead of DataGrid,
+explicit child-element InvalidateVisual() for WaterfallControl, ToggleButton instead of
+CheckBox). The known-working-fixes-in-hand path is lower risk than a full-codebase
+regression test against a downgrade. Revisit this decision only if a new, genuinely
+unexplainable rendering bug appears that these three known workarounds don't help with —
+at that point the calculus changes and downgrading should be reconsidered seriously.
 ## Architecture Layers (never mix concerns across layers)
 Layer 1 — CivEngine: Raw CI-V framing, serial port I/O, BCD encode/decode. No UI, no
 radio model.
@@ -46,21 +69,12 @@ ObservableCollections
 - Unit tests required for: BCD encode/decode, frame builder, frame parser, frequency
 conversion
 - For DataGrid-style tabular UI: prefer ItemsControl + DataTemplate over Avalonia.Controls.DataGrid.
-- AVOID Avalonia's CheckBox control in this project — CONFIRMED BUG: the checkbox glyph
-  (and, depending on styling, its label) does not paint on initial render, is invisible
-  until clicked once, and does not respond to any repaint-forcing trick tried (Opened
-  event handler, InvalidateVisual/Arrange/Measure, ApplyTemplate, window resize/move,
-  removing the (also-buggy, since fixed) duplicate FluentTheme registration in
-  App.axaml). Binding and click behavior are otherwise completely correct once clicked.
-  Use a ToggleButton bound to the same boolean property instead, with a value converter
-  for the Content text (see ContestModeButtonTextConverter for the pattern) and explicit
+- AVOID Avalonia's CheckBox control in this project — CONFIRMED BUG, and confirmed as a
+  known upstream Avalonia 12 issue (see Avalonia Version Decision above). Use a
+  ToggleButton bound to the same boolean property instead, with a value converter for
+  the Content text (see ContestModeButtonTextConverter for the pattern) and explicit
   :checked / :pointerover / :checked:pointerover style selectors on
-  /template/ ContentPresenter for correct visual states. This is now the third distinct
-  confirmed Avalonia control rendering bug found in this project (after the DataGrid
-  Phase 4 bug and the WaterfallControl Image repaint bug in Phase 7) — treat any new
-  control that "looks blank/wrong until interacted with" as a candidate for this same
-  class of issue and test a substitute control early rather than debugging the original
-  at length.
+  /template/ ContentPresenter for correct visual states.
 - Environment.SpecialFolder.MyDocuments resolves to the OneDrive-redirected Documents path
   on this machine, not plain C:\Users\jrosp\Documents. Always verify actual file output
   location when debugging file I/O.
@@ -128,8 +142,7 @@ Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/W
   all built and confirmed working end-to-end.
   8a. Core logging — COMPLETE, engine and UI.
   8b. Contest mode — COMPLETE, engine and UI (Field Day). REMAINING: additional contest
-  catalog entries beyond Field Day, added incrementally as needed (see ContestCatalog.cs
-  extensibility notes from earlier sessions).
+  catalog entries beyond Field Day, added incrementally as needed.
   8c. Callsign lookup — COMPLETE, all three sources, wired into runtime and the UI.
   8d. LoTW upload/download — COMPLETE at the engine level, wired into runtime. REMAINING:
   upload/download buttons in the UI; matching downloaded confirmations against local
@@ -174,10 +187,11 @@ Design note above — may be a natural companion to a broader UI redesign pass.
   copy click, and that it landed in the intended file — see the notes above
 - Do not assume a prior session's file set is intact — run `dotnet build` at the start
   of any session to catch files silently lost to paste truncation before building on them
-- Do not use Avalonia's CheckBox control in this project — see the confirmed rendering
-  bug note above; use ToggleButton instead
+- Do not use Avalonia's CheckBox control in this project — use ToggleButton instead
 - Do not begin a UI redesign pass without first getting the user's input on theme/layout
   direction — see UI Design note above
+- Do not downgrade Avalonia to 11.x without new evidence — see Avalonia Version Decision
+  above; this has already been researched and decided
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
@@ -194,6 +208,7 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 - N1MM External UDP Messages docs (Phase 8f): n1mmwp.hamdocs.com/appendices/external-udp-broadcasts/
 - SQLitePCLRaw CVE tracking: github.com/dotnet/efcore/issues/38257,
   github.com/advisories/GHSA-2m69-gcr7-jv3q
+- Avalonia 12 rendering bug tracking: github.com/AvaloniaUI/Avalonia/issues/20726
 - UserManual.md (project root): end-user documentation
 ## Related Projects
 - APRS-Command (formerly CrossPlatformAPRS, KE4CON): APRS beacon target for Phase 10
@@ -217,7 +232,7 @@ IC-7300MK2: 0xB6 (controller default: 0xE0)
 Headless CI-V server (Phase 9, no UI): Raspberry Pi 4 or 5, 2GB minimum, 4GB comfortable.
 Full Avalonia UI + scope on Pi: Raspberry Pi 5, 8GB RAM.
 Storage: 16-32GB microSD (A2 rated recommended).
-## Supported Desktop Platforms (all four, via Avalonia 11)
+## Supported Desktop Platforms (all four, via Avalonia 12)
 Windows: primary development platform as of Phase 3 — VS Code + GitHub Desktop
 macOS: fully supported secondary/testing platform
 Linux desktop: full support

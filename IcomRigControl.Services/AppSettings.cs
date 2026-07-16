@@ -2,12 +2,23 @@ namespace IcomRigControl.Services;
 
 /// <summary>
 /// All user-configurable settings for the external integrations built in
-/// Phase 8 (callsign lookup, LoTW, HRD, N1MM/WSJT-X). Serialized to a local
-/// JSON file by SettingsService — never committed to source control (see
-/// CLAUDE.md's credential-storage rule).
+/// Phase 8 (callsign lookup, LoTW, HRD, N1MM/WSJT-X) and the remote
+/// connection mode built in Phase 9. Serialized to a local JSON file by
+/// SettingsService — never committed to source control (see CLAUDE.md's
+/// credential-storage rule).
 /// </summary>
 public class AppSettings
 {
+    // ── Phase 9: Radio connection mode ──────────────────────────────────
+    /// "Demo" (default, no hardware needed), "Serial" (local USB-connected
+    /// radio), or "Remote" (connect over TCP to a CivTcpServer, e.g. a Pi
+    /// running --headless-server, possibly over 44Net/AMPRNet).
+    public string ConnectionMode { get; set; } = "Demo";
+    public string SerialPortName { get; set; } = "";
+    public string RemoteHost { get; set; } = "";
+    public int RemotePort { get; set; } = 7300;
+    public string RemoteAuthToken { get; set; } = "";
+
     // ── Phase 8c: Callsign lookup ────────────────────────────────────────
     public string CallsignLookupSource { get; set; } = "Callook"; // "Callook", "QRZ", or "HamQTH"
     public string QrzUsername { get; set; } = "";

@@ -9,7 +9,7 @@ namespace IcomRigControl.Services;
 /// key audio into the radio's mic/data input (or a USB audio interface the
 /// radio exposes) for HF APRS transmission. See CLAUDE.md Phase 10.
 /// </summary>
-public class NAudioPlayer : IDisposable
+public class NAudioPlayer : IAudioPlayer, IDisposable
 {
     private WasapiOut? _waveOut;
 

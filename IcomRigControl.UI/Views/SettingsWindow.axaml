@@ -3,11 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="850"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="1150"
         x:Class="IcomRigControl.UI.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
-        Width="500" Height="850"
+        Width="500" Height="1150"
         Background="#1a1a1a">
 
     <ScrollViewer>
@@ -32,6 +32,32 @@
                 <NumericUpDown Value="{Binding RemotePort}" Minimum="1" Maximum="65535"/>
                 <TextBlock Text="Remote Auth Token" Foreground="Gray" FontSize="11"/>
                 <TextBox Text="{Binding RemoteAuthToken}" PasswordChar="*"/>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Text="APRS Beacon (Phase 10)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Callsign" Foreground="Gray" FontSize="11"/>
+                <TextBox Text="{Binding AprsCallsign}" PlaceholderText="KE4CON"/>
+                <TextBlock Text="SSID (9 is conventional for mobile/HF APRS)" Foreground="Gray" FontSize="11"/>
+                <NumericUpDown Value="{Binding AprsSsid}" Minimum="0" Maximum="15"/>
+                <TextBlock Text="Symbol Table (usually /)" Foreground="Gray" FontSize="11"/>
+                <TextBox Text="{Binding AprsSymbolTable}" MaxLength="1"/>
+                <TextBlock Text="Symbol Code (&gt; for car/mobile)" Foreground="Gray" FontSize="11"/>
+                <TextBox Text="{Binding AprsSymbolCode}" MaxLength="1"/>
+                <TextBlock Text="Comment" Foreground="Gray" FontSize="11"/>
+                <TextBox Text="{Binding AprsComment}" PlaceholderText="Optional comment text"/>
+                <TextBlock Text="Latitude (decimal degrees, negative for South)" Foreground="Gray" FontSize="11"/>
+                <TextBox Text="{Binding AprsLatitude}"/>
+                <TextBlock Text="Longitude (decimal degrees, negative for West)" Foreground="Gray" FontSize="11"/>
+                <TextBox Text="{Binding AprsLongitude}"/>
+                <TextBlock Text="Audio Output Device" Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
+                <ComboBox ItemsSource="{Binding AvailableAudioDevices}"
+                          SelectedItem="{Binding AudioOutputDeviceName}"
+                          HorizontalAlignment="Stretch"/>
+                <TextBlock Text="Select the audio interface connected to the radio (e.g. its USB audio device, or an external soundcard wired to the mic/data port)."
+                           Foreground="Gray" FontSize="10" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
 

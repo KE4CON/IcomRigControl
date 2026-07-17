@@ -7,6 +7,7 @@ namespace IcomRigControl.UI.ViewModels;
 public partial class SettingsViewModel : ViewModelBase
 {
     private readonly SettingsService _settingsService;
+    private readonly NAudioPlayer _audioPlayer = new();
 
     // ── Phase 9: Connection mode ────────────────────────────────────────
     [ObservableProperty]
@@ -25,6 +26,33 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _remoteAuthToken = "";
+
+    // ── Phase 10: APRS beacon settings ──────────────────────────────────
+    [ObservableProperty]
+    private string _aprsCallsign = "";
+
+    [ObservableProperty]
+    private int _aprsSsid = 9;
+
+    [ObservableProperty]
+    private string _aprsSymbolTable = "/";
+
+    [ObservableProperty]
+    private string _aprsSymbolCode = ">";
+
+    [ObservableProperty]
+    private string _aprsComment = "";
+
+    [ObservableProperty]
+    private double _aprsLatitude;
+
+    [ObservableProperty]
+    private double _aprsLongitude;
+
+    [ObservableProperty]
+    private string _audioOutputDeviceName = "";
+
+    public List<string> AvailableAudioDevices { get; }
 
     [ObservableProperty]
     private string _callsignLookupSource = "Callook";
@@ -70,6 +98,14 @@ public partial class SettingsViewModel : ViewModelBase
     public SettingsViewModel(SettingsService settingsService)
     {
         _settingsService = settingsService;
+
+        // Populate the audio device list once at startup; a "System Default"
+        // option is prepended so the user can explicitly choose "let Windows
+        // decide" rather than always requiring a specific named device.
+        var devices = new List<string> { "(System Default)" };
+        devices.AddRange(_audioPlayer.GetAvailableDevices());
+        AvailableAudioDevices = devices;
+
         LoadFromSettings(_settingsService.Load());
     }
 
@@ -80,6 +116,17 @@ public partial class SettingsViewModel : ViewModelBase
         RemoteHost = settings.RemoteHost;
         RemotePort = settings.RemotePort;
         RemoteAuthToken = settings.RemoteAuthToken;
+
+        AprsCallsign = settings.AprsCallsign;
+        AprsSsid = settings.AprsSsid;
+        AprsSymbolTable = settings.AprsSymbolTable.ToString();
+        AprsSymbolCode = settings.AprsSymbolCode.ToString();
+        AprsComment = settings.AprsComment;
+        AprsLatitude = settings.AprsLatitude;
+        AprsLongitude = settings.AprsLongitude;
+        AudioOutputDeviceName = string.IsNullOrWhiteSpace(settings.AudioOutputDeviceName)
+            ? "(System Default)"
+            : settings.AudioOutputDeviceName;
 
         CallsignLookupSource = settings.CallsignLookupSource;
         QrzUsername = settings.QrzUsername;
@@ -112,6 +159,9 @@ public partial class SettingsViewModel : ViewModelBase
                 destinations.Add((parts[0], port));
             }
 
+            char symbolTable = string.IsNullOrEmpty(AprsSymbolTable) ? '/' : AprsSymbolTable[0];
+            char symbolCode = string.IsNullOrEmpty(AprsSymbolCode) ? '>' : AprsSymbolCode[0];
+
             var settings = new AppSettings
             {
                 ConnectionMode = ConnectionMode,
@@ -119,6 +169,15 @@ public partial class SettingsViewModel : ViewModelBase
                 RemoteHost = RemoteHost,
                 RemotePort = RemotePort,
                 RemoteAuthToken = RemoteAuthToken,
+
+                AprsCallsign = AprsCallsign,
+                AprsSsid = AprsSsid,
+                AprsSymbolTable = symbolTable,
+                AprsSymbolCode = symbolCode,
+                AprsComment = AprsComment,
+                AprsLatitude = AprsLatitude,
+                AprsLongitude = AprsLongitude,
+                AudioOutputDeviceName = AudioOutputDeviceName == "(System Default)" ? "" : AudioOutputDeviceName,
 
                 CallsignLookupSource = CallsignLookupSource,
                 QrzUsername = QrzUsername,

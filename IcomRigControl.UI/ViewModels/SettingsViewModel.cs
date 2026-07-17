@@ -10,7 +10,9 @@ public partial class SettingsViewModel : ViewModelBase
     public event EventHandler? RequestClose;
 
     private readonly SettingsService _settingsService;
-    private readonly NAudioPlayer _audioPlayer = new();
+    private readonly IAudioPlayer _audioPlayer = OperatingSystem.IsWindows()
+        ? new NAudioPlayer()
+        : new MacAudioPlayer();
 
     // ── Phase 9: Connection mode ────────────────────────────────────────
     [ObservableProperty]

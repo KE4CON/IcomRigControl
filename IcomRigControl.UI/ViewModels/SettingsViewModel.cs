@@ -6,6 +6,9 @@ namespace IcomRigControl.UI.ViewModels;
 
 public partial class SettingsViewModel : ViewModelBase
 {
+    /// Raised after a successful save, so the View can close the window.
+    public event EventHandler? RequestClose;
+
     private readonly SettingsService _settingsService;
     private readonly NAudioPlayer _audioPlayer = new();
 
@@ -195,6 +198,7 @@ public partial class SettingsViewModel : ViewModelBase
 
             _settingsService.Save(settings);
             StatusMessage = "Settings saved. Connection mode changes require an app restart to take effect.";
+            RequestClose?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {

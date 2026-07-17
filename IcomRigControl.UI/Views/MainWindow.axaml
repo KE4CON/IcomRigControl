@@ -4,11 +4,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
         xmlns:views="using:IcomRigControl.UI.Views"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="900"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="980"
         x:Class="IcomRigControl.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="IcomRigControl"
-        Width="500" Height="900"
+        Width="500" Height="980"
         Background="#1a1a1a">
 
     <Design.DataContext>
@@ -192,6 +192,22 @@
                         </Button.Styles>
                     </Button>
                 </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                <TextBlock Text="{Binding AprsBeaconStatus}" Foreground="#88ccff" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <Button Content="Send Beacon" Command="{Binding SendBeaconCommand}"
+                        IsEnabled="{Binding !IsSendingBeacon}"
+                        Width="120" Background="#2a2a2a" Foreground="White">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
             </StackPanel>
         </Border>
 

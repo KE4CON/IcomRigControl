@@ -22,7 +22,9 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly HttpClient _emmcomHttpClient = new();
     private readonly SettingsService _settingsService;
     private readonly QsoLogger _qsoLogger;
-    private readonly NAudioPlayer _audioPlayer = new();
+    private readonly IAudioPlayer _audioPlayer = OperatingSystem.IsWindows()
+        ? new NAudioPlayer()
+        : new MacAudioPlayer();
 
     private RadioInfoUdpBroadcaster? _radioInfoBroadcaster;
     private ContactUdpListener? _contactListener;

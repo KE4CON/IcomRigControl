@@ -28,6 +28,7 @@ public class AppSettings
     public double AprsLatitude { get; set; } = 0;
     public double AprsLongitude { get; set; } = 0;
     public string AudioOutputDeviceName { get; set; } = ""; // empty = system default
+    public int AprsBeaconIntervalMinutes { get; set; } = 10; // 0 = manual only, no auto-beacon
 
     // ── Phase 8c: Callsign lookup ────────────────────────────────────────
     public string CallsignLookupSource { get; set; } = "Callook"; // "Callook", "QRZ", or "HamQTH"

@@ -55,6 +55,9 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _audioOutputDeviceName = "";
 
+    [ObservableProperty]
+    private int _aprsBeaconIntervalMinutes = 10;
+
     public List<string> AvailableAudioDevices { get; }
 
     [ObservableProperty]
@@ -130,6 +133,7 @@ public partial class SettingsViewModel : ViewModelBase
         AudioOutputDeviceName = string.IsNullOrWhiteSpace(settings.AudioOutputDeviceName)
             ? "(System Default)"
             : settings.AudioOutputDeviceName;
+        AprsBeaconIntervalMinutes = settings.AprsBeaconIntervalMinutes;
 
         CallsignLookupSource = settings.CallsignLookupSource;
         QrzUsername = settings.QrzUsername;
@@ -181,6 +185,7 @@ public partial class SettingsViewModel : ViewModelBase
                 AprsLatitude = AprsLatitude,
                 AprsLongitude = AprsLongitude,
                 AudioOutputDeviceName = AudioOutputDeviceName == "(System Default)" ? "" : AudioOutputDeviceName,
+                AprsBeaconIntervalMinutes = AprsBeaconIntervalMinutes,
 
                 CallsignLookupSource = CallsignLookupSource,
                 QrzUsername = QrzUsername,

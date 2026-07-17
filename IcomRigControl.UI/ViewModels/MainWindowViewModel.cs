@@ -30,7 +30,11 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private LotwBridge? _lotwBridge;
     private HrdSqliteBridge? _hrdBridge;
     private AprsBeaconService? _aprsBeaconService;
+    private PeriodicBeaconScheduler? _beaconScheduler;
     private AppSettings _currentSettings = new();
+
+    [ObservableProperty]
+    private bool _isAutoBeaconRunning;
 
     [ObservableProperty]
     private bool _isLogging;
@@ -148,6 +152,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         _emmcomBridge = new EmmcomBridge(_transceiver, _emmcomHttpClient, EmmcomUrlInput);
         _qsoLogger = new QsoLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
         _aprsBeaconService = new AprsBeaconService(_transceiver, _audioPlayer);
+        _beaconScheduler = new PeriodicBeaconScheduler(SendBeacon);
 
         ApplySettings(settings);
 
@@ -186,6 +191,36 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         await _transceiver.SetFrequencyAsync(targetFreq);
     }
 
+    /// Toggles automatic periodic beaconing on/off, using the interval
+    /// configured in Settings (AprsBeaconIntervalMinutes). See CLAUDE.md
+    /// Phase 10.
+    [RelayCommand]
+    private void ToggleAutoBeacon()
+    {
+        if (_beaconScheduler == null) return;
+
+        if (IsAutoBeaconRunning)
+        {
+            _beaconScheduler.Stop();
+            IsAutoBeaconRunning = false;
+            AprsBeaconStatus = string.IsNullOrWhiteSpace(_currentSettings.AprsCallsign)
+                ? "APRS: no callsign configured (see Settings)"
+                : $"APRS: ready ({_currentSettings.AprsCallsign}-{_currentSettings.AprsSsid})";
+        }
+        else
+        {
+            if (_currentSettings.AprsBeaconIntervalMinutes <= 0)
+            {
+                AprsBeaconStatus = "APRS: auto-beacon interval is 0 (set one in Settings)";
+                return;
+            }
+
+            _beaconScheduler.Start(TimeSpan.FromMinutes(_currentSettings.AprsBeaconIntervalMinutes));
+            IsAutoBeaconRunning = true;
+            AprsBeaconStatus = $"APRS: auto-beaconing every {_currentSettings.AprsBeaconIntervalMinutes} min";
+        }
+    }
+
     /// Sends one APRS beacon using the currently saved AprsX settings. Keys
     /// PTT, plays the AFSK audio through the configured device, and always
     /// releases PTT afterward (see AprsBeaconService for the safety
@@ -206,7 +241,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
         try
         {
-           // Always append live frequency/mode to whatever comment is
+            // Always append live frequency/mode to whatever comment is
             // configured, so a listening station sees both the operator's
             // own note AND current activity, rather than one replacing
             // the other.

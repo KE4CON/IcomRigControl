@@ -58,6 +58,8 @@
                           HorizontalAlignment="Stretch"/>
                 <TextBlock Text="Select the audio interface connected to the radio (e.g. its USB audio device, or an external soundcard wired to the mic/data port)."
                            Foreground="Gray" FontSize="10" TextWrapping="Wrap"/>
+                <TextBlock Text="Auto-Beacon Interval (minutes, 0 = manual only)" Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
+                <NumericUpDown Value="{Binding AprsBeaconIntervalMinutes}" Minimum="0" Maximum="1440"/>
             </StackPanel>
         </Border>
 

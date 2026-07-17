@@ -67,7 +67,19 @@ public partial class QsoLoggerViewModel : ViewModelBase
     [ObservableProperty]
     private bool _lotwOperationInProgress;
 
-    private readonly ContestDefinition _activeContest = ContestCatalog.FieldDay;
+    /// Contest selection (added alongside RTTY Roundup — previously this was
+    /// hardcoded to Field Day). Changing this while contest mode is active
+    /// switches which contest's rules (exchange labels, scoring, dupe check)
+    /// are used for the rest of the session.
+    [ObservableProperty]
+    private ContestDefinition _selectedContest = ContestCatalog.FieldDay;
+
+    public List<ContestDefinition> AvailableContests { get; } = new()
+    {
+        ContestCatalog.FieldDay,
+        ContestCatalog.RttyRoundup
+    };
+
     private int _nextSerialNumber = 1;
 
     public QsoLoggerViewModel(QsoLogger qsoLogger, ICallsignLookupSource? lookupSource, LotwBridge? lotwBridge = null)
@@ -129,7 +141,7 @@ public partial class QsoLoggerViewModel : ViewModelBase
 
         try
         {
-            if (IsContestMode && _activeContest.IsDuplicate(_qsoLogger.Qsos, CallsignInput, GetCurrentBand(), GetCurrentMode()))
+            if (IsContestMode && SelectedContest.IsDuplicate(_qsoLogger.Qsos, CallsignInput, GetCurrentBand(), GetCurrentMode()))
             {
                 LogStatus = $"DUPE: {CallsignInput.ToUpperInvariant()} already worked on this band.";
                 return;
@@ -289,6 +301,11 @@ public partial class QsoLoggerViewModel : ViewModelBase
         }
     }
 
+    partial void OnSelectedContestChanged(ContestDefinition value)
+    {
+        UpdateScoreDisplay();
+    }
+
     private void UpdateScoreDisplay()
     {
         if (!IsContestMode)
@@ -297,8 +314,8 @@ public partial class QsoLoggerViewModel : ViewModelBase
             return;
         }
 
-        var result = ContestScoreCalculator.CalculateScore(_activeContest, _qsoLogger.Qsos);
-        ContestScoreDisplay = $"{_activeContest.Name}: {result.QsoCount} QSOs, {result.TotalPoints} points, {result.SectionsWorked.Count} sections";
+        var result = ContestScoreCalculator.CalculateScore(SelectedContest, _qsoLogger.Qsos);
+        ContestScoreDisplay = $"{SelectedContest.Name}: {result.QsoCount} QSOs, {result.TotalPoints} points, {result.SectionsWorked.Count} sections";
     }
 
     // Best-effort current band/mode for dupe checking, based on the most

@@ -208,6 +208,25 @@
                         </Style>
                     </Button.Styles>
                 </Button>
+                <ToggleButton Content="{Binding IsAutoBeaconRunning, Converter={x:Static vm:AutoBeaconButtonTextConverter.Instance}}"
+                              IsChecked="{Binding IsAutoBeaconRunning, Mode=OneWay}"
+                              Command="{Binding ToggleAutoBeaconCommand}"
+                              Width="140" Background="#2a2a2a" Foreground="White">
+                    <ToggleButton.Styles>
+                        <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00cc70"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </ToggleButton.Styles>
+                </ToggleButton>
             </StackPanel>
         </Border>
 

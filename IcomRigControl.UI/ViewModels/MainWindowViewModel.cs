@@ -206,9 +206,14 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
         try
         {
+           // Always append live frequency/mode to whatever comment is
+            // configured, so a listening station sees both the operator's
+            // own note AND current activity, rather than one replacing
+            // the other.
+            string freqModeSuffix = AprsPositionFormatter.FormatFrequencyBeaconComment(_transceiver.FrequencyHz, Mode);
             string comment = string.IsNullOrWhiteSpace(_currentSettings.AprsComment)
-                ? AprsPositionFormatter.FormatFrequencyBeaconComment(_transceiver.FrequencyHz, Mode)
-                : _currentSettings.AprsComment;
+                ? freqModeSuffix
+                : $"{_currentSettings.AprsComment} {freqModeSuffix}";
 
             string? deviceName = string.IsNullOrWhiteSpace(_currentSettings.AudioOutputDeviceName)
                 ? null

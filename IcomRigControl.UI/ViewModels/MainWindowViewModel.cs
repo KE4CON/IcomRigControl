@@ -22,12 +22,15 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly HttpClient _emmcomHttpClient = new();
     private readonly SettingsService _settingsService;
     private readonly QsoLogger _qsoLogger;
+    private readonly NAudioPlayer _audioPlayer = new();
 
     private RadioInfoUdpBroadcaster? _radioInfoBroadcaster;
     private ContactUdpListener? _contactListener;
     private ICallsignLookupSource? _callsignLookupSource;
     private LotwBridge? _lotwBridge;
     private HrdSqliteBridge? _hrdBridge;
+    private AprsBeaconService? _aprsBeaconService;
+    private AppSettings _currentSettings = new();
 
     [ObservableProperty]
     private bool _isLogging;
@@ -85,6 +88,12 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty]
     private string _emmcomUrlInput = "http://localhost:9000/api/rigstatus";
 
+    [ObservableProperty]
+    private string _aprsBeaconStatus = "APRS: not configured (see Settings)";
+
+    [ObservableProperty]
+    private bool _isSendingBeacon;
+
     /// Waterfall frequency axis labels (Phase 7). Each entry has a formatted
     /// frequency string and a 0.0-1.0 fraction the UI multiplies by the
     /// waterfall's actual rendered width to position it.
@@ -138,6 +147,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         _logger = new ActivityLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
         _emmcomBridge = new EmmcomBridge(_transceiver, _emmcomHttpClient, EmmcomUrlInput);
         _qsoLogger = new QsoLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
+        _aprsBeaconService = new AprsBeaconService(_transceiver, _audioPlayer);
 
         ApplySettings(settings);
 
@@ -176,6 +186,57 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         await _transceiver.SetFrequencyAsync(targetFreq);
     }
 
+    /// Sends one APRS beacon using the currently saved AprsX settings. Keys
+    /// PTT, plays the AFSK audio through the configured device, and always
+    /// releases PTT afterward (see AprsBeaconService for the safety
+    /// guarantee). See CLAUDE.md Phase 10.
+    [RelayCommand]
+    private async Task SendBeacon()
+    {
+        if (_aprsBeaconService == null) return;
+
+        if (string.IsNullOrWhiteSpace(_currentSettings.AprsCallsign))
+        {
+            AprsBeaconStatus = "APRS: no callsign configured (see Settings)";
+            return;
+        }
+
+        IsSendingBeacon = true;
+        AprsBeaconStatus = "APRS: sending beacon...";
+
+        try
+        {
+            string comment = string.IsNullOrWhiteSpace(_currentSettings.AprsComment)
+                ? AprsPositionFormatter.FormatFrequencyBeaconComment(_transceiver.FrequencyHz, Mode)
+                : _currentSettings.AprsComment;
+
+            string? deviceName = string.IsNullOrWhiteSpace(_currentSettings.AudioOutputDeviceName)
+                ? null
+                : _currentSettings.AudioOutputDeviceName;
+
+            await _aprsBeaconService.SendBeaconAsync(
+                callsign: _currentSettings.AprsCallsign,
+                ssid: _currentSettings.AprsSsid,
+                latitude: _currentSettings.AprsLatitude,
+                longitude: _currentSettings.AprsLongitude,
+                symbolTable: _currentSettings.AprsSymbolTable,
+                symbolCode: _currentSettings.AprsSymbolCode,
+                comment: comment,
+                profile: AfskProfile.Hf300Baud,
+                audioDeviceName: deviceName);
+
+            AprsBeaconStatus = $"APRS: beacon sent at {DateTime.Now:HH:mm:ss}";
+        }
+        catch (Exception ex)
+        {
+            AprsBeaconStatus = $"APRS: error sending beacon ({ex.Message})";
+        }
+        finally
+        {
+            IsSendingBeacon = false;
+        }
+    }
+
     /// Reads the saved AppSettings and configures the real services for
     /// callsign lookup, LoTW, HRD, and N1MM/WSJT-X UDP integration accordingly.
     /// This is the piece that connects the Settings window to actual runtime
@@ -183,6 +244,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     /// consumed. See CLAUDE.md Phase 8 "remaining" note.
     private void ApplySettings(AppSettings settings)
     {
+        _currentSettings = settings;
+
         try
         {
             // Callsign lookup source selection (Phase 8c)
@@ -224,6 +287,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
                 _contactListener = new ContactUdpListener(_qsoLogger, settings.ContactListenPort);
                 _contactListener.Start();
             }
+
+            AprsBeaconStatus = string.IsNullOrWhiteSpace(settings.AprsCallsign)
+                ? "APRS: no callsign configured (see Settings)"
+                : $"APRS: ready ({settings.AprsCallsign}-{settings.AprsSsid})";
 
             var activeIntegrations = new List<string>();
             if (settings.ConnectionMode == "Remote") activeIntegrations.Add($"Remote radio ({settings.RemoteHost}:{settings.RemotePort})");

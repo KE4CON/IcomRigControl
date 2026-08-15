@@ -88,6 +88,49 @@ public class CivFrameBuilder
         return frame.ToArray();
     }
 
+    // ── CW keyer (command 17) ────────────────────────────────────────────────
+
+    /// Characters the radio accepts in a send-CW message (command 17). Standard
+    /// ASCII codes; '^' sends a prosign (runs the next characters together).
+    public const string CwAllowedCharacters =
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/?.-,:'()=+\"@^ ";
+
+    /// Maximum CW message length the radio accepts per command 17 send.
+    public const int CwMaxMessageLength = 30;
+
+    /// Build a "send CW message" frame (command 17). The text is filtered to the
+    /// characters the radio supports and capped at 30 (the CI-V limit), then sent
+    /// as ASCII bytes. Returns null if nothing sendable remains after filtering.
+    public byte[]? SendCwMessage(string text)
+    {
+        var chars = new List<byte>(CwMaxMessageLength);
+        foreach (char c in text ?? string.Empty)
+        {
+            if (chars.Count >= CwMaxMessageLength) break;
+            if (CwAllowedCharacters.IndexOf(c) >= 0) chars.Add((byte)c);
+        }
+        return chars.Count == 0 ? null : Build(CivCommands.SendCwMessage, data: chars.ToArray());
+    }
+
+    /// Build a frame that stops/aborts CW message transmission (command 17, data FFh).
+    public byte[] AbortCw() =>
+        Build(CivCommands.SendCwMessage, data: new byte[] { 0xFF });
+
+    // ── Voice TX memory (command 28) ─────────────────────────────────────────
+
+    /// Build a frame that transmits a recorded voice memory T1-T8 (command 28 00,
+    /// data 01-08). Throws for a slot outside 1-8.
+    public byte[] SendVoiceMemory(int slot)
+    {
+        if (slot < 1 || slot > 8)
+            throw new ArgumentOutOfRangeException(nameof(slot), slot, "Voice memory slot must be 1-8.");
+        return Build(CivCommands.VoiceTxMemory, 0x00, new[] { (byte)slot });
+    }
+
+    /// Build a frame that stops voice TX memory transmission (command 28 00 00).
+    public byte[] StopVoiceMemory() =>
+        Build(CivCommands.VoiceTxMemory, 0x00, new byte[] { 0x00 });
+
     // ── Memory Channels ─────────────────────────────────────────────────────
 
     /// Select a memory channel (1-99) as the active memory (command 08h 00h + channel BCD).

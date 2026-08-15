@@ -26,6 +26,7 @@ N1MM/WSJT-X, APRS beaconing) that RS-BA1 has none of.
 - **Mode** — LSB, USB, AM, CW, RTTY, FM, CW-R, RTTY-R, DV — read and set.
 - **PTT (transmit) control** — key the radio on/off from the app (CI-V `1C 00`), with the safety guarantees hardened in this session (never stuck on, never unidentified).
 - **Remote power ON/OFF** — power the radio on/off from the app (CI-V `18 01` / `18 00`). Power-on sends a wake-up preamble and only works if the radio is in CI-V standby (matches RS-BA1's own limitation).
+- **CW keyer & voice memories** — a Keyer window sends editable CW macros as Morse (CI-V `17`, up to 30 chars) and fires the radio's recorded voice memories T1–T8 (CI-V `28`).
 - **VFO / split** — VFO select, A=B, swap, split control commands are implemented in the engine.
 - **Live meters, polled ~continuously:** S-meter (S-units + true dBm), RF power output %, SWR, ALC, supply voltage (Vd), current draw (Id).
 
@@ -130,10 +131,10 @@ notes in CLAUDE.md.
 - **Phase 12: Remote Audio** *(documented)* — real-time low-latency audio capture + streaming + playback over IP, to fully match RS-BA1. Deliberately scoped as its own multi-session phase (needs a new capture interface, streaming protocol, jitter buffering).
 - **Comprehensive User Manual** *(documented)* — real screenshots, click-by-click, every quirk; triggered once the UI-redesign question is resolved.
 
-**Not yet considered (open field for brainstorming)**
-- CW keyer / message memories; voice recording/playback (RS-BA1 has these).
-- Rotator control, band/antenna switching, amplifier keying.
-- Cluster / DX spot integration, band map.
-- Digital-mode decode (FT8/RTTY) in-app vs. the current WSJT-X hand-off.
+**Decided / in progress (2026-08-15)**
+- ~~CW keyer / voice memories~~ — **DONE** (Keyer window; CI-V 17 / 28).
+- **DX Cluster + band map** — planned next: telnet to a cluster, show spots on the waterfall, click-to-tune.
+- **Rotator / antenna switch / amplifier control** — **not planned**: not CI-V functions, and no test hardware on hand (would ship unverifiable support).
+- **Digital modes** — FT8 stays **WSJT-X only** (no in-app FT8 — reimplementing it isn't sane). In-app **RTTY and CW decode** are feasible "path 2" features but are **gated on Phase 12 audio capture**, so deferred until after the audio work. WSJT-X integration is untouched.
 - More contests; general-logging niceties (QSL cards, statistics, maps).
 - Mobile/tablet or web front-end to the headless server.

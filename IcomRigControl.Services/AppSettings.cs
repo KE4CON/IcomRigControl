@@ -55,4 +55,16 @@ public class AppSettings
     public bool N1mmReceiveEnabled { get; set; } = false;
     public List<(string Ip, int Port)> N1mmDestinations { get; set; } = new();
     public int ContactListenPort { get; set; } = 12070;
+
+    // ── CW keyer message memories (sent via CI-V command 17) ────────────
+    /// Up to 8 editable CW macros. "MYCALL" is a placeholder to replace with a
+    /// real callsign. Each is capped at 30 characters when transmitted.
+    public List<string> CwMessages { get; set; } = new()
+    {
+        "CQ CQ CQ DE MYCALL MYCALL K",
+        "MYCALL",
+        "R TU 73 GL",
+        "QRZ? DE MYCALL",
+        "", "", "", ""
+    };
 }

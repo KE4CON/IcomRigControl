@@ -51,17 +51,14 @@ public partial class MemoryEditorViewModel : ViewModelBase
         try
         {
             var results = await _transceiver.ReadAllMemoriesAsync(progress, _readCts.Token);
-            System.IO.File.AppendAllText("memory_debug.log", $"{DateTime.Now}: VIEWMODEL got {results.Count} results, about to dispatch\n");
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                System.IO.File.AppendAllText("memory_debug.log", $"{DateTime.Now}: VIEWMODEL inside dispatcher, adding to Channels\n");
                 foreach (var ch in results)
                 {
                     Channels.Add(ch);
                 }
                 ProgressText = $"Done — {results.Count} channels found.";
-                System.IO.File.AppendAllText("memory_debug.log", $"{DateTime.Now}: VIEWMODEL set ProgressText to Done\n");
             });
         }
         catch (OperationCanceledException)

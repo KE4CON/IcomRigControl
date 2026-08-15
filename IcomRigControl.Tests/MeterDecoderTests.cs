@@ -17,25 +17,32 @@ public class MeterDecoderTests
     }
 
     [Fact]
-    public void DecodeSMeter_ZeroRaw_IsS0()
+    public void DecodeSMeter_ZeroRaw_IsS0_AtMinus127dBm()
     {
-        var (sUnit, _) = MeterDecoder.DecodeSMeter(new byte[] { 0x00, 0x00 });
+        var (sUnit, dBm) = MeterDecoder.DecodeSMeter(new byte[] { 0x00, 0x00 });
         Assert.Equal(0, sUnit);
+        // S0 = S9 (-73dBm) minus nine 6dB S-units = -127 dBm.
+        Assert.Equal(-127.0, dBm, precision: 0);
     }
 
     [Fact]
-    public void DecodeSMeter_120Raw_IsS9()
+    public void DecodeSMeter_120Raw_IsS9_AtMinus73dBm()
     {
-        var (sUnit, _) = MeterDecoder.DecodeSMeter(new byte[] { 0x01, 0x20 });
+        var (sUnit, dBm) = MeterDecoder.DecodeSMeter(new byte[] { 0x01, 0x20 });
         Assert.Equal(9, sUnit);
+        // The universal S9 reference is -73 dBm.
+        Assert.Equal(-73.0, dBm, precision: 0);
     }
 
     [Fact]
-    public void DecodeSMeter_241Raw_IsS9Plus60()
+    public void DecodeSMeter_241Raw_IsS9Plus60_AtMinus13dBm()
     {
         var (sUnit, dBm) = MeterDecoder.DecodeSMeter(new byte[] { 0x02, 0x41 });
         Assert.Equal(9, sUnit);
-        Assert.True(dBm > 0);
+        // S9+60dB = -73 + 60 = -13 dBm. A received-signal dBm must be negative;
+        // the previous code produced an impossible +41 dBm here.
+        Assert.Equal(-13.0, dBm, precision: 0);
+        Assert.True(dBm < 0);
     }
 
     [Fact]

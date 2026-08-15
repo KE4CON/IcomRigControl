@@ -14,6 +14,11 @@ public class SerialCivTransport : ICivTransport
     private CancellationTokenSource? _readCts;
     private Task? _readTask;
 
+    // SerialPort.Write is not safe for concurrent writers. The meter poll loop,
+    // the scope sweep loop, and UI commands all write independently, so their
+    // frames must be serialized or the bytes interleave into corrupt CI-V frames.
+    private readonly SemaphoreSlim _writeGate = new(1, 1);
+
     public bool IsOpen => _port?.IsOpen ?? false;
 
     public event EventHandler<byte[]>? DataReceived;
@@ -61,15 +66,25 @@ public class SerialCivTransport : ICivTransport
         }
         _port?.Dispose();
         _port = null;
+
+        _readCts?.Dispose();
+        _readCts = null;
     }
 
-    public Task WriteAsync(byte[] data, CancellationToken ct = default)
+    public async Task WriteAsync(byte[] data, CancellationToken ct = default)
     {
         if (_port is not { IsOpen: true })
             throw new InvalidOperationException("Transport is not open.");
 
-        _port.Write(data, 0, data.Length);
-        return Task.CompletedTask;
+        await _writeGate.WaitAsync(ct);
+        try
+        {
+            _port.Write(data, 0, data.Length);
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
     }
 
     private async Task ReadLoopAsync(CancellationToken ct)

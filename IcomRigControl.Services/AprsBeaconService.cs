@@ -17,6 +17,12 @@ public class AprsBeaconService
     private readonly Transceiver _transceiver;
     private readonly IAudioPlayer _audioPlayer;
 
+    // Only one beacon may key the transmitter at a time. The manual "Send
+    // Beacon" button and the periodic auto-beacon scheduler both call
+    // SendBeaconAsync; this gate prevents them (or two rapid manual clicks)
+    // from cross-keying the radio.
+    private readonly SemaphoreSlim _transmitGate = new(1, 1);
+
     public AprsBeaconService(Transceiver transceiver, IAudioPlayer audioPlayer)
     {
         _transceiver = transceiver;
@@ -28,7 +34,12 @@ public class AprsBeaconService
     /// something in between throws. Leaving PTT stuck on is a real safety
     /// issue (the radio would keep transmitting indefinitely), so this
     /// guarantee is the whole point of this class, not an afterthought.
-    public async Task SendBeaconAsync(
+    ///
+    /// Returns true if the beacon was transmitted, or false if it was skipped
+    /// because another beacon was already in flight (re-entrancy guard) —
+    /// keying PTT a second time while the first beacon is still playing would
+    /// cross-key the radio and corrupt the over-the-air packet.
+    public async Task<bool> SendBeaconAsync(
         string callsign, int ssid,
         double latitude, double longitude,
         char symbolTable, char symbolCode, string comment,
@@ -37,29 +48,49 @@ public class AprsBeaconService
         string? audioDeviceName = null,
         int pttSettleMilliseconds = 300)
     {
-        string position = AprsPositionFormatter.FormatPosition(latitude, longitude, symbolTable, symbolCode, comment);
+        // Non-blocking acquire: if a beacon is already transmitting, skip this
+        // one rather than transmit on top of it.
+        if (!await _transmitGate.WaitAsync(0))
+            return false;
 
-        byte[] frame = Ax25FrameBuilder.BuildUiFrame(
-            sourceCallsign: callsign, sourceSsid: ssid,
-            destinationCallsign: "APRS", destinationSsid: 0,
-            infoField: position);
-
-        float[] audio = AfskModulator.ModulateFrame(frame, profile, sampleRateHz);
-
-        await _transceiver.SetPttAsync(true);
         try
         {
-            // Give the radio a moment to actually key up and settle into
-            // transmit before sending audio — sending audio the instant PTT
-            // is requested can clip the very start of the packet on real
-            // hardware (relay/PTT switching isn't instantaneous).
-            await Task.Delay(pttSettleMilliseconds);
+            string position = AprsPositionFormatter.FormatPosition(latitude, longitude, symbolTable, symbolCode, comment);
 
-            await _audioPlayer.PlayAsync(audio, sampleRateHz, audioDeviceName);
+            byte[] frame = Ax25FrameBuilder.BuildUiFrame(
+                sourceCallsign: callsign, sourceSsid: ssid,
+                destinationCallsign: "APRS", destinationSsid: 0,
+                infoField: position);
+
+            float[] audio = AfskModulator.ModulateFrame(frame, profile, sampleRateHz);
+
+            // Key-up is INSIDE the try so the finally's PTT release runs no
+            // matter what fails after the radio is keyed — including an
+            // exception from a PttChanged event handler fired by SetPttAsync.
+            // Previously key-up sat above the try, so such a failure left the
+            // transmitter stuck on with no key-down.
+            try
+            {
+                await _transceiver.SetPttAsync(true);
+
+                // Give the radio a moment to actually key up and settle into
+                // transmit before sending audio — sending audio the instant PTT
+                // is requested can clip the very start of the packet on real
+                // hardware (relay/PTT switching isn't instantaneous).
+                await Task.Delay(pttSettleMilliseconds);
+
+                await _audioPlayer.PlayAsync(audio, sampleRateHz, audioDeviceName);
+            }
+            finally
+            {
+                await _transceiver.SetPttAsync(false);
+            }
+
+            return true;
         }
         finally
         {
-            await _transceiver.SetPttAsync(false);
+            _transmitGate.Release();
         }
     }
 }

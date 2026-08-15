@@ -34,7 +34,6 @@ IcomRigControl is a cross-platform desktop application (Windows, macOS, Linux, R
 - A bulk memory channel editor
 - CSV activity logging
 - A live spectrum waterfall display with frequency axis labels and click-to-tune
-- Integration with an EMMCOM Field Comms Server
 - ADIF-based QSO logging, with contest mode (ARRL Field Day and ARRL RTTY Roundup), callsign lookup, LoTW upload/download, HRD Logbook integration, and N1MM/WSJT-X two-way integration
 - Remote rig control over a network (including 44Net/AMPRNet), with a headless server mode for running on a Raspberry Pi at the radio
 - APRS beacon transmission over HF, including automatic periodic beaconing - fully working on both Windows and macOS
@@ -81,16 +80,13 @@ S-Meter, Power, SWR, ALC, Supply Voltage, Current Draw - updating roughly twice 
 ### 2.7 Activity Logging Control
 See section 4.
 
-### 2.8 EMMCOM Control
-See section 6.
-
-### 2.9 APRS Beacon Controls
+### 2.8 APRS Beacon Controls
 Send Beacon and Auto Beacon buttons. See section 10.
 
-### 2.10 Integrations Status
+### 2.9 Integrations Status
 Summary line showing which external integrations are currently active.
 
-### 2.11 Open Memory Editor / QSO Logger / Settings Buttons
+### 2.10 Open Memory Editor / QSO Logger / Settings Buttons
 Open the corresponding windows - see sections 3, 7, and 11.
 
 ---
@@ -197,7 +193,7 @@ Intentional workaround for a grid rendering bug in the underlying UI framework.
 ### 12.5 Waterfall Blank or Not Filling Panel
 Known issue, fixed at the source.
 
-### 12.6 EMMCOM or External Integration Shows Red/Error
+### 12.6 An External Integration Shows Red/Error
 Network endpoint unreachable, keeps retrying, never crashes.
 
 ### 12.7 Settings Don't Seem to Take Effect

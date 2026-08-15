@@ -2,7 +2,7 @@ namespace IcomRigControl.RigModel;
 
 /// <summary>
 /// A single point-in-time snapshot of all polled meter values.
-/// This is the record that flows to ActivityLogger, EmmcomBridge, and AprsBridge.
+/// This is the record that flows to ActivityLogger and the meter UI.
 /// </summary>
 public record MeterSnapshot(
     DateTimeOffset Timestamp,

@@ -17,10 +17,18 @@ public class RadioInfoUdpBroadcaster
 {
     private readonly Transceiver _transceiver;
     private readonly List<(string Ip, int Port)> _destinations = new();
+    private readonly object _destinationsLock = new();
     private UdpClient? _udpClient;
 
     public bool IsRunning { get; private set; }
-    public IReadOnlyList<(string Ip, int Port)> Destinations => _destinations;
+
+    /// A point-in-time snapshot of the destinations, copied under the lock so it
+    /// can never be enumerated while another thread mutates the underlying list.
+    public IReadOnlyList<(string Ip, int Port)> Destinations
+    {
+        get { lock (_destinationsLock) return _destinations.ToList(); }
+    }
+
     public string? LastError { get; private set; }
 
     public RadioInfoUdpBroadcaster(Transceiver transceiver)
@@ -30,15 +38,21 @@ public class RadioInfoUdpBroadcaster
 
     public void AddDestination(string ip, int port)
     {
-        if (!_destinations.Contains((ip, port)))
+        lock (_destinationsLock)
         {
-            _destinations.Add((ip, port));
+            if (!_destinations.Contains((ip, port)))
+            {
+                _destinations.Add((ip, port));
+            }
         }
     }
 
     public void RemoveDestination(string ip, int port)
     {
-        _destinations.Remove((ip, port));
+        lock (_destinationsLock)
+        {
+            _destinations.Remove((ip, port));
+        }
     }
 
     public void Start()
@@ -70,23 +84,42 @@ public class RadioInfoUdpBroadcaster
 
     private async void BroadcastCurrentState()
     {
-        if (_udpClient == null || _destinations.Count == 0) return;
-
-        string xml = GenerateRadioInfoXml(_transceiver.FrequencyHz, _transceiver.Mode, _transceiver.PttActive);
-        byte[] bytes = Encoding.UTF8.GetBytes(xml);
-
-        foreach (var (ip, port) in _destinations)
+        // This runs as an async void event handler fired from the Transceiver's
+        // read-loop thread, so the ENTIRE body is wrapped: nothing — not the
+        // destination enumeration, not XML building — may throw back into the
+        // Transceiver's event dispatch (CLAUDE.md rule). Errors are recorded.
+        try
         {
-            try
+            var client = _udpClient;
+            if (client == null) return;
+
+            (string Ip, int Port)[] targets;
+            lock (_destinationsLock)
             {
-                await _udpClient.SendAsync(bytes, bytes.Length, new IPEndPoint(IPAddress.Parse(ip), port));
+                if (_destinations.Count == 0) return;
+                targets = _destinations.ToArray();
             }
-            catch (Exception ex)
+
+            string xml = GenerateRadioInfoXml(_transceiver.FrequencyHz, _transceiver.Mode, _transceiver.PttActive);
+            byte[] bytes = Encoding.UTF8.GetBytes(xml);
+
+            foreach (var (ip, port) in targets)
             {
-                // Per CLAUDE.md: never crash on a network hiccup — record and continue
-                // trying other destinations / future broadcasts.
-                LastError = ex.Message;
+                try
+                {
+                    await client.SendAsync(bytes, bytes.Length, new IPEndPoint(IPAddress.Parse(ip), port));
+                }
+                catch (Exception ex)
+                {
+                    // Never crash on a network hiccup — record and continue
+                    // trying other destinations / future broadcasts.
+                    LastError = ex.Message;
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
         }
     }
 

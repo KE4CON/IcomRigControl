@@ -17,9 +17,17 @@ public class QsoLogger
 {
     private readonly Transceiver _transceiver;
     private readonly List<QsoRecord> _qsos = new();
+    private readonly object _logLock = new();
     private bool _sessionFileHeaderWritten;
 
-    public IReadOnlyList<QsoRecord> Qsos => _qsos;
+    /// A point-in-time snapshot of the logged QSOs. Returns a copy taken under
+    /// the log lock so callers (UI binding, dupe checks, ADIF export) can never
+    /// enumerate the list while another thread — e.g. the UDP contact listener —
+    /// is appending to it.
+    public IReadOnlyList<QsoRecord> Qsos
+    {
+        get { lock (_logLock) return _qsos.ToList(); }
+    }
 
     /// The persistent session file path, or null if this logger was constructed
     /// without a log directory (in-memory only — used by existing tests/callers
@@ -79,12 +87,7 @@ public class QsoLogger
             SerialNumberReceived: serialNumberReceived
         );
 
-        _qsos.Add(qso);
-
-        if (SessionFilePath != null && _sessionFileHeaderWritten)
-        {
-            File.AppendAllText(SessionFilePath, AdifWriter.FormatQso(qso) + Environment.NewLine);
-        }
+        Commit(qso);
 
         return qso;
     }
@@ -95,22 +98,45 @@ public class QsoLogger
     /// the received record already carries its own correct frequency/mode/timestamp.
     public void LogReceivedQso(QsoRecord qso)
     {
-        _qsos.Add(qso);
+        Commit(qso);
+    }
 
-        if (SessionFilePath != null && _sessionFileHeaderWritten)
+    /// Commits a QSO to the log. The durable session file is the backup of
+    /// record, so it is written FIRST; only if that append succeeds is the QSO
+    /// added to the in-memory list. If the append throws (disk full, file locked
+    /// by a cloud-sync client or antivirus), the exception surfaces to the caller
+    /// and nothing is half-committed — the in-memory list and the durable file
+    /// stay consistent, so the caller can retry without creating a phantom entry
+    /// that lives only in RAM. The whole operation is serialized by _logLock so
+    /// the UI thread and the UDP listener thread can log concurrently without
+    /// corrupting the list or interleaving file writes.
+    private void Commit(QsoRecord qso)
+    {
+        lock (_logLock)
         {
-            File.AppendAllText(SessionFilePath, AdifWriter.FormatQso(qso) + Environment.NewLine);
+            if (SessionFilePath != null && _sessionFileHeaderWritten)
+            {
+                File.AppendAllText(SessionFilePath, AdifWriter.FormatQso(qso) + Environment.NewLine);
+            }
+
+            _qsos.Add(qso);
         }
     }
 
     public void ExportToAdif(string path)
     {
-        AdifWriter.WriteToFile(path, _qsos);
+        lock (_logLock)
+        {
+            AdifWriter.WriteToFile(path, _qsos);
+        }
     }
 
     public void ClearLog()
     {
-        _qsos.Clear();
+        lock (_logLock)
+        {
+            _qsos.Clear();
+        }
     }
 
     /// Map a frequency in Hz to its amateur radio band designation.

@@ -112,6 +112,37 @@ public class TcpCivTransportTests
     }
 
     [Fact]
+    public async Task WriteAsync_ManyConcurrentWrites_DoNotThrow()
+    {
+        var radioTransport = new FakeCivTransport();
+        int freePort = GetFreePort();
+        var server = new CivTcpServer(radioTransport, "correct-token", freePort);
+        server.Start();
+        await Task.Delay(100);
+
+        var transport = new TcpCivTransport("127.0.0.1", freePort, "correct-token");
+        await transport.OpenAsync();
+
+        // Fire many writes concurrently, as the poll loop, scope loop, and UI
+        // commands do in the running app. A NetworkStream forbids overlapping
+        // writes; before the per-transport write gate these threw
+        // InvalidOperationException. The gate must serialize them so every
+        // write completes cleanly.
+        const int writeCount = 100;
+        var tasks = Enumerable.Range(0, writeCount).Select(i => Task.Run(async () =>
+        {
+            byte[] frame = { 0xFE, 0xFE, 0xE0, 0x94, (byte)(i & 0xFF), 0xFD };
+            await transport.WriteAsync(frame);
+        })).ToArray();
+
+        var ex = await Record.ExceptionAsync(() => Task.WhenAll(tasks));
+        Assert.Null(ex);
+
+        await transport.CloseAsync();
+        server.Stop();
+    }
+
+    [Fact]
     public async Task CloseAsync_SetsIsOpenFalse()
     {
         var radioTransport = new FakeCivTransport();

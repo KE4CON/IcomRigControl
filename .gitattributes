@@ -1,0 +1,8 @@
+# Treat binary assets as binary so end-of-line normalization never touches them.
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.wav  binary

@@ -214,6 +214,7 @@ public class Transceiver : IAsyncDisposable
     public void StopPolling()
     {
         _pollCts?.Cancel();
+        _pollCts?.Dispose();
         _pollCts = null;
     }
 
@@ -295,6 +296,7 @@ public class Transceiver : IAsyncDisposable
     public void StopScope()
     {
         _scopeCts?.Cancel();
+        _scopeCts?.Dispose();
         _scopeCts = null;
         IsScopeRunning = false;
     }
@@ -338,13 +340,29 @@ public class Transceiver : IAsyncDisposable
 
     private void ApplyFrame(CivFrame frame)
     {
+        // Ignore frames the radio echoes back to us. On the IC-7300's CI-V bus
+        // (including over USB) every byte the controller transmits is echoed;
+        // an echoed *request* — e.g. our own ReadFrequency — carries the
+        // controller address in the From field and has no data payload. Acting
+        // on it re-applies stale state at best and, for an echoed ReadFrequency
+        // (empty data), used to crash BcdCodec.DecodeFrequency with an
+        // IndexOutOfRangeException that escaped the read loop and killed all
+        // further reception. Genuine radio replies always come From the radio.
+        if (frame.From == CivCommands.AddrController)
+            return;
+
         switch (frame.Command)
         {
             case CivCommands.ReadFrequency:
             case CivCommands.SetOutputFreq:
-                FrequencyHz = BcdCodec.DecodeFrequency(frame.Data);
-                FrequencyChanged?.Invoke(this, FrequencyHz);
-                _pendingFreqResponse?.TrySetResult(FrequencyHz);
+                // A frequency payload is 5 BCD bytes; guard against a short/
+                // truncated frame so a malformed reply can never crash the loop.
+                if (frame.Data.Length >= 5)
+                {
+                    FrequencyHz = BcdCodec.DecodeFrequency(frame.Data);
+                    FrequencyChanged?.Invoke(this, FrequencyHz);
+                    _pendingFreqResponse?.TrySetResult(FrequencyHz);
+                }
                 break;
 
             case CivCommands.ReadMode:
@@ -400,6 +418,14 @@ public class Transceiver : IAsyncDisposable
     {
         StopPolling();
         StopScope();
+
+        // Await the background loops so shutdown is clean rather than leaving
+        // fire-and-forget tasks running against a disposed transport. They exit
+        // promptly on the cancellation requested above; a cancellation exception
+        // here is expected, not an error.
+        try { if (_pollTask != null) await _pollTask; } catch (OperationCanceledException) { }
+        try { if (_scopeTask != null) await _scopeTask; } catch (OperationCanceledException) { }
+
         _transport.DataReceived -= OnDataReceived;
         await _transport.DisposeAsync();
     }

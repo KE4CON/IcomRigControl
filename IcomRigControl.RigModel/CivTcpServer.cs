@@ -94,13 +94,28 @@ public class CivTcpServer
 
             await stream.WriteAsync(CivNetworkProtocol.AuthSuccessResponse, serverCt);
 
+            // Radio data events fire back-to-back from the radio read-loop
+            // thread; a NetworkStream forbids overlapping writes, so serialize
+            // every write to this client through a per-connection gate. Without
+            // it a burst (e.g. a scope sweep) makes the second WriteAsync throw,
+            // and the swallowed exception silently drops that chunk of CI-V data.
+            var clientWriteGate = new SemaphoreSlim(1, 1);
+
             // Step 2: relay bytes from the network client to the real radio.
             EventHandler<byte[]>? radioDataHandler = null;
             radioDataHandler = async (_, data) =>
             {
                 try
                 {
-                    await stream.WriteAsync(data, serverCt);
+                    await clientWriteGate.WaitAsync(serverCt);
+                    try
+                    {
+                        await stream.WriteAsync(data, serverCt);
+                    }
+                    finally
+                    {
+                        clientWriteGate.Release();
+                    }
                 }
                 catch
                 {

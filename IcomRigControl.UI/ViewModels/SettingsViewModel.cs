@@ -10,9 +10,7 @@ public partial class SettingsViewModel : ViewModelBase
     public event EventHandler? RequestClose;
 
     private readonly SettingsService _settingsService;
-    private readonly IAudioPlayer _audioPlayer = OperatingSystem.IsWindows()
-        ? new NAudioPlayer()
-        : new MacAudioPlayer();
+    private readonly IAudioPlayer _audioPlayer = AudioDevices.CreatePlayer();
 
     // ── Radio model ──────────────────────────────────────────────────────
     [ObservableProperty]

@@ -112,13 +112,18 @@ Remote Audio (Phase 12) — IN PROGRESS (started 2026-08-15). DESIGN DECIDED wit
   Pi): OpusAudioCodec (Concentus, pure-managed Opus — no native lib), AudioPacket (UDP
   header: 16-bit seq + 32-bit timestamp + Opus payload), JitterBuffer (reorder/prime/conceal),
   and the IAudioCapture interface (the missing capture half; IAudioPlayer only plays).
-  REMAINING MILESTONES: (2) platform audio I/O — NAudioCapture (Windows), LinuxAudioCapture
-  via ALSA arecord/aplay (Pi — ESSENTIAL for the server), macOS capture; and a LinuxAudioPlayer
-  (the current IAudioPlayer is Windows+macOS only — Linux/Pi has no player yet). (3) the
-  UDP streaming server/client wiring (capture -> Opus -> AudioPacket -> UDP -> JitterBuffer
-  -> play), alongside the Phase 9 CI-V link. (4) TX path + PTT coordination. (5) UI + settings
-  (ports, device selection, buffer depth). (6) real-hardware latency tuning. Original design
-  rationale (still valid) follows:
+  MILESTONE 2 DONE (2026-08-15) — platform audio I/O: NAudioCapture (Windows), LinuxAudioCapture
+  (Pi/Linux via ALSA arecord), MacAudioCapture (stub — macOS has no built-in capture CLI yet),
+  LinuxAudioPlayer (Pi/Linux via aplay — which also FIXED the long-standing gap where the Phase
+  10 APRS beacon couldn't play on Linux), and an AudioDevices factory that centralizes the
+  platform-aware selection (both audio construction sites in the UI now route through it).
+  Platform audio can't be unit-tested in CI; a factory test verifies the right type per platform.
+  REMAINING MILESTONES: (3) the UDP streaming server/client wiring (capture -> Opus ->
+  AudioPacket -> UDP -> JitterBuffer -> play), alongside the Phase 9 CI-V link — NOTE: playback
+  here needs a CONTINUOUS output (NAudio BufferedWaveProvider / aplay stdin), not the one-shot
+  IAudioPlayer.PlayAsync, so a streaming-output path is part of this milestone. (4) TX path +
+  PTT coordination. (5) UI + settings (ports, device selection, buffer depth). (6) real-hardware
+  latency tuning. Original design rationale (still valid) follows:
   PLANNED (rationale): Remote Audio is a genuinely different category of engineering from
   Phase 10's
   AFSK audio pipeline, which is one-shot (generate samples once, play them, done). Remote

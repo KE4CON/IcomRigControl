@@ -21,9 +21,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly ActivityLogger _logger;
     private readonly SettingsService _settingsService;
     private readonly QsoLogger _qsoLogger;
-    private readonly IAudioPlayer _audioPlayer = OperatingSystem.IsWindows()
-        ? new NAudioPlayer()
-        : new MacAudioPlayer();
+    private readonly IAudioPlayer _audioPlayer = AudioDevices.CreatePlayer();
 
     private RadioInfoUdpBroadcaster? _radioInfoBroadcaster;
     private ContactUdpListener? _contactListener;

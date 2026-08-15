@@ -89,15 +89,22 @@ lost to a write failure or a thread race.*
 - The desktop app can act as a **remote client** — from the app's perspective a remote radio is indistinguishable from a local one; every feature above works remotely.
 - *Proven via loopback; real-hardware-over-real-network test still pending.*
 
-## 12. APRS beacon over HF (Phase 10)
+## 12. HF APRS — beacon *and* receive (Phase 10 + HF-APRS build)
 
-*Neither IC-7300 has a TNC — this is built as software AFSK/AX.25 packet audio, complete
-and confirmed audible on both Windows and macOS.*
+*Neither IC-7300 has a TNC — this is built as software AFSK/AX.25 packet audio. Note:
+IcomRigControl is the **only** HF APRS tool here — APRS-Command is VHF-only. HF APRS is also
+something Icom's RS-BA1 doesn't do at all.*
 
+**Transmit (beacon):**
 - Build an **APRS position beacon** (lat/lon, symbol, comment), auto-appending live frequency/mode.
-- **AX.25 UI frame** construction + **AFSK modulation** to audio (300-baud HF profile).
-- Keys PTT, plays the packet audio through a chosen sound device, releases PTT — with the safety fixes from this session (guaranteed key-down, no cross-keying, callsign validated before transmit).
-- **Manual** "Send Beacon" and **automatic** periodic beaconing at a configured interval.
+- **AX.25 UI frame** + **AFSK modulation** (300-baud HF profile), now with a proper **FCS + HDLC flag preamble** so real receivers/igates can actually decode it (a latent bug fixed during the receive build).
+- Keys PTT, plays the packet, releases PTT — with the session's safety fixes (guaranteed key-down, no cross-keying, callsign validated).
+- **Manual** and **automatic** periodic beaconing.
+
+**Receive (decode) — the new capability:**
+- Full receive pipeline (the mirror of transmit): **AFSK demodulate → HDLC deframe (FCS-checked) → AX.25 decode → APRS parse** (uncompressed positions, text messages, status).
+- Proven end-to-end by a modulate→decode **round-trip test** (no hardware needed).
+- Remaining (in progress): live receive service, a decoded-stations list with **aprs.fi links** and click-to-tune, and APRS **messaging**.
 
 ## 13. DX Cluster & band map
 

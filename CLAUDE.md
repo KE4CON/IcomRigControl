@@ -322,10 +322,20 @@ Phase 10: APRS beacon over HF — FULLY COMPLETE ON BOTH WINDOWS AND MACOS. Conf
   "leave HF APRS to APRS-Command" was WRONG — APRS-Command cannot do HF. The correct split is by
   BAND: HF APRS lives HERE (IcomRigControl has its own self-contained 300-baud AFSK engine),
   VHF full-APRS is APRS-Command's. General full-APRS-client scope (messaging, map, APRS-IS,
-  igate, digipeat) is still NOT wanted here on VHF (that's APRS-Command). OPEN/UNDECIDED: HF
-  APRS RECEIVE/decode — IcomRigControl is the ONLY realistic home for it (it has the HF radio +
-  Phase 12 audio capture; APRS-Command never will). The user has NOT decided whether to build
-  it; do not build it or re-delegate it to APRS-Command without a decision.
+  igate, digipeat) is still NOT wanted here on VHF (that's APRS-Command). HF APRS RECEIVE —
+  DECIDED 2026-08-15: BUILD the HF-appropriate set (RX decode + station list + messaging; NO
+  map — a per-station aprs.fi link instead; NO digipeat/igate/telemetry — HF doesn't need them).
+  DECODE PIPELINE DONE + TESTED (2026-08-15), the receive mirror of the TX chain, all in
+  CivEngine: AfskDemodulator (Goertzel per-bit tone detect + NRZI decode), HdlcDeframer (flag
+  split + de-stuff + FCS check), Ax25Decoder (address chain + info), AprsParser (uncompressed
+  position lat/lon/symbol/comment, text messages, status). Proven by a modulate->demodulate->
+  deframe->decode->parse round-trip test (no hardware) at 44.1k and 48k. NOTE: the TX beacon was
+  found undecodable (missing FCS + HDLC flags) and FIXED in the same work — see the FCS/framing
+  commit. REMAINING for the HF APRS station: (a) a live receive SERVICE (IAudioCapture -> demod
+  -> deframe -> decode -> parse, continuous, raising decoded packets); (b) station-list UI with
+  aprs.fi links + click-to-tune; (c) messaging (show messages addressed to the operator's call;
+  send APRS messages via the TX chain, with ACKs). Bit-sync for off-air timing drift is a
+  live-hardware refinement (round-trip uses fixed slicing).
   COEXISTENCE SUPPORT (2026-08-15): to run IcomRigControl and APRS-Command on the same radio
   cleanly, added a central Receive-Only / TX-Inhibit guard on Transceiver
   (TransmitInhibited) — when on, NO path can key the radio (PTT, CW 17, voice 28, beacon,

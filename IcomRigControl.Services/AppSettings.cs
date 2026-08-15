@@ -44,6 +44,9 @@ public class AppSettings
     // Flip the zero-beat tuning direction for CW-Reverse. Default suits CW-Normal.
     public bool CwZeroBeatReverse { get; set; } = false;
 
+    // RTTY decode: swap mark/space (wrong-sideband / reversed signal).
+    public bool RttyReverse { get; set; } = false;
+
     // ── Phase 10: APRS beacon settings ──────────────────────────────────
     public string AprsCallsign { get; set; } = "";
     public int AprsSsid { get; set; } = 9; // 9 is the conventional SSID for mobile/HF APRS

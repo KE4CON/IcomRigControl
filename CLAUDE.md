@@ -101,8 +101,21 @@ compatibility chart and feature descriptions):
   CW-Reverse — the sign is the one thing to confirm on real hardware). CwPitchHz + CwZeroBeatReverse
   persisted in AppSettings. 23 tests (round-trip at 44.1k/48k, speed tracking, pitch meter, live
   service). HONEST LIMITATION told to the user: software CW readers copy clean/machine CW well and
-  degrade on poor fists / QSB / QRM — inherent to the problem, a good ear still beats them. In-app
-  RTTY decode is the remaining tractable digital-mode add (same audio foundation) if ever wanted.
+  degrade on poor fists / QSB / QRM — inherent to the problem, a good ear still beats them.
+- RTTY DECODE (receive): IMPLEMENTED 2026-08-15. Baudot/ITA2 FSK, 45.45 baud, 170 Hz shift
+  (2125 mark / 2295 space). CivEngine: RttyProfile; BaudotCode (5-bit LTRS/FIGS table + an encoder
+  that inserts shift codes); RttyModulator (continuous-phase FSK, for a modulate->decode ROUND-TRIP
+  test); RttyDecoder (STREAMING async start/stop framing — re-syncs each character on its own start
+  bit via an arm-on-mark/edge-on-space state machine, Goertzel mark-vs-space per bit, LTRS/FIGS shift
+  state, USOS unshift-on-space, and a Reverse mark/space swap). Services: RttyDecodeService (live
+  reader off IAudioCapture; Reverse flippable live; resilient). UI: non-modal RTTY Decode window
+  (scrolling text + Reverse toggle) + "RTTY Decode" dashboard button. RttyReverse persisted. 8 tests
+  (round-trip at 44.1k/48k, figures/shift, reverse recovery, chunked streaming). CRITICAL DECODER
+  GEOMETRY (do not "fix" naively): with a full-bit Goertzel window, IsMark(center) tips mark->space
+  when the window is centered on the TRUE start edge, so the detected position p sits half a bit
+  BEFORE the edge — the true edge is p + 0.5*bit, and all bit centers must be measured from there
+  (sampling from p directly hits bit BOUNDARIES and misreads). RTTY decodes far more reliably than CW
+  (rigid machine standard); real-world gotchas are tuning and mark/space reversal (the Reverse toggle).
 - QSO logging, callsign lookup, LoTW, HRD integration, N1MM/WSJT-X integration, APRS
   beacon, memory bulk editor, CSV activity logging, DX cluster (with spot posting),
   headless Pi server

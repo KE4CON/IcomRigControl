@@ -82,26 +82,51 @@ public static class AfskModulator
         return samples;
     }
 
-    /// Modulates a full AX.25 frame (already-built bytes, e.g. from
-    /// Ax25FrameBuilder) into a complete AFSK audio waveform: converts bytes
-    /// to LSB-first bits, bit-stuffs, NRZI-encodes, then generates
-    /// continuous-phase mark/space tones per the given profile.
+    /// The HDLC flag 0x7E (01111110) as LSB-first bits. Flags delimit frames and
+    /// are the ONLY place six consecutive 1s may appear — they are never bit-stuffed.
+    private static readonly bool[] FlagBits = { false, true, true, true, true, true, true, false };
+
+    /// Modulates raw frame bytes with bit-stuffing + NRZI + tones, but NO HDLC
+    /// flags and NO FCS. Kept for the low-level tests; real on-air frames must use
+    /// ModulateAx25Frame so a receiver can actually sync and validate them.
     public static float[] ModulateFrame(byte[] frameBytes, AfskProfile profile, int sampleRateHz)
     {
-        var bits = BytesToLsbFirstBits(frameBytes);
-        var stuffed = BitStuff(bits);
-        var nrziLevels = NrziEncode(stuffed);
+        var bits = BitStuff(BytesToLsbFirstBits(frameBytes));
+        return TonesFromBits(NrziEncode(bits), profile, sampleRateHz);
+    }
 
+    /// Modulates a complete, DECODABLE AX.25 AFSK frame: append the FCS, bit-stuff
+    /// (frame+FCS), wrap in HDLC flags (a preamble of flags for receiver sync, and
+    /// a closing flag — flags are not stuffed), then NRZI-encode the whole stream
+    /// and generate continuous-phase mark/space tones. This is the correct on-air
+    /// chain; ModulateFrame above omits the flags/FCS and won't decode.
+    public static float[] ModulateAx25Frame(byte[] frameBytes, AfskProfile profile, int sampleRateHz, int preambleFlagCount = 16)
+    {
+        var fcs = Ax25Fcs.ComputeBytes(frameBytes);
+        var frameWithFcs = new byte[frameBytes.Length + 2];
+        Array.Copy(frameBytes, frameWithFcs, frameBytes.Length);
+        frameWithFcs[^2] = fcs[0];
+        frameWithFcs[^1] = fcs[1];
+
+        var stuffed = BitStuff(BytesToLsbFirstBits(frameWithFcs));
+
+        var allBits = new List<bool>(preambleFlagCount * 8 + stuffed.Length + 8);
+        for (int i = 0; i < preambleFlagCount; i++) allBits.AddRange(FlagBits);
+        allBits.AddRange(stuffed);
+        allBits.AddRange(FlagBits); // closing flag
+
+        return TonesFromBits(NrziEncode(allBits.ToArray()), profile, sampleRateHz);
+    }
+
+    private static float[] TonesFromBits(bool[] nrziLevels, AfskProfile profile, int sampleRateHz)
+    {
         var audio = new List<float>();
         double phase = 0;
-
         foreach (bool level in nrziLevels)
         {
             double freq = level ? profile.MarkFrequencyHz : profile.SpaceFrequencyHz;
-            var toneSamples = GenerateBitTone(freq, sampleRateHz, profile.BaudRate, phase, out phase);
-            audio.AddRange(toneSamples);
+            audio.AddRange(GenerateBitTone(freq, sampleRateHz, profile.BaudRate, phase, out phase));
         }
-
         return audio.ToArray();
     }
 

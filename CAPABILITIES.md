@@ -137,7 +137,7 @@ notes in CLAUDE.md.
 - **Phase 11: clickable radio front-panel** *(documented)* — a photo/vector of the rig with clickable controls.
 
 **Large / its own project**
-- **Phase 12: Remote Audio** *(documented)* — real-time low-latency audio capture + streaming + playback over IP, to fully match RS-BA1. Deliberately scoped as its own multi-session phase (needs a new capture interface, streaming protocol, jitter buffering).
+- **Phase 12: Remote Audio** — **IN PROGRESS.** Design decided (UDP + Opus + full duplex, cross-platform incl. Raspberry Pi). **Milestone 1 done + tested:** Opus codec (pure-C# Concentus, runs on the Pi), UDP audio-packet format, jitter buffer, and the `IAudioCapture` contract. Remaining: platform audio I/O (Windows/Pi-ALSA/macOS), UDP streaming server/client, TX + PTT, UI, and hardware latency tuning.
 - **Comprehensive User Manual** *(documented)* — real screenshots, click-by-click, every quirk; triggered once the UI-redesign question is resolved.
 
 **Decided / in progress (2026-08-15)**

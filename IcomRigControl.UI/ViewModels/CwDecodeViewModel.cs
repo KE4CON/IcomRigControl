@@ -80,6 +80,23 @@ public partial class CwDecodeViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void Clear() => DecodedText = "";
 
+    /// Writes the decoded text to a timestamped .txt file in Documents/IcomRigControl,
+    /// ready to open and print.
+    [RelayCommand]
+    private void Save()
+    {
+        if (string.IsNullOrWhiteSpace(DecodedText)) { Status = "Nothing decoded yet to save."; return; }
+        try
+        {
+            string path = DecodeLog.Save("CW", DecodedText);
+            Status = $"Saved to {path} — open it to print.";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Save failed: {ex.Message}";
+        }
+    }
+
     /// Tunes the radio so the received tone lands on the CW pitch (zero beat).
     [RelayCommand]
     private async Task ZeroBeat()

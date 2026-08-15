@@ -68,6 +68,23 @@ public partial class RttyDecodeViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void Clear() => DecodedText = "";
 
+    /// Writes the decoded text to a timestamped .txt file in Documents/IcomRigControl,
+    /// ready to open and print. Returns the path in the status line.
+    [RelayCommand]
+    private void Save()
+    {
+        if (string.IsNullOrWhiteSpace(DecodedText)) { Status = "Nothing decoded yet to save."; return; }
+        try
+        {
+            string path = DecodeLog.Save("RTTY", DecodedText);
+            Status = $"Saved to {path} — open it to print.";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Save failed: {ex.Message}";
+        }
+    }
+
     // Flip polarity live when the toggle changes (CommunityToolkit generates this hook).
     partial void OnReverseChanged(bool value)
     {

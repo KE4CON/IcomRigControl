@@ -474,6 +474,17 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenRemoteAudio()
+    {
+        var audioViewModel = new RemoteAudioViewModel(_transceiver, _settingsService);
+        var audioWindow = new Views.RemoteAudioWindow
+        {
+            DataContext = audioViewModel
+        };
+        audioWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenQsoLogger()
     {
         var loggerViewModel = new QsoLoggerViewModel(_qsoLogger, _callsignLookupSource, _lotwBridge);

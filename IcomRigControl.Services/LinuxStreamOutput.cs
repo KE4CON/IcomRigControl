@@ -14,13 +14,14 @@ public class LinuxStreamOutput : IAudioStreamOutput, IDisposable
     private Process? _process;
     private Stream? _stdin;
 
-    public void Start(int sampleRateHz)
+    public void Start(int sampleRateHz, string? deviceName = null)
     {
         Stop();
+        string deviceArg = string.IsNullOrWhiteSpace(deviceName) ? "" : $"-D {deviceName} ";
         var psi = new ProcessStartInfo
         {
             FileName = "aplay",
-            Arguments = $"-f S16_LE -c 1 -r {sampleRateHz} -t raw -q",
+            Arguments = $"{deviceArg}-f S16_LE -c 1 -r {sampleRateHz} -t raw -q",
             RedirectStandardInput = true,
             UseShellExecute = false,
             CreateNoWindow = true

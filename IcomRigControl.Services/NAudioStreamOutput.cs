@@ -13,8 +13,10 @@ public class NAudioStreamOutput : IAudioStreamOutput, IDisposable
     private WaveOutEvent? _waveOut;
     private BufferedWaveProvider? _buffer;
 
-    public void Start(int sampleRateHz)
+    public void Start(int sampleRateHz, string? deviceName = null)
     {
+        // deviceName-based routing on Windows (WaveOut device number) is a future
+        // refinement; for now WaveOutEvent uses the default output device.
         Stop();
         _buffer = new BufferedWaveProvider(new WaveFormat(sampleRateHz, bits: 16, channels: 1))
         {

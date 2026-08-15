@@ -16,7 +16,8 @@ public record AprsPacket(
     char SymbolCode,
     string Comment,
     string? MessageAddressee,
-    string? MessageText);
+    string? MessageText,
+    string? MessageNumber = null);
 
 /// <summary>
 /// Parses an APRS information field (the AX.25 info bytes) into structured data.
@@ -72,10 +73,18 @@ public static class AprsParser
 
         string addressee = info.Substring(1, 9).Trim();
         string text = info[11..];
-        int brace = text.LastIndexOf('{');
-        if (brace >= 0) text = text[..brace]; // strip the message number
 
-        return new AprsPacket(AprsPacketType.Message, null, null, ' ', ' ', "", addressee, text);
+        // A message may carry a line number as a "{nnnnn" suffix; keep it so the
+        // receiver can send back an ":ackNN". A plain ACK has no such suffix.
+        string? messageNumber = null;
+        int brace = text.LastIndexOf('{');
+        if (brace >= 0)
+        {
+            messageNumber = text[(brace + 1)..].Trim();
+            text = text[..brace];
+        }
+
+        return new AprsPacket(AprsPacketType.Message, null, null, ' ', ' ', "", addressee, text, messageNumber);
     }
 
     private static double? ParseLatitude(string field)

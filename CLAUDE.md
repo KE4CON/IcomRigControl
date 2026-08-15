@@ -150,15 +150,17 @@ Remote Audio (Phase 12) — IN PROGRESS (started 2026-08-15). DESIGN DECIDED wit
   header: 16-bit seq + 32-bit timestamp + Opus payload), JitterBuffer (reorder/prime/conceal),
   and the IAudioCapture interface (the missing capture half; IAudioPlayer only plays).
   MILESTONE 2 DONE (2026-08-15) — platform audio I/O: NAudioCapture (Windows), LinuxAudioCapture
-  (Pi/Linux via ALSA arecord), MacAudioCapture (stub — macOS has no built-in capture CLI yet),
+  (Pi/Linux via ALSA arecord), MacAudioCapture (macOS via SoX `rec` — implemented 2026-08-15,
+  was a stub; needs `brew install sox`, throws a clear message if absent; pending live Mac confirmation),
   LinuxAudioPlayer (Pi/Linux via aplay — which also FIXED the long-standing gap where the Phase
   10 APRS beacon couldn't play on Linux), and an AudioDevices factory that centralizes the
   platform-aware selection (both audio construction sites in the UI now route through it).
   Platform audio can't be unit-tested in CI; a factory test verifies the right type per platform.
   MILESTONE 3 DONE + TESTED (2026-08-15) — the streaming engine. IAudioStreamOutput (the
   CONTINUOUS output the one-shot IAudioPlayer couldn't be) with NAudioStreamOutput (Windows
-  BufferedWaveProvider), LinuxStreamOutput (Pi aplay-stdin, with natural back-pressure), and a
-  macOS stub; FrameAccumulator (reframes capture buffers into codec frames); and RemoteAudioLink
+  BufferedWaveProvider), LinuxStreamOutput (Pi aplay-stdin, with natural back-pressure), and
+  MacStreamOutput (macOS via SoX `play`-stdin — implemented 2026-08-15, was a stub; needs SoX);
+  FrameAccumulator (reframes capture buffers into codec frames); and RemoteAudioLink
   — the full-duplex engine: capture->reframe->Opus->AudioPacket->UDP out, and UDP in->parse->
   JitterBuffer->Opus decode (PLC on loss)->stream output, with a play-out clock and a SendEnabled
   gate. Capture/output are injected so it's testable: an end-to-end test pushes a tone through two
@@ -194,9 +196,10 @@ Remote Audio (Phase 12) — IN PROGRESS (started 2026-08-15). DESIGN DECIDED wit
 User has explicitly requested a professional, incredibly complete, step-by-step manual
 with nothing left out (real screenshots, verified click-by-click steps, every known
 quirk documented as troubleshooting). TRIGGER CONDITION to begin: macOS audio is DONE.
-The remaining prerequisite is an explicit decision on the UI redesign question (see "UI
-Design" note below): either it happens, or the user consciously decides to keep the
-current layout and move on. Once triggered: dedicate session(s) specifically to this —
+macOS audio capture + stream output are now IMPLEMENTED (SoX rec/play, 2026-08-15) — code-complete,
+pending live confirmation on a real Mac (SoX must be installed). So the remaining prerequisite is an
+explicit decision on the UI redesign question (see "UI Design" note below): either it happens, or the
+user consciously decides to keep the current layout and move on. Once triggered: dedicate session(s) specifically to this —
 walk through every window in the running app together, capture real screenshots, verify
 every instruction against live behavior, and fold in every known quirk as troubleshooting
 entries. The existing UserManual.md remains the current, functional reference meanwhile.
@@ -387,8 +390,12 @@ Phase 10: APRS beacon over HF — FULLY COMPLETE ON BOTH WINDOWS AND MACOS. Conf
   new SendMessageAsync both call a shared TransmitAprsAsync (build UI frame -> ModulateAx25Frame
   with full FCS+HDLC framing -> gate -> key/settle/play/unkey via try/finally, TX-inhibit
   respected); SendMessageAsync builds ":ADDRESSEE:text{msgNo" (addressee padded to 9 chars).
-  Message ACK handling (auto-reply to received {msgNo with :ACKnn) is NOT built yet — a small
-  future add. aprs.fi DOES surface HF APRS (igates gateway HF packets to APRS-IS just like VHF),
+  Message ACK handling IMPLEMENTED 2026-08-15: AprsParser now keeps the "{nn" line number
+  (AprsPacket.MessageNumber), and AprsReceiveViewModel auto-replies ":<sender>:ackNN" (via the shared
+  SendMessageAsync path, TX-inhibit respected) for a numbered message addressed to us — gated by an
+  Auto-ACK toggle (persisted AprsAutoAck, default on), skipping ACKs themselves (no line number ->
+  no loop) and relying on the receive service's 15s dedup to avoid ACK storms.
+  aprs.fi DOES surface HF APRS (igates gateway HF packets to APRS-IS just like VHF),
   so the per-station link is genuinely useful. Bit-sync for off-air timing drift is exercised by
   the sweep; real-hardware tuning of the process window/interval is a testing-session refinement.
   COEXISTENCE SUPPORT (2026-08-15): to run IcomRigControl and APRS-Command on the same radio
@@ -419,6 +426,16 @@ IC-705 support — IMPLEMENTED (first pass, 2026-08-15). Added IC705 to the Radi
   shared CI-V command set. GPS/D-PRS and D-STAR deliberately OUT of this pass. REMAINING:
   verify meter scaling byte-for-byte against the real IC-705 (currently shares the IC-7300
   decoder); confirm the full app on real IC-705 hardware.
+CW decode + Zero Beat — IMPLEMENTED 2026-08-15 (see the CW DECODE entry above). RTTY decode —
+  IMPLEMENTED 2026-08-15 (see the RTTY DECODE entry). macOS audio capture/stream output —
+  IMPLEMENTED 2026-08-15 via SoX rec/play (pending live Mac confirmation). APRS message auto-ACK —
+  IMPLEMENTED 2026-08-15 (see HF APRS above).
+## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
+- ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
+  delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here
+  2026-08-15 (user: "put on the possible future list"). Apply the same testability principle as the
+  radios — only build/claim support for a rotator/protocol that can be tested against real hardware.
+- (add other parked ideas here as they come up, with a one-line rationale.)
 ## NuGet Packages (list here BEFORE adding — see "What NOT to do")
 - Avalonia 12.x (UI), CommunityToolkit.Mvvm (MVVM).
 - NAudio 2.3.0 (Windows audio playback/capture).

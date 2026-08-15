@@ -493,6 +493,18 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenWebRemote()
+    {
+        var webViewModel = new WebRemoteViewModel(_transceiver, _settingsService);
+        var webWindow = new Views.WebRemoteWindow
+        {
+            DataContext = webViewModel
+        };
+        webWindow.Closed += async (_, _) => await webViewModel.DisposeAsync();
+        webWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenCwDecode()
     {
         var cwViewModel = new CwDecodeViewModel(_transceiver, _settingsService);

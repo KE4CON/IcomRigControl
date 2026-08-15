@@ -430,6 +430,26 @@ CW decode + Zero Beat — IMPLEMENTED 2026-08-15 (see the CW DECODE entry above)
   IMPLEMENTED 2026-08-15 (see the RTTY DECODE entry). macOS audio capture/stream output —
   IMPLEMENTED 2026-08-15 via SoX rec/play (pending live Mac confirmation). APRS message auto-ACK —
   IMPLEMENTED 2026-08-15 (see HF APRS above).
+Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-08-15). The flagship
+  "operate from anywhere, nothing to install" feature — a mobile web UI served by the app, genuinely
+  beyond RS-BA1 (which needs its own software on the client). Built with NO new dependencies: a plain
+  TcpListener speaks HTTP + does the WebSocket upgrade handshake (WebSocketHandshake computes the
+  Sec-WebSocket-Accept key), then hands the stream to the framework's WebSocket.CreateFromStream — no
+  ASP.NET/Kestrel. Layered cleanly: WebRemoteServer (Services) consumes ONLY the Transceiver, so PTT
+  still honors TransmitInhibited. MILESTONE 1 DONE + TESTED (2026-08-15): WebRemoteServer serves a
+  self-contained mobile page (WebRemotePage — inline HTML/CSS/JS, no CDN, works offline/field) that
+  opens a WebSocket, shows live freq/mode/meters (~5 Hz state push), and sends tuning / mode / PTT
+  commands (token-gated via ?token= query; browser prompts + reconnects on unauthorized). Wired into
+  BOTH the desktop app ("Phone / Tablet" dashboard button -> WebRemoteWindow lists the http://IP:port
+  URLs to open, keep-window-open-to-serve, security note) and the headless Pi (--webport [--webtoken];
+  spins up its own polling Transceiver). IMPORTANT headless constraint: web mode's Transceiver OWNS
+  the serial port (it polls), so it CANNOT coexist with the raw-CI-V relay (CivTcpServer) on one port
+  — --webport replaces the raw relay; running both needs a future CI-V multiplexer. Settings:
+  WebRemotePort (default 8080) + WebRemoteToken. 3 tests (RFC-6455 accept-key vector, serves page +
+  live state + command over real sockets, token rejection). REMAINING milestones: M2 waterfall/scope
+  streaming to the browser canvas; M3 RX audio over the WebSocket (Opus, decoded in-JS); M4 TX audio
+  (mic from the browser). SECURITY: plain HTTP + token in query — intended for a trusted LAN or VPN,
+  documented as such (same posture as Phase 9's remote CI-V).
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

@@ -144,18 +144,29 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Save button** — writes the decoded text to a dated `.txt` file (Documents → IcomRigControl → Decoded) that you can open and **print**.
 - Proven by a modulate→decode **round-trip test**, including a figures/numbers message and a reversed-polarity signal.
 
-## 16. Settings & platform
+## 16. Phone / tablet remote (browser control)
+
+*Operate the radio from any phone, tablet, or laptop browser on your network — nothing to install on the device. This goes beyond Icom's RS-BA1, which needs its own software on the remote computer.*
+
+- **Open a web page, control the radio.** IcomRigControl serves a small mobile web page; open its address (e.g. `http://192.168.1.50:8080`) in any browser and you get a live control panel — big frequency readout, mode buttons, S-meter and power/SWR/ALC/voltage, tuning buttons, direct frequency entry, and a PTT button.
+- **Live and two-way** — the page updates about five times a second and sends your tuning/mode/PTT back to the radio in real time.
+- **Runs from your PC or from a Raspberry Pi at the radio.** On the desktop, a **Phone / Tablet** button lists the exact addresses to type on your phone. On a headless Pi, add `--webport 8080` and browse to the Pi.
+- **Nothing to install, works offline** — the page is completely self-contained (no internet, no app store), so it works on an isolated field network.
+- **Safe by design** — an optional access **token** gates it, and transmit still obeys the Receive-Only / TX-inhibit switch. It's a plain (unencrypted) link, so it's meant for a trusted home network or a VPN.
+- *In progress:* the live **waterfall**, and **listening/talking** (audio) through the browser, are the next additions.
+
+## 17. Settings & platform
 
 - One Settings window covering connection, APRS, callsign lookup, LoTW/TQSL, HRD, and N1MM.
 - Cross-platform audio: playback and capture on Windows (NAudio/WASAPI), Linux/Raspberry Pi (ALSA `arecord`/`aplay`), and macOS (`afplay` for beacons, plus SoX `rec`/`play` for the live decoders and remote audio — macOS needs `brew install sox`).
 - Settings persisted to JSON; secrets kept out of source control.
 - **Windows, macOS, Linux desktop, and Raspberry Pi OS** all supported via Avalonia.
 
-## 17. Architecture (for context)
+## 18. Architecture (for context)
 
 Four clean layers: **CivEngine** (CI-V framing, serial I/O, APRS/AFSK, CW & RTTY DSP) → **RigModel**
-(`Transceiver` + the network layer) → **Services** (all the integrations above) → **UI**
-(Avalonia views/view-models). 373 automated tests.
+(`Transceiver` + the network layer) → **Services** (all the integrations above, incl. the web remote server) → **UI**
+(Avalonia views/view-models). 380 automated tests.
 
 ---
 

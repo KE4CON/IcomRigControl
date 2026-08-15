@@ -31,6 +31,13 @@ public class AppSettings
     public int RemotePort { get; set; } = 7300;
     public string RemoteAuthToken { get; set; } = "";
 
+    // ── Web / phone-tablet remote (browser client) ───────────────────────
+    // Serves a mobile web UI (tuning, meters, PTT, later scope + audio) that
+    // any phone/tablet browser on the network can open. Token-gated; use over a
+    // trusted LAN or VPN. Port 8080 is the conventional alternate-HTTP port.
+    public int WebRemotePort { get; set; } = 8080;
+    public string WebRemoteToken { get; set; } = ""; // empty = no token required (LAN only)
+
     // Phase 12 remote audio: the server's UDP audio port (the desktop client
     // reuses RemoteHost above as the server host) and the client's capture (mic)
     // device.

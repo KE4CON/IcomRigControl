@@ -23,17 +23,21 @@ public static class HeadlessServer
         string? authToken = GetArgValue(args, "--token");
         string? modelStr = GetArgValue(args, "--model");
 
+        bool webMode = !string.IsNullOrWhiteSpace(GetArgValue(args, "--webport"));
+
+        // Raw-relay mode needs --tcpport + --token; web mode (--webport) does not.
         if (string.IsNullOrWhiteSpace(serialPort) ||
-            string.IsNullOrWhiteSpace(tcpPortStr) ||
-            string.IsNullOrWhiteSpace(authToken))
+            (!webMode && (string.IsNullOrWhiteSpace(tcpPortStr) || string.IsNullOrWhiteSpace(authToken))))
         {
-            Console.WriteLine("Usage: IcomRigControl.UI --headless-server --port <comport> --tcpport <port> --token <authtoken> [--model IC7300|IC7300MK2|IC705] [--audioport <udpport> [--audiocapture <alsadev>] [--audioout <alsadev>]]");
+            Console.WriteLine("Usage (raw CI-V relay): IcomRigControl.UI --headless-server --port <comport> --tcpport <port> --token <authtoken> [--model IC7300|IC7300MK2|IC705] [--audioport <udpport> [--audiocapture <alsadev>] [--audioout <alsadev>]]");
+            Console.WriteLine("Usage (phone/tablet web UI): IcomRigControl.UI --headless-server --port <comport> --webport <port> [--webtoken <token>] [--model IC7300|IC7300MK2|IC705]");
             Console.WriteLine("Example: IcomRigControl.UI --headless-server --port /dev/ttyUSB0 --tcpport 7300 --token mysecret123");
-            Console.WriteLine("With audio: ... --audioport 7301 --audiocapture plughw:1,0 --audioout plughw:1,0");
+            Console.WriteLine("Web example: IcomRigControl.UI --headless-server --port /dev/ttyUSB0 --webport 8080 --webtoken mysecret123");
             return;
         }
 
-        if (!int.TryParse(tcpPortStr, out int tcpPort))
+        int tcpPort = 0;
+        if (!webMode && !int.TryParse(tcpPortStr, out tcpPort))
         {
             Console.WriteLine($"Invalid --tcpport value: {tcpPortStr}");
             return;
@@ -57,6 +61,39 @@ public static class HeadlessServer
         catch (Exception ex)
         {
             Console.WriteLine($"  ERROR: Failed to open serial port {serialPort}: {ex.Message}");
+            return;
+        }
+
+        // Web mode: if --webport is given, serve the mobile web UI. This needs a
+        // Transceiver that OWNS the serial port (it polls for state), so it cannot
+        // share the port with the raw-CI-V relay (CivTcpServer). Web mode therefore
+        // replaces the raw relay — pick one per Pi (a CI-V multiplexer to run both
+        // at once is future work). See CLAUDE.md web remote.
+        string? webPortStr = GetArgValue(args, "--webport");
+        if (!string.IsNullOrWhiteSpace(webPortStr) && int.TryParse(webPortStr, out int webPort))
+        {
+            string? webToken = GetArgValue(args, "--webtoken") ?? authToken;
+            var rig = new Transceiver(serialTransport, model);
+            await rig.ConnectAsync();
+            rig.StartPolling(TimeSpan.FromMilliseconds(500));
+
+            var webServer = new WebRemoteServer(rig, webToken, webPort);
+            webServer.Start();
+            Console.WriteLine($"  Web remote on http://<this-Pi-IP>:{webPort} (token {(string.IsNullOrWhiteSpace(webToken) ? "none" : "set")}).");
+            foreach (string url in WebRemoteServer.GetLanUrls(webPort))
+                Console.WriteLine($"    {url}");
+            Console.WriteLine("  (Web mode owns the serial port; the raw CI-V TCP relay is not started.)");
+            Console.WriteLine("  Server running. Press Ctrl+C to stop.");
+
+            var webExit = new TaskCompletionSource();
+            Console.CancelKeyPress += (_, e) => { e.Cancel = true; webExit.TrySetResult(); };
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => webExit.TrySetResult();
+            await webExit.Task;
+
+            Console.WriteLine("Shutting down...");
+            await webServer.DisposeAsync();
+            await rig.DisposeAsync();
+            await serialTransport.CloseAsync();
             return;
         }
 

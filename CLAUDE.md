@@ -313,6 +313,14 @@ Phase 9: Remote/network mode — COMPLETE. REMAINING: real-world testing against
 Phase 10: APRS beacon over HF — FULLY COMPLETE ON BOTH WINDOWS AND MACOS. Confirmed live
   on both platforms including real audible playback. 259 passing tests, confirmed stable
   including a flaky-test fix (see Coding Standards above). NOTHING REMAINING.
+  SCOPE DECISION (LOCKED 2026-08-15): IcomRigControl's APRS stays a SELF-CONTAINED, TX-ONLY
+  position beacon by design — no dependency on APRS-Command or any external program. Do NOT
+  expand it into a full APRS client (receive/decode, messaging, station map, APRS-IS/igate,
+  digipeating). That is APRS-Command's job; growing a second APRS client here is program
+  drift (same principle as the EMMCOM/FieldCommand separation). NOTE: RX decode is now
+  technically feasible (Phase 12 added audio capture, and APRS RX is the same demod-from-audio
+  class as the deferred in-app RTTY/CW decode), but it is deliberately NOT pursued — the user
+  chose to keep the beacon self-contained and leave full APRS to APRS-Command.
 Phase 11: Clickable radio front-panel control — user-photographed or vector image with
   transparent clickable regions overlaid. See UI Design note above. NOT STARTED.
 Phase 12: Remote Audio — real-time low-latency audio capture/streaming/playback over the

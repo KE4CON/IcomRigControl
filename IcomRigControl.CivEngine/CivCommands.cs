@@ -8,6 +8,7 @@ public static class CivCommands
     public const byte Fail           = 0xFA;
     public const byte Addr7300       = 0x94;
     public const byte Addr7300Mk2    = 0xB6;
+    public const byte Addr705        = 0xA4;
     public const byte AddrController = 0xE0;
     public const byte SetOutputFreq  = 0x00;
     public const byte SetOutputMode  = 0x01;

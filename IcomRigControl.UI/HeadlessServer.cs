@@ -11,7 +11,7 @@ namespace IcomRigControl.UI;
 /// no UI — intended for running on a Raspberry Pi next to the radio.
 ///
 /// Usage: IcomRigControl.UI --headless-server --port [comport] --tcpport
-/// [port] --token [authtoken] --model [IC7300|IC7300MK2]
+/// [port] --token [authtoken] --model [IC7300|IC7300MK2|IC705]
 /// </summary>
 public static class HeadlessServer
 {
@@ -26,7 +26,7 @@ public static class HeadlessServer
             string.IsNullOrWhiteSpace(tcpPortStr) ||
             string.IsNullOrWhiteSpace(authToken))
         {
-            Console.WriteLine("Usage: IcomRigControl.UI --headless-server --port <comport> --tcpport <port> --token <authtoken> [--model IC7300|IC7300MK2]");
+            Console.WriteLine("Usage: IcomRigControl.UI --headless-server --port <comport> --tcpport <port> --token <authtoken> [--model IC7300|IC7300MK2|IC705]");
             Console.WriteLine("Example: IcomRigControl.UI --headless-server --port /dev/ttyUSB0 --tcpport 7300 --token mysecret123");
             return;
         }
@@ -37,8 +37,8 @@ public static class HeadlessServer
             return;
         }
 
-        var model = modelStr?.Equals("IC7300MK2", StringComparison.OrdinalIgnoreCase) == true
-            ? RadioModel.IC7300MK2
+        var model = Enum.TryParse<RadioModel>(modelStr, ignoreCase: true, out var m)
+            ? m
             : RadioModel.IC7300;
 
         Console.WriteLine($"IcomRigControl headless server starting...");

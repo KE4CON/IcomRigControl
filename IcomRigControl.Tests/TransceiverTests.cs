@@ -32,6 +32,23 @@ public class TransceiverTests
         Assert.Equal(CivCommands.SetFrequency, transport.WrittenFrames[0][4]);
     }
 
+    [Theory]
+    [InlineData(RadioModel.IC7300, 0x94)]
+    [InlineData(RadioModel.IC7300MK2, 0xB6)]
+    [InlineData(RadioModel.IC705, 0xA4)]
+    public async Task Transceiver_AddressesOutgoingFramesToTheSelectedRadio(RadioModel model, byte expectedAddress)
+    {
+        var transport = new FakeCivTransport();
+        var tx = new Transceiver(transport, model);
+        await tx.ConnectAsync();
+
+        await tx.SetFrequencyAsync(14_074_000);
+
+        // Byte [2] of a CI-V frame is the destination (radio) address:
+        // FE FE <to> <from> ... Each supported radio has its own default address.
+        Assert.Equal(expectedAddress, transport.WrittenFrames[0][2]);
+    }
+
     [Fact]
     public async Task SetPttAsync_UpdatesPropertyAndFiresEvent()
     {

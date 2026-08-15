@@ -50,7 +50,7 @@ The methods reference these. Fill them in (or tell your assistant to detect them
 | **Concurrency hot spots** | the **serial read loop + rig polling** (S-meter/Po/SWR/PTT), async CAT I/O, TCP network mode — same race class as any transport; the QsoLogger write path |
 | **Security-sensitive surfaces** | serial + TCP I/O; the one-way, best-effort integrations (HRD/N1MM/LoTW) must **never** gate or block the local log |
 | **Canonical spec / docs to check against** | Icom CI-V reference; `CLAUDE.md` (backup-of-record logging discipline); `UserManual.md` |
-| **Known-latent list** | IC-705 support researched, not ported (meter-scaling not yet verified byte-for-byte against the IC-705 manual) |
+| **Known-latent list** | IC-705 support ported (first pass, 2026-08-15) but meter-scaling not yet verified byte-for-byte against a real IC-705 (it currently shares the IC-7300 decoder) |
 | **⚠ Safety** | this software can **key a transmitter** (`1C 00` PTT). Treat every transmit path as safety-critical and audit it like APRS-Command's transmit-safety gates — nothing keys up unintentionally, and never as an unidentified/default station. |
 
 ---

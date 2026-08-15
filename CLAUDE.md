@@ -5,8 +5,10 @@ Author: Jim, KE4CON
 Language: C# (.NET 10)
 UI Framework: Avalonia 12.x (cross-platform desktop — macOS, Windows, Linux, Raspberry Pi).
 See "Avalonia Version Decision" below before considering any version change.
-Target Radios: Icom IC-7300 (address 94h) and IC-7300MK2 (address B6h). IC-705 research
-completed but not yet implemented — see "IC-705 Support Research" below.
+Target Radios: Icom IC-7300 (address 94h), IC-7300MK2 (address B6h), and IC-705 (address
+A4h) — all three IMPLEMENTED. IC-705 first pass done 2026-08-15 (freq/mode/PTT/meters/
+scope/logging); its meter-scaling shares the IC-7300 decoder and is pending byte-for-byte
+confirmation against the real IC-705. See "IC-705 Support Research" below.
 Connection: USB serial (local) or TCP/network mode (remote, Phase 9) — COMPLETE.
 ## Supported Radios — Scope Decision (LOCKED 2026-08-15)
 This project deliberately supports ONLY three radios: the IC-7300, IC-7300MK2, and IC-705.
@@ -36,7 +38,7 @@ one-way, best-effort *additions* on top of this local log — never a dependency
 log needs to function, and never a gate that can cause a QSO to go unrecorded if the
 external program is down. This mirrors the user's EMCOMM "always have a backup plan"
 principle, applied to logging infrastructure.
-## IC-705 Support Research (researched, not yet implemented)
+## IC-705 Support Research (IMPLEMENTED first pass 2026-08-15)
 User asked whether this project would work with an IC-705 in addition to the IC-7300/MK2.
 Researched directly against the official IC-705 CI-V command reference PDF (see Key
 References). Findings: default CI-V address is 0xA4 (vs. 0x94 for IC-7300). Core commands
@@ -54,8 +56,11 @@ doesn't have, so these would be new feature work, not adaptation of existing cod
 worth noting: Icom's own RS-BA1 remote software officially supports the IC-705 including
 its spectrum scope, per Icom's own compatibility chart — see RS-BA1 Comparison below —
 which is a good real-world signal the IC-705's CI-V implementation is solid for this kind
-of use. NEXT STEP WHEN PURSUING THIS: add IC705 to the RadioModel enum with address 0xA4,
-verify meter scaling against real hardware, and decide whether GPS/D-PRS is in scope at all.
+of use. STATUS: first pass IMPLEMENTED 2026-08-15 — IC705 added to the RadioModel enum
+(address 0xA4), a persisted radio-model picker in Settings, both construction sites wired,
+address verified by test for all three radios. GPS/D-PRS and D-STAR deliberately left out.
+REMAINING: verify meter scaling byte-for-byte against a real IC-705 (currently shares the
+IC-7300 decoder), and confirm the full app on real IC-705 hardware.
 ## RS-BA1 Comparison and Planned Additions (researched — Remote Power ON/OFF and Remote
 ## Audio identified as the two genuine capability gaps vs. Icom's own remote software)
 Researched Icom's official RS-BA1 Version 2 product page and compatibility chart directly
@@ -277,12 +282,12 @@ Remote Power ON/OFF (planned, near-term, small — not yet assigned a phase numb
   it's a natural small addition to existing Transceiver/UI code rather than a new
   subsystem): CI-V command 0x18, see "RS-BA1 Comparison and Planned Additions" above.
   NOT STARTED.
-IC-705 support (IN SCOPE — see "Supported Radios — Scope Decision" above): the one
-  supported radio not yet implemented. User owns a real IC-705, so it can be properly
-  tested. Work: add IC705 to the RadioModel enum with address 0xA4, verify meter scaling
-  byte-for-byte against the real radio, decide whether GPS/D-PRS and D-STAR are in scope
-  (likely NOT for a first pass — freq/mode/PTT/meters/waterfall/logging is the target).
-  See "IC-705 Support Research" above for the command-compatibility findings.
+IC-705 support — IMPLEMENTED (first pass, 2026-08-15). Added IC705 to the RadioModel enum
+  (address 0xA4), a persisted radio-model picker in Settings, and wired both the desktop
+  and headless construction sites to it. Covers freq/mode/PTT/meters/scope/logging via the
+  shared CI-V command set. GPS/D-PRS and D-STAR deliberately OUT of this pass. REMAINING:
+  verify meter scaling byte-for-byte against the real IC-705 (currently shares the IC-7300
+  decoder); confirm the full app on real IC-705 hardware.
 ## What NOT to do
 - Do not implement features out of phase order without explicit instruction
 - Do not add NuGet packages without listing them here first
@@ -331,7 +336,8 @@ IC-705 support (IN SCOPE — see "Supported Radios — Scope Decision" above): t
 ## Radio Addresses
 IC-7300: 0x94 (controller default: 0xE0)
 IC-7300MK2: 0xB6 (controller default: 0xE0)
-IC-705: 0xA4 (researched, not yet implemented — see IC-705 Support Research above)
+IC-705: 0xA4 (controller default: 0xE0) — implemented (first pass); meter scaling pending
+  real-hardware verification, see IC-705 Support Research above
 ## Key References
 - IC-7300MK2 CI-V Reference Guide: icomuk.co.uk/files/icom/PDF/productAdditionalFile/IC-7300MK2_ENG_CI-V_0.pdf
 - IC-705 CI-V Reference: icomeurope.com/wp-content/uploads/2020/08/IC-705_ENG_CI-V_1_20200721.pdf

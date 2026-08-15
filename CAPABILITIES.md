@@ -3,7 +3,7 @@
 *A complete, plain-language inventory of everything IcomRigControl does today, plus what's planned but not built. Meant as a shared reference and a brainstorming springboard. Grounded in the real code as of 2026-08-15 (Phases 1–10 complete, 283 passing tests).*
 
 **In a nutshell:** IcomRigControl is a free, cross-platform (Windows/macOS/Linux/Raspberry
-Pi) control and logging program for the Icom IC-7300 and IC-7300MK2 radios. It does
+Pi) control and logging program for the Icom IC-7300, IC-7300MK2, and IC-705 radios. It does
 everything Icom's own RS-BA1 remote software does *except* live remote audio — and adds a
 whole logging-and-operations ecosystem (QSO log, contests, callsign lookup, LoTW, HRD,
 N1MM/WSJT-X, APRS beaconing) that RS-BA1 has none of.
@@ -18,7 +18,7 @@ N1MM/WSJT-X, APRS beaconing) that RS-BA1 has none of.
 | **Local connection** | USB / serial CI-V, selectable COM port / `/dev/tty…`, 115200 baud default |
 | **Remote connection** | TCP to a networked `CivTcpServer` (Phase 9) — token-authenticated |
 | **Demo mode** | Full UI with a simulated radio, no hardware needed |
-| **IC-705** | Researched (address `0xA4`, commands largely compatible) — **not yet implemented** |
+| **IC-705** | Implemented (address `0xA4`); meter scaling shares the IC-7300 decoder, pending real-hardware verification |
 
 ## 2. Core radio control
 
@@ -121,7 +121,7 @@ notes in CLAUDE.md.
 - **Meter scaling verification** — Po/ALC/scope-span byte layouts need confirming against a real radio (flagged in the audit).
 
 **Medium**
-- **IC-705 support** *(documented)* — add to the radio enum, verify meter scaling; optional GPS/D-PRS and D-STAR would be genuinely new feature work.
+- **IC-705 real-hardware verification** — support is now implemented (first pass: enum + address `0xA4` + Settings picker). The remaining step is confirming meter scaling byte-for-byte against the real radio. (GPS/D-PRS and D-STAR remain out of scope.)
 - **UI redesign** *(documented)* — you've said the current UI isn't satisfying; this is the gate for the comprehensive User Manual. Open questions: color/theme, transceiver-panel vs. flat dashboard, tabs vs. one scrolling window.
 - **Phase 11: clickable radio front-panel** *(documented)* — a photo/vector of the rig with clickable controls.
 

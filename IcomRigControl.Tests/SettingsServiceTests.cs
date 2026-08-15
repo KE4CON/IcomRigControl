@@ -17,10 +17,28 @@ public class SettingsServiceTests
         var settings = service.Load();
 
         Assert.NotNull(settings);
+        Assert.Equal("IC7300", settings.RadioModel);
         Assert.Equal("Callook", settings.CallsignLookupSource);
         Assert.False(settings.HrdBridgeEnabled);
         Assert.False(settings.N1mmSendEnabled);
         Assert.False(settings.N1mmReceiveEnabled);
+    }
+
+    [Fact]
+    public void Save_ThenLoad_RoundTripsRadioModel()
+    {
+        var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
+        try
+        {
+            var service = new SettingsService(tempPath);
+            service.Save(new AppSettings { RadioModel = "IC705" });
+
+            Assert.Equal("IC705", service.Load().RadioModel);
+        }
+        finally
+        {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+        }
     }
 
     [Fact]

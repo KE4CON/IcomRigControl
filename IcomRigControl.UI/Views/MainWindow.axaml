@@ -71,6 +71,18 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+
+                <Button Content="FT8 Setup" Command="{Binding SetFt8ModeCommand}"
+                        HorizontalAlignment="Center" Margin="0,6,0,0"
+                        Background="#2a2a2a" Foreground="White" Padding="10,4"
+                        ToolTip.Tip="One-touch USB-D + wide filter for FT8 (replicates the radio's FT8 preset over CI-V). WSJT-X still does the decoding; set NB/NR/AGC off manually.">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
             </StackPanel>
         </Border>
 

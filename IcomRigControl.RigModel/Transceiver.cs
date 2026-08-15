@@ -123,6 +123,18 @@ public class Transceiver : IAsyncDisposable
     public Task StopVoiceMemoryAsync(CancellationToken ct = default) =>
         _transport.WriteAsync(_builder.StopVoiceMemory(), ct);
 
+    /// Configure the radio for FT8 the way the front-panel "FT8 preset" does:
+    /// USB-D (USB data mode) with the wide filter (FIL1), via CI-V command 26.
+    /// The FT8 preset itself is not CI-V-accessible, so this replicates it. Like
+    /// Icom's own preset it does NOT touch NB/NR/AGC — set those manually. WSJT-X
+    /// still does the actual FT8 decode/encode.
+    public async Task SetFt8ModeAsync(CancellationToken ct = default)
+    {
+        await _transport.WriteAsync(_builder.SetModeWithData(0x01 /* USB */, dataMode: true, filter: 0x01), ct);
+        Mode = "USB-D";
+        ModeChanged?.Invoke(this, Mode);
+    }
+
     /// Read a single memory channel's frequency and mode by selecting it,
     /// then requesting frequency and mode reads while it's active.
     /// Returns null if no response arrives within the timeout (empty channel).

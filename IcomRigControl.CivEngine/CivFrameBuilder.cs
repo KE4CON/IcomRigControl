@@ -39,6 +39,14 @@ public class CivFrameBuilder
     public byte[] SetMode(byte modeCode, byte filter = 0x01) =>
         Build(CivCommands.SetMode, data: new[] { modeCode, filter });
 
+    /// Set the operating mode WITH the data-mode flag and filter for the selected
+    /// VFO (command 26): 26 00 &lt;mode&gt; &lt;data 0/1&gt; &lt;filter&gt;. This is the only way to
+    /// select a data sub-mode like USB-D (needed for FT8); command 06 cannot set
+    /// the data flag. (Matches Hamlib's set_mode_with_data.)
+    public byte[] SetModeWithData(byte modeCode, bool dataMode, byte filter = 0x01) =>
+        Build(CivCommands.UnselVfoMode, 0x00,
+              new[] { modeCode, dataMode ? (byte)0x01 : (byte)0x00, filter });
+
     public byte[] SelectVfoA() =>
         Build(CivCommands.SelectVfo, CivCommands.VfoA);
 

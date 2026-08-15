@@ -99,6 +99,22 @@ public class TransceiverTests
     }
 
     [Fact]
+    public async Task SetFt8ModeAsync_SelectsUsbDataModeWithWideFilter()
+    {
+        var transport = new FakeCivTransport();
+        var tx = new Transceiver(transport, RadioModel.IC7300);
+        await tx.ConnectAsync();
+
+        await tx.SetFt8ModeAsync();
+
+        // Command 26: 26 00 <mode=USB 01> <data on 01> <filter FIL1 01>
+        // Full frame: FE FE 94 E0 26 00 01 01 01 FD
+        Assert.Equal(new byte[] { 0xFE, 0xFE, 0x94, 0xE0, 0x26, 0x00, 0x01, 0x01, 0x01, 0xFD },
+                     transport.WrittenFrames[0]);
+        Assert.Equal("USB-D", tx.Mode);
+    }
+
+    [Fact]
     public void IncomingFrequencyFrame_UpdatesPropertyAndFiresEvent()
     {
         var transport = new FakeCivTransport();

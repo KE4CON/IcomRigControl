@@ -389,6 +389,25 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         await _transceiver.SetPttAsync(!PttActive);
     }
 
+    /// One-touch FT8 setup: puts the radio in USB-D with a wide filter (what the
+    /// radio's own FT8 preset does, replicated over CI-V since the preset itself
+    /// isn't CI-V-accessible). WSJT-X still does the decoding. NB/NR/AGC are left
+    /// for you to set manually, exactly as Icom's preset does.
+    [RelayCommand]
+    private async Task SetFt8Mode()
+    {
+        if (!IsConnected) return;
+        try
+        {
+            await _transceiver.SetFt8ModeAsync();
+            StatusMessage = "FT8 setup: USB-D + wide filter (set NB/NR/AGC off manually).";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"FT8 setup error: {ex.Message}";
+        }
+    }
+
     /// Powers the radio ON via CI-V. Only works if the radio is in standby with
     /// its CI-V still alive (see the radio's remote power-off setting) — it can't
     /// wake a fully shut-down or USB-disconnected radio.

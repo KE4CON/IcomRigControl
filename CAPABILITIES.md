@@ -27,6 +27,7 @@ N1MM/WSJT-X, APRS beaconing) that RS-BA1 has none of.
 - **PTT (transmit) control** — key the radio on/off from the app (CI-V `1C 00`), with the safety guarantees hardened in this session (never stuck on, never unidentified).
 - **Remote power ON/OFF** — power the radio on/off from the app (CI-V `18 01` / `18 00`). Power-on sends a wake-up preamble and only works if the radio is in CI-V standby (matches RS-BA1's own limitation).
 - **CW keyer & voice memories** — a Keyer window sends editable CW macros as Morse (CI-V `17`, up to 30 chars) and fires the radio's recorded voice memories T1–T8 (CI-V `28`).
+- **FT8 one-touch setup** — an "FT8 Setup" button puts the radio in USB-D + wide filter via CI-V (`26 00 01 01 01`), replicating the radio's FT8 preset (which isn't itself CI-V-accessible). WSJT-X still does the decode; NB/NR/AGC are left manual, as Icom's own preset does.
 - **VFO / split** — VFO select, A=B, swap, split control commands are implemented in the engine.
 - **Live meters, polled ~continuously:** S-meter (S-units + true dBm), RF power output %, SWR, ALC, supply voltage (Vd), current draw (Id).
 
@@ -135,6 +136,6 @@ notes in CLAUDE.md.
 - ~~CW keyer / voice memories~~ — **DONE** (Keyer window; CI-V 17 / 28).
 - **DX Cluster + band map** — planned next: telnet to a cluster, show spots on the waterfall, click-to-tune.
 - **Rotator / antenna switch / amplifier control** — **not planned**: not CI-V functions, and no test hardware on hand (would ship unverifiable support).
-- **Digital modes** — FT8 stays **WSJT-X only** (no in-app FT8 — reimplementing it isn't sane). In-app **RTTY and CW decode** are feasible "path 2" features but are **gated on Phase 12 audio capture**, so deferred until after the audio work. WSJT-X integration is untouched.
+- **Digital modes** — FT8 stays **WSJT-X only** (no in-app FT8 — reimplementing it isn't sane); an **"FT8 Setup" button** now replicates the radio's FT8 preset (USB-D + wide filter) over CI-V as a convenience. In-app **RTTY and CW decode** are feasible "path 2" features but are **gated on Phase 12 audio capture**, so deferred until after the audio work. WSJT-X integration is untouched.
 - More contests; general-logging niceties (QSL cards, statistics, maps).
 - Mobile/tablet or web front-end to the headless server.

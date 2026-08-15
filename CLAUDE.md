@@ -105,8 +105,22 @@ IMPLEMENTED 2026-08-15: Remote Power ON/OFF. CI-V command 0x18 (0x18 00 = off, 0
   "Shutdown only") — otherwise a remote power-off fully shuts the radio down and it cannot
   be woken. This is the same limitation RS-BA1 itself has, not a gap
   specific to our implementation.
-PLANNED: Remote Audio (Phase 12 — deliberately scoped as its own future phase, NOT a
-  quick addition). This is a genuinely different category of engineering from Phase 10's
+Remote Audio (Phase 12) — IN PROGRESS (started 2026-08-15). DESIGN DECIDED with the user:
+  UDP transport, Opus codec, full RX+TX (full duplex), and it MUST work on Linux/Raspberry
+  Pi (the Pi headless server at the radio is the whole point — it captures RX audio and
+  plays TX audio). MILESTONE 1 DONE + TESTED (all cross-platform, pure C#, so it runs on the
+  Pi): OpusAudioCodec (Concentus, pure-managed Opus — no native lib), AudioPacket (UDP
+  header: 16-bit seq + 32-bit timestamp + Opus payload), JitterBuffer (reorder/prime/conceal),
+  and the IAudioCapture interface (the missing capture half; IAudioPlayer only plays).
+  REMAINING MILESTONES: (2) platform audio I/O — NAudioCapture (Windows), LinuxAudioCapture
+  via ALSA arecord/aplay (Pi — ESSENTIAL for the server), macOS capture; and a LinuxAudioPlayer
+  (the current IAudioPlayer is Windows+macOS only — Linux/Pi has no player yet). (3) the
+  UDP streaming server/client wiring (capture -> Opus -> AudioPacket -> UDP -> JitterBuffer
+  -> play), alongside the Phase 9 CI-V link. (4) TX path + PTT coordination. (5) UI + settings
+  (ports, device selection, buffer depth). (6) real-hardware latency tuning. Original design
+  rationale (still valid) follows:
+  PLANNED (rationale): Remote Audio is a genuinely different category of engineering from
+  Phase 10's
   AFSK audio pipeline, which is one-shot (generate samples once, play them, done). Remote
   audio requires: continuous low-latency audio CAPTURE from the radio (not just playback
   — a new capability entirely, since IAudioPlayer only plays), a streaming protocol over
@@ -295,6 +309,14 @@ IC-705 support — IMPLEMENTED (first pass, 2026-08-15). Added IC705 to the Radi
   shared CI-V command set. GPS/D-PRS and D-STAR deliberately OUT of this pass. REMAINING:
   verify meter scaling byte-for-byte against the real IC-705 (currently shares the IC-7300
   decoder); confirm the full app on real IC-705 hardware.
+## NuGet Packages (list here BEFORE adding — see "What NOT to do")
+- Avalonia 12.x (UI), CommunityToolkit.Mvvm (MVVM).
+- NAudio 2.3.0 (Windows audio playback/capture).
+- Microsoft.Data.Sqlite 10.0.10 + SQLitePCLRaw.lib.e_sqlite3 pinned 3.50.3+ (HRD bridge;
+  CVE-2025-6965 pin — see below).
+- Concentus 1.1.7 (Services) — pure-C# Opus codec for Phase 12 remote audio. Chosen
+  specifically because it is fully managed (no native library), so it works on Windows,
+  macOS, Linux, AND the Raspberry Pi/ARM64. Added 2026-08-15.
 ## What NOT to do
 - Do not implement features out of phase order without explicit instruction
 - Do not add NuGet packages without listing them here first

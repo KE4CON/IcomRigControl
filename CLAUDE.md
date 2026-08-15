@@ -84,6 +84,25 @@ compatibility chart and feature descriptions):
 - CW Keyer and Voice memory playback: IMPLEMENTED 2026-08-15 (Keyer window — CI-V 17 sends
   CW macros up to 30 chars, CI-V 28 fires voice memories T1-T8). Voice RECORDING is done on
   the radio itself; RC-28 USB dial hardware support remains out of scope (no user request).
+- CW DECODE (receive) + ZERO BEAT: IMPLEMENTED 2026-08-15. The audio-capture gate (see the
+  digital-modes decision) is lifted, so CW decode was built entirely from audio (the radio does
+  NOT stream its own decode over CI-V — verified — so decoding from RX audio ourselves is the
+  only path). CivEngine DSP: MorseCode (ITU table), MorseDecoder (streaming, adaptive-speed
+  dit/dah + gap timing, unit-testable), CwToneDetector (Goertzel at the CW pitch + AGC keying
+  with hysteresis, stateful/streaming so a dit split across capture buffers still measures as
+  one), CwModulator (OOK audio, for a modulate->decode ROUND-TRIP test — the CW mirror of the
+  APRS round-trip), CwPitchMeter (Goertzel bank + parabolic interpolation to measure the actual
+  received tone), CwDecoder (offline convenience). Services: CwDecodeService (live reader off
+  IAudioCapture -> streaming detector+decoder -> TextDecoded/WpmChanged events, plus tone
+  measurement -> ToneMeasured; resilient, never throws to the capture thread). UI: non-modal
+  CW Decode window (scrolling decoded text, Pitch box, live WPM, tuning hint) with a ZERO BEAT
+  button — measures received-tone-minus-pitch and tunes the radio via CI-V SetFrequencyAsync to
+  null it (CW-Normal default: raise VFO to lower tone; a Reverse ToggleButton flips the sign for
+  CW-Reverse — the sign is the one thing to confirm on real hardware). CwPitchHz + CwZeroBeatReverse
+  persisted in AppSettings. 23 tests (round-trip at 44.1k/48k, speed tracking, pitch meter, live
+  service). HONEST LIMITATION told to the user: software CW readers copy clean/machine CW well and
+  degrade on poor fists / QSB / QRM — inherent to the problem, a good ear still beats them. In-app
+  RTTY decode is the remaining tractable digital-mode add (same audio foundation) if ever wanted.
 - QSO logging, callsign lookup, LoTW, HRD integration, N1MM/WSJT-X integration, APRS
   beacon, memory bulk editor, CSV activity logging, DX cluster (with spot posting),
   headless Pi server

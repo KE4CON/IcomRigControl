@@ -37,6 +37,13 @@ public class AppSettings
     public int RemoteAudioPort { get; set; } = 7301;
     public string RemoteAudioCaptureDevice { get; set; } = "";
 
+    // ── CW decode / zero beat ────────────────────────────────────────────
+    // The receiver's CW pitch (Hz) — the tone the reader decodes and the target
+    // for zero-beat. Match this to the radio's own CW Pitch menu setting.
+    public double CwPitchHz { get; set; } = 600;
+    // Flip the zero-beat tuning direction for CW-Reverse. Default suits CW-Normal.
+    public bool CwZeroBeatReverse { get; set; } = false;
+
     // ── Phase 10: APRS beacon settings ──────────────────────────────────
     public string AprsCallsign { get; set; } = "";
     public int AprsSsid { get; set; } = 9; // 9 is the conventional SSID for mobile/HF APRS

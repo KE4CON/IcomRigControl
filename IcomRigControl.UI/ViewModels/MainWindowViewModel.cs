@@ -493,6 +493,18 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenCwDecode()
+    {
+        var cwViewModel = new CwDecodeViewModel(_transceiver, _settingsService);
+        var cwWindow = new Views.CwDecodeWindow
+        {
+            DataContext = cwViewModel
+        };
+        cwWindow.Closed += async (_, _) => await cwViewModel.DisposeAsync();
+        cwWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenAprsReceive()
     {
         if (_aprsBeaconService == null) return;

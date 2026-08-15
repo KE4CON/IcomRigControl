@@ -57,6 +57,8 @@ public class AppSettings
     public double AprsLongitude { get; set; } = 0;
     public string AudioOutputDeviceName { get; set; } = ""; // empty = system default
     public int AprsBeaconIntervalMinutes { get; set; } = 10; // 0 = manual only, no auto-beacon
+    // Auto-reply ":ackNN" when someone sends us a numbered APRS message.
+    public bool AprsAutoAck { get; set; } = true;
 
     // ── Phase 8c: Callsign lookup ────────────────────────────────────────
     public string CallsignLookupSource { get; set; } = "Callook"; // "Callook", "QRZ", or "HamQTH"

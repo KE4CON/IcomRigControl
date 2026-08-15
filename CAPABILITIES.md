@@ -110,8 +110,8 @@ something Icom's RS-BA1 doesn't do at all.*
 - A **live station list** — one row per station heard, showing call, position, info/comment, and time last heard, updated in place as they beacon.
 - A per-station **aprs.fi** button that opens that station on the aprs.fi map in your browser (the map, without building a map into the app — and yes, HF APRS *does* show up on aprs.fi, gatewayed by igates just like VHF).
 - **Messaging**: a Messages panel for text messages addressed to you, plus a to-call + text **Send** box that transmits an APRS message over the same safety-gated path as the beacon.
+- **Auto-ACK**: when someone sends you a numbered message, IcomRigControl can automatically reply with the expected acknowledgement — a one-click toggle turns it on or off (on by default). It never acknowledges an acknowledgement, so there are no loops.
 - Opens as its own window from the **HF APRS** dashboard button, alongside the main radio panel (so you still watch the real TX indicator, meters, and TX-inhibit banner while it works) — it's a monitor + messaging panel, not a second set of radio controls.
-- Remaining (a small future add): automatic message **ACK** replies.
 
 ## 13. DX Cluster & band map
 
@@ -147,7 +147,7 @@ something Icom's RS-BA1 doesn't do at all.*
 ## 16. Settings & platform
 
 - One Settings window covering connection, APRS, callsign lookup, LoTW/TQSL, HRD, and N1MM.
-- Cross-platform audio (NAudio/WASAPI on Windows, `afplay` on macOS).
+- Cross-platform audio: playback and capture on Windows (NAudio/WASAPI), Linux/Raspberry Pi (ALSA `arecord`/`aplay`), and macOS (`afplay` for beacons, plus SoX `rec`/`play` for the live decoders and remote audio — macOS needs `brew install sox`).
 - Settings persisted to JSON; secrets kept out of source control.
 - **Windows, macOS, Linux desktop, and Raspberry Pi OS** all supported via Avalonia.
 

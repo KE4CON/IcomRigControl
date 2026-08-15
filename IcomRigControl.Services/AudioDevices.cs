@@ -20,13 +20,13 @@ public static class AudioDevices
     {
         if (OperatingSystem.IsWindows()) return new NAudioCapture();
         if (OperatingSystem.IsLinux()) return new LinuxAudioCapture(); // incl. Raspberry Pi
-        return new MacAudioCapture(); // macOS (stub for now)
+        return new MacAudioCapture(); // macOS (SoX `rec`)
     }
 
     public static IAudioStreamOutput CreateStreamOutput()
     {
         if (OperatingSystem.IsWindows()) return new NAudioStreamOutput();
         if (OperatingSystem.IsLinux()) return new LinuxStreamOutput(); // incl. Raspberry Pi
-        return new MacStreamOutput(); // macOS (stub for now)
+        return new MacStreamOutput(); // macOS (SoX `play`)
     }
 }

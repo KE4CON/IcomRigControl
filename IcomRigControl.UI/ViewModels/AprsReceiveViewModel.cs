@@ -33,12 +33,21 @@ public partial class AprsReceiveViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private string _status = "Not receiving. Put the radio on an HF APRS frequency (e.g. 10.1476 or 14.1000 MHz USB) and Start.";
     [ObservableProperty] private string _messageToCall = "";
     [ObservableProperty] private string _messageText = "";
+    [ObservableProperty] private bool _autoAck = true;
 
     public AprsReceiveViewModel(Transceiver transceiver, SettingsService settingsService, AprsBeaconService beaconService)
     {
         _transceiver = transceiver;
         _settingsService = settingsService;
         _beaconService = beaconService;
+        _autoAck = settingsService.Load().AprsAutoAck;
+    }
+
+    partial void OnAutoAckChanged(bool value)
+    {
+        var settings = _settingsService.Load();
+        settings.AprsAutoAck = value;
+        _settingsService.Save(settings);
     }
 
     [RelayCommand]
@@ -92,10 +101,39 @@ public partial class AprsReceiveViewModel : ViewModelBase, IAsyncDisposable
         if (rx.Packet.Type == AprsPacketType.Message)
         {
             string myCall = _settingsService.Load().AprsCallsign;
-            bool forUs = string.IsNullOrWhiteSpace(myCall) ||
-                         string.Equals(rx.Packet.MessageAddressee, myCall, StringComparison.OrdinalIgnoreCase);
+            bool addressedToMe = !string.IsNullOrWhiteSpace(myCall) &&
+                                 string.Equals(rx.Packet.MessageAddressee, myCall, StringComparison.OrdinalIgnoreCase);
+            bool forUs = string.IsNullOrWhiteSpace(myCall) || addressedToMe;
             if (forUs)
                 Messages.Insert(0, new AprsMessageRow(call, rx.Packet.MessageText ?? "", now.ToString("HH:mm:ss")));
+
+            // Courtesy auto-ACK: only for a numbered message actually addressed to us,
+            // and never for an ACK itself (those carry no line number).
+            string? msgNo = rx.Packet.MessageNumber;
+            bool isAck = (rx.Packet.MessageText ?? "").TrimStart().StartsWith("ack", StringComparison.OrdinalIgnoreCase);
+            if (AutoAck && addressedToMe && !string.IsNullOrEmpty(msgNo) && !isAck)
+                _ = SendAckAsync(call, msgNo);
+        }
+    }
+
+    /// Sends ":<sender>:ackNN" back to the station that messaged us — the APRS
+    /// acknowledgement. Uses the shared, TX-inhibit-respecting transmit path.
+    private async Task SendAckAsync(string toCall, string messageNumber)
+    {
+        var settings = _settingsService.Load();
+        if (!CallsignValidator.IsPlausibleAmateurCallsign(settings.AprsCallsign)) return;
+        try
+        {
+            string? device = string.IsNullOrWhiteSpace(settings.AudioOutputDeviceName) ? null : settings.AudioOutputDeviceName;
+            await _beaconService.SendMessageAsync(
+                settings.AprsCallsign, settings.AprsSsid,
+                toCall, $"ack{messageNumber}", messageNumber: null,
+                AfskProfile.Hf300Baud, audioDeviceName: device);
+            Status = $"Auto-ACK sent to {toCall} (msg {messageNumber}).";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Auto-ACK failed: {ex.Message}";
         }
     }
 

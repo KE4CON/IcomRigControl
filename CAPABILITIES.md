@@ -25,6 +25,7 @@ N1MM/WSJT-X, APRS beaconing) that RS-BA1 has none of.
 - **Frequency** — read live from the radio and set it (BCD-encoded CI-V, verified against the reference).
 - **Mode** — LSB, USB, AM, CW, RTTY, FM, CW-R, RTTY-R, DV — read and set.
 - **PTT (transmit) control** — key the radio on/off from the app (CI-V `1C 00`), with the safety guarantees hardened in this session (never stuck on, never unidentified).
+- **Remote power ON/OFF** — power the radio on/off from the app (CI-V `18 01` / `18 00`). Power-on sends a wake-up preamble and only works if the radio is in CI-V standby (matches RS-BA1's own limitation).
 - **VFO / split** — VFO select, A=B, swap, split control commands are implemented in the engine.
 - **Live meters, polled ~continuously:** S-meter (S-units + true dBm), RF power output %, SWR, ALC, supply voltage (Vd), current draw (Id).
 
@@ -116,7 +117,7 @@ These are the natural places to take it next. Items marked *(documented)* alread
 notes in CLAUDE.md.
 
 **Small / near-term**
-- **Remote Power ON/OFF** *(documented)* — CI-V `0x18`; one method + a button. Caveat: can only wake a radio that's in low-power standby, not fully off.
+- ~~Remote Power ON/OFF~~ — **DONE** (implemented 2026-08-15; CI-V `0x18`, Power On/Off buttons on the dashboard).
 - **Real-hardware validation** of Phase 9 remote mode over an actual network link.
 - **Meter scaling verification** — Po/ALC/scope-span byte layouts need confirming against a real radio (flagged in the audit).
 

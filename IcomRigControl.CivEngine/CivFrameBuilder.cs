@@ -65,8 +65,28 @@ public class CivFrameBuilder
     public byte[] ReadVoltage() => Build(CivCommands.ReadMeter, CivCommands.MeterVd);
     public byte[] ReadCurrent() => Build(CivCommands.ReadMeter, CivCommands.MeterId);
 
+    /// Number of 0xFE wake-up bytes to send ahead of the power-ON command, to
+    /// rouse the radio's CI-V processor out of standby. Icom/Hamlib use ~150 at
+    /// 115200 baud; extra leading 0xFE bytes are harmless — they simply precede
+    /// the real FE FE frame and are treated as preamble.
+    public const int PowerOnWakeupPreambleCount = 150;
+
+    /// Power the radio OFF (command 18h 00h).
     public byte[] PowerOff() =>
         Build(CivCommands.PowerControl, 0x00);
+
+    /// Power the radio ON (command 18h 01h), prefixed with a wake-up preamble of
+    /// 0xFE bytes. This only wakes a radio sitting in CI-V standby with its
+    /// processor still powered — it cannot power on a fully shut-down or
+    /// USB-disconnected radio. See CLAUDE.md "Remote Power ON/OFF".
+    public byte[] PowerOn()
+    {
+        var frame = new List<byte>(PowerOnWakeupPreambleCount + 7);
+        for (int i = 0; i < PowerOnWakeupPreambleCount; i++)
+            frame.Add(CivCommands.Preamble);
+        frame.AddRange(Build(CivCommands.PowerControl, 0x01));
+        return frame.ToArray();
+    }
 
     // ── Memory Channels ─────────────────────────────────────────────────────
 

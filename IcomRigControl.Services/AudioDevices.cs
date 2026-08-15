@@ -22,4 +22,11 @@ public static class AudioDevices
         if (OperatingSystem.IsLinux()) return new LinuxAudioCapture(); // incl. Raspberry Pi
         return new MacAudioCapture(); // macOS (stub for now)
     }
+
+    public static IAudioStreamOutput CreateStreamOutput()
+    {
+        if (OperatingSystem.IsWindows()) return new NAudioStreamOutput();
+        if (OperatingSystem.IsLinux()) return new LinuxStreamOutput(); // incl. Raspberry Pi
+        return new MacStreamOutput(); // macOS (stub for now)
+    }
 }

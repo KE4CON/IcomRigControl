@@ -118,12 +118,19 @@ Remote Audio (Phase 12) — IN PROGRESS (started 2026-08-15). DESIGN DECIDED wit
   10 APRS beacon couldn't play on Linux), and an AudioDevices factory that centralizes the
   platform-aware selection (both audio construction sites in the UI now route through it).
   Platform audio can't be unit-tested in CI; a factory test verifies the right type per platform.
-  REMAINING MILESTONES: (3) the UDP streaming server/client wiring (capture -> Opus ->
-  AudioPacket -> UDP -> JitterBuffer -> play), alongside the Phase 9 CI-V link — NOTE: playback
-  here needs a CONTINUOUS output (NAudio BufferedWaveProvider / aplay stdin), not the one-shot
-  IAudioPlayer.PlayAsync, so a streaming-output path is part of this milestone. (4) TX path +
-  PTT coordination. (5) UI + settings (ports, device selection, buffer depth). (6) real-hardware
-  latency tuning. Original design rationale (still valid) follows:
+  MILESTONE 3 DONE + TESTED (2026-08-15) — the streaming engine. IAudioStreamOutput (the
+  CONTINUOUS output the one-shot IAudioPlayer couldn't be) with NAudioStreamOutput (Windows
+  BufferedWaveProvider), LinuxStreamOutput (Pi aplay-stdin, with natural back-pressure), and a
+  macOS stub; FrameAccumulator (reframes capture buffers into codec frames); and RemoteAudioLink
+  — the full-duplex engine: capture->reframe->Opus->AudioPacket->UDP out, and UDP in->parse->
+  JitterBuffer->Opus decode (PLC on loss)->stream output, with a play-out clock and a SendEnabled
+  gate. Capture/output are injected so it's testable: an end-to-end test pushes a tone through two
+  links over real UDP loopback and confirms it arrives decoded at the far output.
+  REMAINING MILESTONES: (4) TX path + PTT coordination — the client keys the radio's PTT over the
+  Phase 9 CI-V link and flips SendEnabled while transmitting (server always streams radio RX). (5)
+  UI + settings + wiring: a Remote Audio panel (connect, device selection, ports, buffer depth),
+  and the headless Pi server running a RemoteAudioLink (radio audio in/out) beside CivTcpServer. (6)
+  real-hardware latency tuning (buffer depths, timer precision). Original design rationale follows:
   PLANNED (rationale): Remote Audio is a genuinely different category of engineering from
   Phase 10's
   AFSK audio pipeline, which is one-shot (generate samples once, play them, done). Remote

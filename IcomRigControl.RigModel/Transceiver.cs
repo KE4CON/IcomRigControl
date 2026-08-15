@@ -92,6 +92,16 @@ public class Transceiver : IAsyncDisposable
         PttChanged?.Invoke(this, transmit);
     }
 
+    /// Power the radio ON via CI-V (18 01), with a wake-up preamble. Only works
+    /// if the radio is in CI-V standby (not fully shut down / USB-disconnected).
+    /// See CLAUDE.md "Remote Power ON/OFF".
+    public Task PowerOnAsync(CancellationToken ct = default) =>
+        _transport.WriteAsync(_builder.PowerOn(), ct);
+
+    /// Power the radio OFF via CI-V (18 00).
+    public Task PowerOffAsync(CancellationToken ct = default) =>
+        _transport.WriteAsync(_builder.PowerOff(), ct);
+
     /// Read a single memory channel's frequency and mode by selecting it,
     /// then requesting frequency and mode reads while it's active.
     /// Returns null if no response arrives within the timeout (empty channel).

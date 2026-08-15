@@ -389,6 +389,40 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         await _transceiver.SetPttAsync(!PttActive);
     }
 
+    /// Powers the radio ON via CI-V. Only works if the radio is in standby with
+    /// its CI-V still alive (see the radio's remote power-off setting) — it can't
+    /// wake a fully shut-down or USB-disconnected radio.
+    [RelayCommand]
+    private async Task PowerOnRadio()
+    {
+        if (!IsConnected) return;
+        try
+        {
+            await _transceiver.PowerOnAsync();
+            StatusMessage = "Sent power-ON (only works if the radio is in CI-V standby).";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Power-ON error: {ex.Message}";
+        }
+    }
+
+    /// Powers the radio OFF via CI-V.
+    [RelayCommand]
+    private async Task PowerOffRadio()
+    {
+        if (!IsConnected) return;
+        try
+        {
+            await _transceiver.PowerOffAsync();
+            StatusMessage = "Sent power-OFF to the radio.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Power-OFF error: {ex.Message}";
+        }
+    }
+
     [RelayCommand]
     private void OpenMemoryEditor()
     {

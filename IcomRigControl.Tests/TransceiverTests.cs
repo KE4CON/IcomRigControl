@@ -66,6 +66,39 @@ public class TransceiverTests
     }
 
     [Fact]
+    public async Task PowerOffAsync_SendsPowerOffFrame()
+    {
+        var transport = new FakeCivTransport();
+        var tx = new Transceiver(transport, RadioModel.IC7300);
+        await tx.ConnectAsync();
+
+        await tx.PowerOffAsync();
+
+        // FE FE 94 E0 18 00 FD
+        Assert.Equal(new byte[] { 0xFE, 0xFE, 0x94, 0xE0, 0x18, 0x00, 0xFD }, transport.WrittenFrames[0]);
+    }
+
+    [Fact]
+    public async Task PowerOnAsync_SendsWakeupPreambleThenPowerOnFrame()
+    {
+        var transport = new FakeCivTransport();
+        var tx = new Transceiver(transport, RadioModel.IC7300);
+        await tx.ConnectAsync();
+
+        await tx.PowerOnAsync();
+
+        var frame = transport.WrittenFrames[0];
+
+        // The real command frame is the last 7 bytes: FE FE 94 E0 18 01 FD
+        Assert.Equal(new byte[] { 0xFE, 0xFE, 0x94, 0xE0, 0x18, 0x01, 0xFD }, frame[^7..]);
+
+        // ...preceded by a wake-up preamble of 0xFE bytes to rouse the radio's
+        // CI-V from standby (all leading bytes before the frame are 0xFE).
+        Assert.True(frame.Length > 7);
+        Assert.All(frame[..^7], b => Assert.Equal(0xFE, b));
+    }
+
+    [Fact]
     public void IncomingFrequencyFrame_UpdatesPropertyAndFiresEvent()
     {
         var transport = new FakeCivTransport();

@@ -79,8 +79,8 @@ compatibility chart and feature descriptions):
   radios either way.
 - Spectrum waterfall scope: both have it; IcomRigControl additionally has frequency axis
   labels and click-to-tune, which RS-BA1 does not advertise.
-- Remote Power ON/OFF: RS-BA1 has it; IcomRigControl does NOT yet — see "Planned: Remote
-  Power ON/OFF" below, a near-term addition.
+- Remote Power ON/OFF: RS-BA1 has it; IcomRigControl now has it too (IMPLEMENTED
+  2026-08-15) — see "Remote Power ON/OFF" below.
 - CW Keyer, Voice Recording/Playback, RC-28 USB dial hardware support: RS-BA1 has these;
   out of scope for IcomRigControl for now (no user request, low priority vs. logging/APRS work).
 - QSO logging, callsign lookup, LoTW, HRD integration, N1MM/WSJT-X integration, APRS
@@ -90,13 +90,18 @@ compatibility chart and feature descriptions):
   operations ecosystem. This is IcomRigControl's real, substantial differentiation.
 - Cost: RS-BA1 is commercial (~$150 street price incl. required cable); IcomRigControl is
   free and self-extensible.
-PLANNED: Remote Power ON/OFF (near-term, small, well-scoped addition). CI-V command 0x18
-  (0x18 00 = off, 0x18 01 = on) is present in both the IC-7300 and IC-705 command tables.
-  Transceiver/ICivTransport plumbing already exists — this needs one new CI-V command
-  method plus a UI button (main dashboard, near PTT/mode controls). REAL LIMITATION to
-  document for the user: 0x18 01 (power on) only works if the radio is in a low-power
-  standby state with its CI-V listener still alive — it cannot power on a radio that is
-  fully unplugged or hard-off. This is the same limitation RS-BA1 itself has, not a gap
+IMPLEMENTED 2026-08-15: Remote Power ON/OFF. CI-V command 0x18 (0x18 00 = off, 0x18 01 =
+  on), present in both the IC-7300 and IC-705 command tables. CivFrameBuilder.PowerOn()/
+  PowerOff(), Transceiver.PowerOnAsync()/PowerOffAsync(), and Power On / Power Off buttons
+  in the PTT row on the main dashboard. PowerOn() prepends a wake-up preamble of 150 0xFE
+  bytes (the Icom/Hamlib value for 115200 baud) to rouse the CI-V CPU from standby.
+  REAL LIMITATIONS to document for the user: (1) 0x18 01 (power on) only works if the radio
+  is in a low-power standby state with its CI-V listener still alive — it cannot power on a
+  radio that is fully unplugged, hard-off, or (over USB) whose USB serial device has
+  disappeared. (2) For remote power-on to be possible at all, the radio's own menu setting
+  "Power OFF Setting (for Remote Control)" must be set to "Standby/Shutdown" (not
+  "Shutdown only") — otherwise a remote power-off fully shuts the radio down and it cannot
+  be woken. This is the same limitation RS-BA1 itself has, not a gap
   specific to our implementation.
 PLANNED: Remote Audio (Phase 12 — deliberately scoped as its own future phase, NOT a
   quick addition). This is a genuinely different category of engineering from Phase 10's
@@ -278,10 +283,10 @@ Phase 12 (planned): Remote Audio — real-time low-latency audio capture/streami
   over the network, matching RS-BA1's core capability. See "RS-BA1 Comparison and Planned
   Additions" above for why this is scoped as its own deliberate phase, not a quick add.
   NOT STARTED — deliberately deferred, no code written yet.
-Remote Power ON/OFF (planned, near-term, small — not yet assigned a phase number since
-  it's a natural small addition to existing Transceiver/UI code rather than a new
-  subsystem): CI-V command 0x18, see "RS-BA1 Comparison and Planned Additions" above.
-  NOT STARTED.
+Remote Power ON/OFF — IMPLEMENTED 2026-08-15 (CI-V command 0x18; PowerOn wake-up preamble;
+  Power On/Off buttons on the dashboard). See "RS-BA1 Comparison and Planned Additions"
+  above for the command details and the two real limitations (standby-only; the radio's
+  remote power-off menu setting must allow Standby).
 IC-705 support — IMPLEMENTED (first pass, 2026-08-15). Added IC705 to the RadioModel enum
   (address 0xA4), a persisted radio-model picker in Settings, and wired both the desktop
   and headless construction sites to it. Covers freq/mode/PTT/meters/scope/logging via the

@@ -121,18 +121,30 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Post your own spots** — announce a DX call to the cluster (`DX <kHz> <call> <comment>`), with a one-click "use radio frequency" prefill.
 - Resilient: a dropped cluster connection is surfaced, never crashes the app.
 
-## 14. Settings & platform
+## 14. CW decode & zero beat
+
+*The radio decodes CW on its own screen but won't send that text out over CI-V (not even Icom's RS-BA1 can show it) — so IcomRigControl decodes Morse from the received **audio** itself.*
+
+- **Live CW reader** — decodes Morse off the radio's receive audio into a scrolling text window, in real time.
+- **Adaptive speed** — tracks the sender's speed (shown live in **WPM**) and follows a fist that speeds up or slows down; no manual speed setting.
+- **Automatic-gain tone detection** — a Goertzel filter at your CW pitch with a floating threshold, so it copes with fading and level changes without a level knob.
+- **Zero Beat button** — measures the actual pitch of the received tone, then tunes the radio (over CI-V) so it lands exactly on your CW pitch. That puts you precisely on the other station's frequency — "netted" — so they hear you where they expect. A **Reverse** toggle flips the tune direction for CW-Reverse.
+- **Tuning hint** — tells you how far off (in Hz) and which way the signal sits, even before you press Zero Beat.
+- Pitch and direction are saved. Proven by a modulate→decode **round-trip test** (no hardware needed).
+- *Honest note:* like every software CW reader, it copies clean and machine-sent CW very well and struggles with sloppy sending, deep fading, or interference — a good ear still wins there.
+
+## 15. Settings & platform
 
 - One Settings window covering connection, APRS, callsign lookup, LoTW/TQSL, HRD, and N1MM.
 - Cross-platform audio (NAudio/WASAPI on Windows, `afplay` on macOS).
 - Settings persisted to JSON; secrets kept out of source control.
 - **Windows, macOS, Linux desktop, and Raspberry Pi OS** all supported via Avalonia.
 
-## 15. Architecture (for context)
+## 16. Architecture (for context)
 
-Four clean layers: **CivEngine** (CI-V framing, serial I/O, APRS/AFSK) → **RigModel**
+Four clean layers: **CivEngine** (CI-V framing, serial I/O, APRS/AFSK, CW/Morse DSP) → **RigModel**
 (`Transceiver` + the network layer) → **Services** (all the integrations above) → **UI**
-(Avalonia views/view-models). 283 automated tests.
+(Avalonia views/view-models). 365 automated tests.
 
 ---
 

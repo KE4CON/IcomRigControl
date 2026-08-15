@@ -1,0 +1,98 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:IcomRigControl.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="680" d:DesignHeight="560"
+        x:Class="IcomRigControl.UI.Views.CwDecodeWindow"
+        x:DataType="vm:CwDecodeViewModel"
+        Title="CW Decode"
+        Width="680" Height="560"
+        Background="#1a1a1a">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+
+        <!-- Controls row -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+            <Button Content="Start" Command="{Binding StartReceiveCommand}"
+                    IsEnabled="{Binding !IsReceiving}"
+                    Background="#2a2a2a" Foreground="White" Padding="12,6">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#00ff88"/>
+                        <Setter Property="TextBlock.Foreground" Value="Black"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+            <Button Content="Stop" Command="{Binding StopReceiveCommand}"
+                    IsEnabled="{Binding IsReceiving}"
+                    Background="#5a2a2a" Foreground="White" Padding="12,6">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="Red"/>
+                        <Setter Property="TextBlock.Foreground" Value="White"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+            <Button Content="Clear" Command="{Binding ClearCommand}"
+                    Background="#2a2a2a" Foreground="White" Padding="12,6"/>
+
+            <TextBlock Text="Pitch (Hz):" Foreground="Gray" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            <TextBox Text="{Binding PitchHz}" Width="70" VerticalAlignment="Center"
+                     ToolTip.Tip="Match this to the radio's CW Pitch menu setting (often 600 Hz)."/>
+
+            <TextBlock Text="{Binding Wpm, StringFormat='{}{0} WPM'}" Foreground="#00ff88"
+                       FontWeight="Bold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+        </StackPanel>
+
+        <!-- Zero-beat row -->
+        <Border Grid.Row="1" Background="#0d0d0d" CornerRadius="6" Padding="10" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="Zero Beat" Command="{Binding ZeroBeatCommand}"
+                        Background="#243b5a" Foreground="White" Padding="14,6" FontWeight="Bold"
+                        ToolTip.Tip="Tune the radio so the received tone matches your CW pitch — puts you exactly on the other station's frequency.">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3a6ea5"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <TextBlock Text="{Binding TuningHint}" Foreground="#88ccff"
+                           VerticalAlignment="Center" FontSize="13"/>
+                <ToggleButton IsChecked="{Binding ReverseZeroBeat}" Content="Reverse"
+                              VerticalAlignment="Center"
+                              ToolTip.Tip="If Zero Beat tunes the wrong way, switch this (CW-Reverse).">
+                    <ToggleButton.Styles>
+                        <Style Selector="ToggleButton">
+                            <Setter Property="Background" Value="#2a2a2a"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Padding" Value="10,6"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#b8860b"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3a3a3a"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#d4a017"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </ToggleButton.Styles>
+                </ToggleButton>
+            </StackPanel>
+        </Border>
+
+        <!-- Decoded text -->
+        <Border Grid.Row="2" Background="#0d0d0d" CornerRadius="6" Padding="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <TextBlock Text="{Binding DecodedText}" Foreground="#e0e0e0"
+                           FontFamily="Courier New" FontSize="18" TextWrapping="Wrap"/>
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock Grid.Row="3" Text="{Binding Status}" Foreground="#00ff88" FontSize="12"
+                   TextWrapping="Wrap" Margin="0,10,0,0"/>
+    </Grid>
+</Window>

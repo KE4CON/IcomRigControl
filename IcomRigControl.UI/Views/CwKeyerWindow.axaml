@@ -1,0 +1,118 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:IcomRigControl.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="620"
+        x:Class="IcomRigControl.UI.Views.CwKeyerWindow"
+        x:DataType="vm:CwKeyerViewModel"
+        Title="Keyer Memories"
+        Width="560" Height="620"
+        Background="#1a1a1a">
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="16">
+
+        <TextBlock Grid.Row="0"
+                   Text="CW macros are sent as Morse via CI-V (radio must be in a CW mode). Voice memories T1-T8 must be recorded on the radio first. Each CW message is capped at 30 characters."
+                   Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="14">
+
+                <!-- CW keyer -->
+                <TextBlock Text="CW Keyer (command 17)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
+                <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
+                    <StackPanel Spacing="6">
+                        <ItemsControl ItemsSource="{Binding CwMessages}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="36,*,70" Margin="0,0,0,4">
+                                        <TextBlock Grid.Column="0" Text="{Binding Index, StringFormat='M{0}'}"
+                                                   Foreground="#00ff88" VerticalAlignment="Center" FontFamily="Courier New"/>
+                                        <TextBox Grid.Column="1" Text="{Binding Text}" FontFamily="Courier New"
+                                                 MaxLength="30" Margin="0,0,6,0"/>
+                                        <Button Grid.Column="2" Content="Send"
+                                                Command="{Binding $parent[ItemsControl].((vm:CwKeyerViewModel)DataContext).SendCwCommand}"
+                                                CommandParameter="{Binding}"
+                                                Background="#2a2a2a" Foreground="White" HorizontalAlignment="Stretch">
+                                            <Button.Styles>
+                                                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                                    <Setter Property="Background" Value="#00ff88"/>
+                                                    <Setter Property="TextBlock.Foreground" Value="Black"/>
+                                                </Style>
+                                            </Button.Styles>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                            <Button Content="Save Messages" Command="{Binding SaveMessagesCommand}"
+                                    Background="#2a2a2a" Foreground="White" Padding="10,6">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="#00ff88"/>
+                                        <Setter Property="TextBlock.Foreground" Value="Black"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                            <Button Content="Stop CW" Command="{Binding StopCwCommand}"
+                                    Background="#5a2a2a" Foreground="White" Padding="10,6">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="Red"/>
+                                        <Setter Property="TextBlock.Foreground" Value="White"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Voice TX memory -->
+                <TextBlock Text="Voice TX Memory (command 28)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
+                <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
+                    <StackPanel Spacing="8">
+                        <ItemsControl ItemsSource="{Binding VoiceSlots}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding StringFormat='T{0}'}"
+                                            Command="{Binding $parent[ItemsControl].((vm:CwKeyerViewModel)DataContext).SendVoiceCommand}"
+                                            CommandParameter="{Binding}"
+                                            Margin="2" Background="#2a2a2a" Foreground="White"
+                                            HorizontalAlignment="Stretch">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                                <Setter Property="Background" Value="#00ff88"/>
+                                                <Setter Property="TextBlock.Foreground" Value="Black"/>
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Content="Stop Voice" Command="{Binding StopVoiceCommand}"
+                                HorizontalAlignment="Left"
+                                Background="#5a2a2a" Foreground="White" Padding="10,6">
+                            <Button.Styles>
+                                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="Red"/>
+                                    <Setter Property="TextBlock.Foreground" Value="White"/>
+                                </Style>
+                            </Button.Styles>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="3" Text="{Binding Status}" Foreground="#00ff88" FontSize="12"
+                   TextWrapping="Wrap" Margin="0,12,0,0"/>
+    </Grid>
+</Window>

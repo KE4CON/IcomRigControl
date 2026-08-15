@@ -81,8 +81,9 @@ compatibility chart and feature descriptions):
   labels and click-to-tune, which RS-BA1 does not advertise.
 - Remote Power ON/OFF: RS-BA1 has it; IcomRigControl now has it too (IMPLEMENTED
   2026-08-15) — see "Remote Power ON/OFF" below.
-- CW Keyer, Voice Recording/Playback, RC-28 USB dial hardware support: RS-BA1 has these;
-  out of scope for IcomRigControl for now (no user request, low priority vs. logging/APRS work).
+- CW Keyer and Voice memory playback: IMPLEMENTED 2026-08-15 (Keyer window — CI-V 17 sends
+  CW macros up to 30 chars, CI-V 28 fires voice memories T1-T8). Voice RECORDING is done on
+  the radio itself; RC-28 USB dial hardware support remains out of scope (no user request).
 - QSO logging, callsign lookup, LoTW, HRD integration, N1MM/WSJT-X integration, APRS
   beacon, memory bulk editor, CSV activity logging, headless Pi server
   mode, cross-platform (macOS confirmed working): IcomRigControl has ALL of these; RS-BA1

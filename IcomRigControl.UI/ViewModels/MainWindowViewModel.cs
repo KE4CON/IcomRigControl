@@ -435,6 +435,17 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenCwKeyer()
+    {
+        var keyerViewModel = new CwKeyerViewModel(_transceiver, _settingsService);
+        var keyerWindow = new Views.CwKeyerWindow
+        {
+            DataContext = keyerViewModel
+        };
+        keyerWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenQsoLogger()
     {
         var loggerViewModel = new QsoLoggerViewModel(_qsoLogger, _callsignLookupSource, _lotwBridge);

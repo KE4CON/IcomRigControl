@@ -102,6 +102,27 @@ public class Transceiver : IAsyncDisposable
     public Task PowerOffAsync(CancellationToken ct = default) =>
         _transport.WriteAsync(_builder.PowerOff(), ct);
 
+    /// Transmit a CW message (command 17). The text is filtered to the radio's
+    /// supported characters and capped at 30. No-op if nothing sendable remains.
+    /// The radio must be in a CW mode for this to key.
+    public Task SendCwMessageAsync(string text, CancellationToken ct = default)
+    {
+        var frame = _builder.SendCwMessage(text);
+        return frame is null ? Task.CompletedTask : _transport.WriteAsync(frame, ct);
+    }
+
+    /// Stop/abort an in-progress CW message transmission (command 17, FFh).
+    public Task AbortCwAsync(CancellationToken ct = default) =>
+        _transport.WriteAsync(_builder.AbortCw(), ct);
+
+    /// Transmit a recorded voice memory T1-T8 (command 28 00 01-08).
+    public Task SendVoiceMemoryAsync(int slot, CancellationToken ct = default) =>
+        _transport.WriteAsync(_builder.SendVoiceMemory(slot), ct);
+
+    /// Stop voice TX memory transmission (command 28 00 00).
+    public Task StopVoiceMemoryAsync(CancellationToken ct = default) =>
+        _transport.WriteAsync(_builder.StopVoiceMemory(), ct);
+
     /// Read a single memory channel's frequency and mode by selecting it,
     /// then requesting frequency and mode reads while it's active.
     /// Returns null if no response arrives within the timeout (empty channel).

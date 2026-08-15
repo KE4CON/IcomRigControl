@@ -14,6 +14,13 @@ public partial class SettingsViewModel : ViewModelBase
         ? new NAudioPlayer()
         : new MacAudioPlayer();
 
+    // ── Radio model ──────────────────────────────────────────────────────
+    [ObservableProperty]
+    private string _selectedRadioModel = "IC7300";
+
+    // Names match the RadioModel enum exactly so they parse back with no mapping.
+    public List<string> AvailableRadioModels { get; } = new() { "IC7300", "IC7300MK2", "IC705" };
+
     // ── Phase 9: Connection mode ────────────────────────────────────────
     [ObservableProperty]
     private string _connectionMode = "Demo";
@@ -119,6 +126,9 @@ public partial class SettingsViewModel : ViewModelBase
 
     private void LoadFromSettings(AppSettings settings)
     {
+        SelectedRadioModel = AvailableRadioModels.Contains(settings.RadioModel)
+            ? settings.RadioModel
+            : "IC7300";
         ConnectionMode = settings.ConnectionMode;
         SerialPortName = settings.SerialPortName;
         RemoteHost = settings.RemoteHost;
@@ -173,6 +183,7 @@ public partial class SettingsViewModel : ViewModelBase
 
             var settings = new AppSettings
             {
+                RadioModel = SelectedRadioModel,
                 ConnectionMode = ConnectionMode,
                 SerialPortName = SerialPortName,
                 RemoteHost = RemoteHost,

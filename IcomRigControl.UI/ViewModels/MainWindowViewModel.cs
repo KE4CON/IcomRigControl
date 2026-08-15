@@ -116,7 +116,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             _ => new DemoCivTransport()
         };
 
-        _transceiver = new Transceiver(transport, RadioModel.IC7300);
+        var radioModel = Enum.TryParse<RadioModel>(settings.RadioModel, ignoreCase: true, out var rm)
+            ? rm
+            : RadioModel.IC7300;
+        _transceiver = new Transceiver(transport, radioModel);
 
         // These events fire on the serial/TCP read thread and the meter-poll
         // thread — NOT the UI thread. Every handler below writes bound

@@ -50,9 +50,12 @@ public class Transceiver : IAsyncDisposable
     public Transceiver(ICivTransport transport, RadioModel model)
     {
         _transport = transport;
-        _radioAddress = model == RadioModel.IC7300MK2
-            ? CivCommands.Addr7300Mk2
-            : CivCommands.Addr7300;
+        _radioAddress = model switch
+        {
+            RadioModel.IC7300MK2 => CivCommands.Addr7300Mk2,
+            RadioModel.IC705 => CivCommands.Addr705,
+            _ => CivCommands.Addr7300
+        };
         _builder = new CivFrameBuilder(_radioAddress);
         _parser = new CivFrameParser();
 

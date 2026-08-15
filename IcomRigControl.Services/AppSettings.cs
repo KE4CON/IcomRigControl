@@ -9,6 +9,12 @@ namespace IcomRigControl.Services;
 /// </summary>
 public class AppSettings
 {
+    // ── Radio model ──────────────────────────────────────────────────────
+    /// Which supported radio this station uses: "IC7300" (default), "IC7300MK2",
+    /// or "IC705". Selects the CI-V address (0x94 / 0xB6 / 0xA4). Changing it
+    /// takes effect on the next app start (the Transceiver is built at startup).
+    public string RadioModel { get; set; } = "IC7300";
+
     // ── Phase 9: Radio connection mode ──────────────────────────────────
     /// "Demo" (default, no hardware needed), "Serial" (local USB-connected
     /// radio), or "Remote" (connect over TCP to a CivTcpServer, e.g. a Pi

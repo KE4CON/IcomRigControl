@@ -16,7 +16,14 @@
         <TextBlock Text="Radio Connection (Phase 9)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
         <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
             <StackPanel Spacing="8">
-                <TextBlock Text="Connection Mode" Foreground="Gray" FontSize="11"/>
+                <TextBlock Text="Radio Model" Foreground="Gray" FontSize="11"/>
+                <ComboBox ItemsSource="{Binding AvailableRadioModels}"
+                          SelectedItem="{Binding SelectedRadioModel}"
+                          HorizontalAlignment="Stretch"/>
+                <TextBlock Text="IC-7300 (CI-V 0x94), IC-7300MK2 (0xB6), or IC-705 (0xA4). Takes effect after an app restart."
+                           Foreground="Gray" FontSize="10" TextWrapping="Wrap"/>
+
+                <TextBlock Text="Connection Mode" Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
                 <ComboBox ItemsSource="{Binding AvailableConnectionModes}"
                           SelectedItem="{Binding ConnectionMode}"
                           HorizontalAlignment="Stretch"/>

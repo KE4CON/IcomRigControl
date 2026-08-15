@@ -101,10 +101,17 @@ something Icom's RS-BA1 doesn't do at all.*
 - Keys PTT, plays the packet, releases PTT — with the session's safety fixes (guaranteed key-down, no cross-keying, callsign validated).
 - **Manual** and **automatic** periodic beaconing.
 
-**Receive (decode) — the new capability:**
+**Receive (decode):**
 - Full receive pipeline (the mirror of transmit): **AFSK demodulate → HDLC deframe (FCS-checked) → AX.25 decode → APRS parse** (uncompressed positions, text messages, status).
-- Proven end-to-end by a modulate→decode **round-trip test** (no hardware needed).
-- Remaining (in progress): live receive service, a decoded-stations list with **aprs.fi links** and click-to-tune, and APRS **messaging**.
+- **Live receive service**: listens on the radio's RX audio continuously, decodes with an automatic **bit-sync sweep** (catches packets no matter when they arrive), de-duplicates repeats, and never crashes on a bad decode.
+- Proven end-to-end by both a modulate→decode **round-trip test** and a live-service test (no hardware needed).
+
+**HF APRS window (the station display):**
+- A **live station list** — one row per station heard, showing call, position, info/comment, and time last heard, updated in place as they beacon.
+- A per-station **aprs.fi** button that opens that station on the aprs.fi map in your browser (the map, without building a map into the app — and yes, HF APRS *does* show up on aprs.fi, gatewayed by igates just like VHF).
+- **Messaging**: a Messages panel for text messages addressed to you, plus a to-call + text **Send** box that transmits an APRS message over the same safety-gated path as the beacon.
+- Opens as its own window from the **HF APRS** dashboard button, alongside the main radio panel (so you still watch the real TX indicator, meters, and TX-inhibit banner while it works) — it's a monitor + messaging panel, not a second set of radio controls.
+- Remaining (a small future add): automatic message **ACK** replies.
 
 ## 13. DX Cluster & band map
 

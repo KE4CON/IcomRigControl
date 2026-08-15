@@ -446,10 +446,19 @@ Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-0
   the serial port (it polls), so it CANNOT coexist with the raw-CI-V relay (CivTcpServer) on one port
   — --webport replaces the raw relay; running both needs a future CI-V multiplexer. Settings:
   WebRemotePort (default 8080) + WebRemoteToken. 3 tests (RFC-6455 accept-key vector, serves page +
-  live state + command over real sockets, token rejection). REMAINING milestones: M2 waterfall/scope
-  streaming to the browser canvas; M3 RX audio over the WebSocket (Opus, decoded in-JS); M4 TX audio
-  (mic from the browser). SECURITY: plain HTTP + token in query — intended for a trusted LAN or VPN,
-  documented as such (same posture as Phase 9's remote CI-V).
+  live state + command over real sockets, token rejection). MILESTONE 2 DONE + BROWSER-VERIFIED
+  (2026-08-15): live waterfall — the server streams a {type:scope,center,span,data[]} frame whenever
+  Transceiver.LastWaveform changes; the page draws a scrolling waterfall on a <canvas> (per-frame AGC
+  colormap) with TAP-TO-TUNE (maps the tapped x across center±span/2 -> a freq command). Headless web
+  mode now also StartScopeAsync's. VERIFIED live in a real browser via a DemoCivTransport harness:
+  page rendered, WS connected, showed 14.074.000 USB / S9 -69 dBm / 82% power / waterfall pixels lit,
+  and tapping "up" moved 14.074 -> 14.075 (two-way confirmed). GAP FOUND + FIXED during this: the
+  meter poll (PollOnceAsync) does NOT read frequency/mode — the desktop keeps them current itself, but
+  the headless web server would show 0, so added Transceiver.RefreshFrequencyAndModeAsync() and a
+  ~700ms refresh loop in the headless web branch (also makes the browser reflect front-panel tuning).
+  REMAINING milestones: M3 RX audio over the WebSocket (Opus, decoded in-JS); M4 TX audio (mic from
+  the browser). SECURITY: plain HTTP + token in query — intended for a trusted LAN or VPN, documented
+  as such (same posture as Phase 9's remote CI-V).
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

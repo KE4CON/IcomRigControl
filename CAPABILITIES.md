@@ -151,9 +151,10 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Open a web page, control the radio.** IcomRigControl serves a small mobile web page; open its address (e.g. `http://192.168.1.50:8080`) in any browser and you get a live control panel — big frequency readout, mode buttons, S-meter and power/SWR/ALC/voltage, tuning buttons, direct frequency entry, and a PTT button.
 - **Live and two-way** — the page updates about five times a second and sends your tuning/mode/PTT back to the radio in real time.
 - **Runs from your PC or from a Raspberry Pi at the radio.** On the desktop, a **Phone / Tablet** button lists the exact addresses to type on your phone. On a headless Pi, add `--webport 8080` and browse to the Pi.
+- **Live waterfall, with tap-to-tune** — the spectrum waterfall streams to the phone too; tap anywhere on it to jump the radio to that frequency.
 - **Nothing to install, works offline** — the page is completely self-contained (no internet, no app store), so it works on an isolated field network.
 - **Safe by design** — an optional access **token** gates it, and transmit still obeys the Receive-Only / TX-inhibit switch. It's a plain (unencrypted) link, so it's meant for a trusted home network or a VPN.
-- *In progress:* the live **waterfall**, and **listening/talking** (audio) through the browser, are the next additions.
+- *In progress:* **listening and talking** (audio) through the browser is the next addition.
 
 ## 17. Settings & platform
 

@@ -76,6 +76,19 @@ public static class HeadlessServer
             var rig = new Transceiver(serialTransport, model);
             await rig.ConnectAsync();
             rig.StartPolling(TimeSpan.FromMilliseconds(500));
+            await rig.StartScopeAsync(TimeSpan.FromMilliseconds(300)); // feed the browser waterfall
+
+            // The meter poll doesn't read frequency/mode; refresh them so the
+            // browser shows the real dial (and reflects front-panel tuning).
+            var freqCts = new CancellationTokenSource();
+            _ = Task.Run(async () =>
+            {
+                while (!freqCts.IsCancellationRequested)
+                {
+                    try { await rig.RefreshFrequencyAndModeAsync(freqCts.Token); } catch { }
+                    try { await Task.Delay(700, freqCts.Token); } catch { break; }
+                }
+            });
 
             var webServer = new WebRemoteServer(rig, webToken, webPort);
             webServer.Start();
@@ -91,6 +104,7 @@ public static class HeadlessServer
             await webExit.Task;
 
             Console.WriteLine("Shutting down...");
+            freqCts.Cancel();
             await webServer.DisposeAsync();
             await rig.DisposeAsync();
             await serialTransport.CloseAsync();

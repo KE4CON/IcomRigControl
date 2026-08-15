@@ -321,6 +321,15 @@ Phase 10: APRS beacon over HF — FULLY COMPLETE ON BOTH WINDOWS AND MACOS. Conf
   technically feasible (Phase 12 added audio capture, and APRS RX is the same demod-from-audio
   class as the deferred in-app RTTY/CW decode), but it is deliberately NOT pursued — the user
   chose to keep the beacon self-contained and leave full APRS to APRS-Command.
+  COEXISTENCE SUPPORT (2026-08-15): to run IcomRigControl and APRS-Command on the same radio
+  cleanly, added a central Receive-Only / TX-Inhibit guard on Transceiver
+  (TransmitInhibited) — when on, NO path can key the radio (PTT, CW 17, voice 28, beacon,
+  remote-audio TX all blocked; un-key/stop always allowed). It is a self-contained, master
+  toggle (persisted in AppSettings, with an unmissable red dashboard banner) — it knows
+  nothing about APRS-Command, so it's the coupling-free way to let the other program own TX.
+  CAT sharing (the other coexistence need) is handled EXTERNALLY (com0com + a CI-V hub, or the
+  MK2's dual COM ports) — not IcomRigControl's job. New TX-causing code MUST honor
+  TransmitInhibited (route through the guarded Transceiver methods).
 Phase 11: Clickable radio front-panel control — user-photographed or vector image with
   transparent clickable regions overlaid. See UI Design note above. NOT STARTED.
 Phase 12: Remote Audio — real-time low-latency audio capture/streaming/playback over the

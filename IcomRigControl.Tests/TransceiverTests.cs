@@ -115,6 +115,37 @@ public class TransceiverTests
     }
 
     [Fact]
+    public async Task TransmitInhibited_BlocksKeyingButAllowsUnkey()
+    {
+        var transport = new FakeCivTransport();
+        var tx = new Transceiver(transport, RadioModel.IC7300) { TransmitInhibited = true };
+        await tx.ConnectAsync();
+
+        // Key-up must be refused: no frame sent, PTT stays off.
+        await tx.SetPttAsync(true);
+        Assert.Empty(transport.WrittenFrames);
+        Assert.False(tx.PttActive);
+
+        // Un-key must always work (safety), even while inhibited.
+        await tx.SetPttAsync(false);
+        Assert.Single(transport.WrittenFrames);
+        Assert.False(tx.PttActive);
+    }
+
+    [Fact]
+    public async Task TransmitInhibited_BlocksCwAndVoiceMemory()
+    {
+        var transport = new FakeCivTransport();
+        var tx = new Transceiver(transport, RadioModel.IC7300) { TransmitInhibited = true };
+        await tx.ConnectAsync();
+
+        await tx.SendCwMessageAsync("CQ");
+        await tx.SendVoiceMemoryAsync(1);
+
+        Assert.Empty(transport.WrittenFrames); // nothing transmitted
+    }
+
+    [Fact]
     public void IncomingFrequencyFrame_UpdatesPropertyAndFiresEvent()
     {
         var transport = new FakeCivTransport();

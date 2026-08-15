@@ -18,6 +18,18 @@
     <ScrollViewer>
     <StackPanel Margin="20" Spacing="16">
 
+        <!-- Unmissable receive-only banner. Only visible when TX is inhibited. -->
+        <Border Background="#cc0000" CornerRadius="4" Padding="10,8"
+                IsVisible="{Binding TransmitInhibited}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                <TextBlock Text="⛔" FontSize="20" VerticalAlignment="Center"/>
+                <TextBlock Text="TRANSMIT INHIBITED — RECEIVE ONLY"
+                           Foreground="White" FontWeight="Bold" FontSize="16"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="⛔" FontSize="20" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
         <TextBlock Text="{Binding StatusMessage}"
                    Foreground="Gray" FontSize="12" HorizontalAlignment="Center"/>
 
@@ -147,6 +159,25 @@
                         </Style>
                     </Button.Styles>
                 </Button>
+                <ToggleButton Content="{Binding TransmitInhibited, Converter={x:Static vm:TxInhibitButtonTextConverter.Instance}}"
+                              IsChecked="{Binding TransmitInhibited}"
+                              Background="#2a2a2a" Foreground="White"
+                              ToolTip.Tip="Receive-only: blocks ALL transmit (beacon, PTT, CW, voice, remote-audio TX). Use it when another program (e.g. APRS-Command) owns transmit.">
+                    <ToggleButton.Styles>
+                        <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#cc0000"/>
+                            <Setter Property="TextBlock.Foreground" Value="White"/>
+                        </Style>
+                        <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3a3a3a"/>
+                            <Setter Property="TextBlock.Foreground" Value="White"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#aa0000"/>
+                            <Setter Property="TextBlock.Foreground" Value="White"/>
+                        </Style>
+                    </ToggleButton.Styles>
+                </ToggleButton>
             </StackPanel>
         </Border>
 

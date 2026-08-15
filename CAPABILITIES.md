@@ -27,6 +27,7 @@ N1MM/WSJT-X, APRS beaconing) that RS-BA1 has none of.
 - **PTT (transmit) control** — key the radio on/off from the app (CI-V `1C 00`), with the safety guarantees hardened in this session (never stuck on, never unidentified).
 - **Remote power ON/OFF** — power the radio on/off from the app (CI-V `18 01` / `18 00`). Power-on sends a wake-up preamble and only works if the radio is in CI-V standby (matches RS-BA1's own limitation).
 - **CW keyer & voice memories** — a Keyer window sends editable CW macros as Morse (CI-V `17`, up to 30 chars) and fires the radio's recorded voice memories T1–T8 (CI-V `28`).
+- **Receive-only / TX-inhibit switch** — one master toggle that blocks *all* transmit (beacon, PTT, CW, voice, remote-audio TX) at the `Transceiver` level, with an unmissable red banner while active. For safe testing, or when another program (e.g. APRS-Command) owns transmit on the shared radio. Persists across restarts.
 - **FT8 one-touch setup** — an "FT8 Setup" button puts the radio in USB-D + wide filter via CI-V (`26 00 01 01 01`), replicating the radio's FT8 preset (which isn't itself CI-V-accessible). WSJT-X still does the decode; NB/NR/AGC are left manual, as Icom's own preset does.
 - **VFO / split** — VFO select, A=B, swap, split control commands are implemented in the engine.
 - **Live meters, polled ~continuously:** S-meter (S-units + true dBm), RF power output %, SWR, ALC, supply voltage (Vd), current draw (Id).

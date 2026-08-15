@@ -8,6 +8,25 @@ See "Avalonia Version Decision" below before considering any version change.
 Target Radios: Icom IC-7300 (address 94h) and IC-7300MK2 (address B6h). IC-705 research
 completed but not yet implemented — see "IC-705 Support Research" below.
 Connection: USB serial (local) or TCP/network mode (remote, Phase 9) — COMPLETE.
+## Supported Radios — Scope Decision (LOCKED 2026-08-15)
+This project deliberately supports ONLY three radios: the IC-7300, IC-7300MK2, and IC-705.
+This is a firm scope boundary, not a temporary limitation. RATIONALE (the user's own
+principle): only claim support for radios that can be PROPERLY TESTED against real
+hardware. The user owns an IC-7300 and an IC-705; the IC-7300MK2 differs from the IC-7300
+essentially only in its CI-V address (0xB6 vs 0x94 — every other MK2 change is analog/RF
+or connectivity, invisible to CI-V), and the MK2 code path can be exercised on the real
+IC-7300 by temporarily setting the 7300's own CI-V address to 0xB6 (Menu > SET >
+Connectors > CI-V > CI-V Address). All three share the same CI-V command/sub-command set
+(freq/mode/PTT/meters/scope/memory), so the abstraction cost is small and every supported
+radio is verifiable. DO NOT add support for other Icom radios (IC-7610, IC-7851, IC-718,
+IC-706, IC-746, IC-7000/7100/7200, classic 80s-90s rigs, etc.) — shipping unverifiable
+"support" for hardware we cannot test would mislead those owners, the opposite of this
+project's honesty/backup-of-record discipline. If broad multi-radio control is ever
+wanted, the right path is delegating the generic tier to Hamlib/rigctld, NOT hand-coding
+untested per-radio CI-V. The three supported radios have a large combined installed base;
+depth-on-three beats breadth-on-many here. These three radios also happen to be exactly
+the SDR-scope class, so the spectrum waterfall — the app's headline feature — applies to
+all of them. See CAPABILITIES.md for the full inventory and the tier analysis behind this.
 ## Core Design Principle: Resilience / Backup-of-Record (EMCOMM discipline)
 IcomRigControl's own QsoLogger is the resilient backup of record for all logged QSOs,
 independent of whether HRD Logbook, N1MM, or any other external program is running,
@@ -253,7 +272,12 @@ Remote Power ON/OFF (planned, near-term, small — not yet assigned a phase numb
   it's a natural small addition to existing Transceiver/UI code rather than a new
   subsystem): CI-V command 0x18, see "RS-BA1 Comparison and Planned Additions" above.
   NOT STARTED.
-IC-705 support (researched, not scheduled): see "IC-705 Support Research" above.
+IC-705 support (IN SCOPE — see "Supported Radios — Scope Decision" above): the one
+  supported radio not yet implemented. User owns a real IC-705, so it can be properly
+  tested. Work: add IC705 to the RadioModel enum with address 0xA4, verify meter scaling
+  byte-for-byte against the real radio, decide whether GPS/D-PRS and D-STAR are in scope
+  (likely NOT for a first pass — freq/mode/PTT/meters/waterfall/logging is the target).
+  See "IC-705 Support Research" above for the command-compatibility findings.
 ## What NOT to do
 - Do not implement features out of phase order without explicit instruction
 - Do not add NuGet packages without listing them here first

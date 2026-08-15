@@ -14,18 +14,23 @@ namespace IcomRigControl.CivEngine;
 /// </summary>
 public static class AfskDemodulator
 {
-    /// Demodulate float audio (-1..1) to the NRZI-decoded bit stream.
-    public static bool[] Demodulate(float[] audio, AfskProfile profile, int sampleRateHz)
+    /// Demodulate float audio (-1..1) to the NRZI-decoded bit stream. startSample
+    /// sets the bit-timing phase — AprsReceiver sweeps it across a bit period to
+    /// bit-sync to a packet that doesn't start on a sample boundary.
+    public static bool[] Demodulate(float[] audio, AfskProfile profile, int sampleRateHz, int startSample = 0)
     {
         int samplesPerBit = (int)System.Math.Round(sampleRateHz / (double)profile.BaudRate);
-        if (samplesPerBit <= 0 || audio.Length < samplesPerBit) return System.Array.Empty<bool>();
+        if (startSample < 0) startSample = 0;
+        int available = audio.Length - startSample;
+        if (samplesPerBit <= 0 || available < samplesPerBit) return System.Array.Empty<bool>();
 
-        int bitCount = audio.Length / samplesPerBit;
+        int bitCount = available / samplesPerBit;
         var levels = new bool[bitCount];
         for (int i = 0; i < bitCount; i++)
         {
-            double mark = Goertzel(audio, i * samplesPerBit, samplesPerBit, profile.MarkFrequencyHz, sampleRateHz);
-            double space = Goertzel(audio, i * samplesPerBit, samplesPerBit, profile.SpaceFrequencyHz, sampleRateHz);
+            int s = startSample + i * samplesPerBit;
+            double mark = Goertzel(audio, s, samplesPerBit, profile.MarkFrequencyHz, sampleRateHz);
+            double space = Goertzel(audio, s, samplesPerBit, profile.SpaceFrequencyHz, sampleRateHz);
             levels[i] = mark >= space; // true = mark tone
         }
 

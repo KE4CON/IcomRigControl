@@ -37,6 +37,30 @@ public class AprsReceiveRoundTripTests
         Assert.Equal(info, decoded.InfoField);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(37)]    // arbitrary sub-bit offset
+    [InlineData(200)]   // more than one bit period
+    [InlineData(1000)]
+    public void AprsReceiver_DecodesAPacketAtAnyBufferOffset_ViaBitSync(int leadingSilenceSamples)
+    {
+        const int sampleRate = 44100;
+        var frameBytes = Ax25FrameBuilder.BuildUiFrame("KE4CON", 7, "APRS", 0, "!4903.50N/07201.75W-mobile");
+        float[] packet = AfskModulator.ModulateAx25Frame(frameBytes, AfskProfile.Hf300Baud, sampleRate);
+
+        // Place the packet after some leading silence, so it does NOT start on a
+        // bit boundary — the receiver's phase sweep must still find it.
+        var buffer = new float[leadingSilenceSamples + packet.Length + 500];
+        System.Array.Copy(packet, 0, buffer, leadingSilenceSamples, packet.Length);
+
+        var received = AprsReceiver.DecodePackets(buffer, AfskProfile.Hf300Baud, sampleRate);
+
+        Assert.Single(received); // exactly one, deduped across phases
+        Assert.Equal("KE4CON", received[0].Frame.Source);
+        Assert.Equal(AprsPacketType.Position, received[0].Packet.Type);
+        Assert.Equal(49.0583, received[0].Packet.Latitude!.Value, 3);
+    }
+
     [Fact]
     public void Demodulate_RoundTripsPcmShorts_Too()
     {

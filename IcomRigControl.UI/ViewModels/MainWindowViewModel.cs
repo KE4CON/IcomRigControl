@@ -493,6 +493,20 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenAprsReceive()
+    {
+        if (_aprsBeaconService == null) return;
+        var aprsViewModel = new AprsReceiveViewModel(_transceiver, _settingsService, _aprsBeaconService);
+        var aprsWindow = new Views.AprsReceiveWindow
+        {
+            DataContext = aprsViewModel
+        };
+        // Dispose the receive service (and release the capture device) when closed.
+        aprsWindow.Closed += async (_, _) => await aprsViewModel.DisposeAsync();
+        aprsWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenRemoteAudio()
     {
         var audioViewModel = new RemoteAudioViewModel(_transceiver, _settingsService);

@@ -331,11 +331,29 @@ Phase 10: APRS beacon over HF — FULLY COMPLETE ON BOTH WINDOWS AND MACOS. Conf
   position lat/lon/symbol/comment, text messages, status). Proven by a modulate->demodulate->
   deframe->decode->parse round-trip test (no hardware) at 44.1k and 48k. NOTE: the TX beacon was
   found undecodable (missing FCS + HDLC flags) and FIXED in the same work — see the FCS/framing
-  commit. REMAINING for the HF APRS station: (a) a live receive SERVICE (IAudioCapture -> demod
-  -> deframe -> decode -> parse, continuous, raising decoded packets); (b) station-list UI with
-  aprs.fi links + click-to-tune; (c) messaging (show messages addressed to the operator's call;
-  send APRS messages via the TX chain, with ACKs). Bit-sync for off-air timing drift is a
-  live-hardware refinement (round-trip uses fixed slicing).
+  commit. HF APRS STATION — CODE-COMPLETE 2026-08-15 (awaits the massive hardware testing
+  session): (a) live receive SERVICE done — AprsReceiveService (IAudioCapture -> rolling buffer
+  -> periodic AprsReceiver.DecodePackets with brute-force bit-sync sweep -> PacketReceived event,
+  overlapping windows + 15s content-dedup, decode errors recorded never thrown); AprsReceiver
+  adds the bit-phase sweep (tries every offset 0..samplesPerBit-1, so any packet arrival time
+  syncs) — tested with offset packets (37/200/1000 samples) and a FakeCapture round-trip.
+  (b) UI done — AprsReceiveViewModel + AprsReceiveWindow: live station list (one row per call,
+  updated in place: heard-time/call/position/info), a per-station "aprs.fi" button
+  (Process.Start https://aprs.fi/#!call=<CALL> in the default browser — the map substitute,
+  NO in-app map), a Messages panel, and a to-call + text + Send box. Opened via the "HF APRS"
+  dashboard button (OpenAprsReceiveCommand), non-modal .Show() so the main radio dashboard (TX
+  indicator, meters, PTT, TX-inhibit banner) stays visible alongside it — the window is a
+  monitor + messaging panel, it deliberately has NO radio controls of its own (drives the same
+  Transceiver the main window shows). NO per-station click-to-tune: all HF APRS stations are on
+  the one calling frequency you're already monitoring, so tuning is meaningless (unlike DX
+  Cluster spots). (c) messaging done — AprsBeaconService refactored so SendBeaconAsync and the
+  new SendMessageAsync both call a shared TransmitAprsAsync (build UI frame -> ModulateAx25Frame
+  with full FCS+HDLC framing -> gate -> key/settle/play/unkey via try/finally, TX-inhibit
+  respected); SendMessageAsync builds ":ADDRESSEE:text{msgNo" (addressee padded to 9 chars).
+  Message ACK handling (auto-reply to received {msgNo with :ACKnn) is NOT built yet — a small
+  future add. aprs.fi DOES surface HF APRS (igates gateway HF packets to APRS-IS just like VHF),
+  so the per-station link is genuinely useful. Bit-sync for off-air timing drift is exercised by
+  the sweep; real-hardware tuning of the process window/interval is a testing-session refinement.
   COEXISTENCE SUPPORT (2026-08-15): to run IcomRigControl and APRS-Command on the same radio
   cleanly, added a central Receive-Only / TX-Inhibit guard on Transceiver
   (TransmitInhibited) — when on, NO path can key the radio (PTT, CW 17, voice 28, beacon,

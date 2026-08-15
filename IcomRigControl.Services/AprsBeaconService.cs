@@ -62,7 +62,9 @@ public class AprsBeaconService
                 destinationCallsign: "APRS", destinationSsid: 0,
                 infoField: position);
 
-            float[] audio = AfskModulator.ModulateFrame(frame, profile, sampleRateHz);
+            // Full HDLC framing (preamble flags + FCS) so a real APRS receiver /
+            // igate can actually sync to and validate the beacon.
+            float[] audio = AfskModulator.ModulateAx25Frame(frame, profile, sampleRateHz);
 
             // Key-up is INSIDE the try so the finally's PTT release runs no
             // matter what fails after the radio is keyed — including an

@@ -19,8 +19,9 @@
 10. APRS Beacon
 11. Settings Window Reference
 12. Troubleshooting
-13. Field / EMCOMM Deployment Notes
-14. Revision History
+13. Running Alongside Other Programs (Sharing One Radio)
+14. Field / EMCOMM Deployment Notes
+15. Revision History
 
 ---
 
@@ -207,7 +208,70 @@ This was a real bug in an earlier version - a Settings component tried to use Wi
 
 ---
 
-## 13. Field / EMCOMM Deployment Notes
+## 13. Running Alongside Other Programs (Sharing One Radio)
+
+Many operators want to run several programs on the same radio at the same time - for example Ham Radio Deluxe (HRD) for everyday logging, WSJT-X for FT8, and N1MM Logger+ for contests. This chapter explains, in plain language, what is and is not possible, and the easiest way to set it up. IcomRigControl plays nicely with all of them.
+
+**In a nutshell:** Your radio has only one control cable, and only one program can use that cable at a time. To let several programs share it you either (a) let one program "own" the radio and have the others talk to the radio through that program, or (b) add a small helper that splits the one cable into several, or (c) use an IC-7300MK2, which has two control channels built in. Separately, *sharing your log* between programs needs none of this - that already works over the network. Pick one program to be the "boss" of the radio's dial, and you will avoid almost all trouble.
+
+### 13.1 First, Two Different Things People Mean by "at the same time"
+
+It helps a lot to separate two needs that get mixed up:
+
+- **Controlling the radio** - reading and setting the frequency, the mode, and keying the transmitter (this is called CAT, short for Computer Aided Transceiver control; on Icom radios the protocol is called CI-V, short for Communications Interface, version 5). This is the hard one to share, and it is what the rest of this chapter is about.
+- **Sharing your contacts (the log)** - getting a logged contact (a QSO) to appear in several logging programs. This is the *easy* one and needs no special tricks - see section 13.5.
+
+### 13.2 Why Only One Program at a Time Can Control the Radio
+
+Your radio connects to the computer as a single serial port (on Windows it has a name like `COM4`; on macOS or Linux it looks like `/dev/tty.usbserial-XXXX`). A serial port can be opened by only **one** program at a time. The moment HRD (for example) opens `COM4`, WSJT-X and N1MM will get an "access denied" or "port in use" error if they try to open the same `COM4`. So "three programs, one port" cannot work as-is. The three approaches below get around this.
+
+### 13.3 The Three Ways to Share the Radio's Control Port
+
+**Approach A - Let one program own the radio (easiest, recommended).**
+One program opens the real serial port, and the others are told to use *that program* as their radio instead of the port. This is the least fuss and needs no extra software.
+- The most common setup: **HRD** owns the radio. In **WSJT-X**, open **File > Settings > Radio**, and in the **Rig** dropdown choose **"Ham Radio Deluxe."** WSJT-X now controls the radio *through* HRD. Done - no virtual ports, no splitter.
+- This works because HRD is built to act as a control server for other programs.
+
+**Approach B - Use OmniRig as a shared control engine.**
+OmniRig is a small, free helper that opens the radio once and lets several programs share it. **WSJT-X** and **N1MM Logger+** both support OmniRig (you select "OmniRig" as the radio). The catch: **HRD does not use OmniRig**, so this approach is best when the programs you want to combine are the ones that *do* support it (for example WSJT-X plus N1MM), not when HRD is in the mix.
+
+**Approach C - Use com0com plus a CAT splitter.**
+This is the "split one cable into several" method, and it is what you were thinking of.
+- **com0com** is a free Windows tool that creates pairs of pretend ("virtual") serial ports that are wired to each other.
+- **Important:** com0com by itself is not enough. It only makes the virtual ports; it does not read your radio and copy the data to them. You also need a small **splitter/hub** program that opens the real radio port and mirrors everything to the virtual ports, which HRD, WSJT-X, and N1MM then open instead of the real port.
+- This works, but it is the most moving parts and the most to set up, so try Approach A or the MK2 (below) first.
+
+**Approach D - Use an IC-7300MK2 (no sharing needed for two programs).**
+The IC-7300MK2 provides **two independent control channels** at once. That means two programs can each have their own channel with no splitter and no virtual ports at all. (The original IC-7300 and the IC-705 have a single USB control port, so they need Approach A, B, or C.)
+
+### 13.4 The One Rule That Prevents Most Problems
+
+Even after the programs can all reach the radio, do **not** let two of them try to *change* the frequency, mode, or transmit at the same moment - they will fight, and you will see the dial jump around or the transmitter key unexpectedly. The rule: **pick one program to be the "boss" that controls the dial and transmits.** Let the others read the radio, or use them at different times (for example, run WSJT-X for an FT8 session, and N1MM only during a contest). You almost never actually need all three driving the radio in the same second.
+
+### 13.5 Sharing Your Log Needs None of the Above
+
+Getting your contacts into several programs is completely separate from the control-cable problem, and it is easy. Logging information travels over the local network as small broadcast messages (using UDP, short for User Datagram Protocol), and **any number of programs can listen at once.** IcomRigControl already sends and receives these (see the External Program Integration chapter). So if your real goal is "when I log a contact, I want it to show up in HRD and N1MM too," that works without com0com, without virtual ports, and without splitting the control cable at all.
+
+Remember too that IcomRigControl keeps its **own** local log no matter what - that is the whole point of its backup-of-record design. Even if HRD, N1MM, or WSJT-X is closed, crashed, or unreachable, your contact is still saved in IcomRigControl.
+
+### 13.6 Where IcomRigControl Fits
+
+- IcomRigControl can be the "boss" that owns the radio, or it can be one of the participants alongside the others.
+- Its **Receive-Only / TX-Inhibit** switch (the big red banner on the dashboard when it is on) is a separate coexistence tool: it blocks IcomRigControl from transmitting so another program can safely own transmit on a shared radio. That is about who gets to *key the transmitter*, not about the control cable.
+
+### 13.7 Troubleshooting (Sharing One Radio)
+
+| Symptom | What it means | What to do |
+|---|---|---|
+| A program says the port is "in use," "access denied," or "cannot open COM4" | Another program already has the radio's control port open | Close the other program, or set this program to use one of the sharing methods in 13.3 (Approach A is easiest) |
+| The frequency dial jumps around on its own, or the radio keys unexpectedly | Two programs are both trying to control the radio at once | Pick one "boss" program (13.4); set the others to read-only or use them at different times |
+| WSJT-X has no "Ham Radio Deluxe" option in its Rig list | HRD is not running, or its rig control is not started | Start HRD and its Radio Control first, then reopen WSJT-X's Radio settings |
+| Contacts are not showing up in my other logger | This is a logging (UDP) setting, not a control-cable problem | Check the External Program Integration settings; make sure the other program is listening on the same address/port (usually `127.0.0.1`) |
+| I set up com0com but nothing decodes/controls | com0com alone does not move data - the splitter/hub is missing | Add a CAT splitter program that reads the real radio and mirrors to the virtual ports (see Approach C), or switch to Approach A |
+
+---
+
+## 14. Field / EMCOMM Deployment Notes
 
 - Resilient local QSO logging is deliberate EMCOMM-style redundancy - your log is never dependent on any external program being available.
 - The headless server mode (section 9) is designed for exactly this kind of deployment: a Pi at the radio, reachable over 44Net/AMPRNet or a local mesh/VPN, with the operator's desktop app connecting remotely.
@@ -217,8 +281,9 @@ This was a real bug in an earlier version - a Settings component tried to use Wi
 
 ---
 
-## 14. Revision History
+## 15. Revision History
 
 2026-07-14: Initial manual created, covering Phases 1 through 8f.
 2026-07-17: Full rewrite covering Phase 8's complete state, Phase 9, and Phase 10.
+2026-08-15: Added Section 13, "Running Alongside Other Programs (Sharing One Radio)" - CAT/CI-V port-sharing options (own-the-radio, OmniRig, com0com + splitter, IC-7300MK2 dual ports) and the separate UDP log-sharing path.
 2026-07-18: Discovered the prior revision had been silently truncated (missing sections 1 through most of 9, both locally and on GitHub) - full rewrite from scratch to restore complete content, plus updates for Phase 10's macOS completion (afplay-based audio, confirmed working live) and the ARRL RTTY Roundup contest addition.

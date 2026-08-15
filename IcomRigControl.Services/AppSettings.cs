@@ -56,6 +56,13 @@ public class AppSettings
     public List<(string Ip, int Port)> N1mmDestinations { get; set; } = new();
     public int ContactListenPort { get; set; } = 12070;
 
+    // ── DX Cluster ───────────────────────────────────────────────────────
+    /// DX cluster telnet host (e.g. "dxc.nc7j.com"), port, and the callsign used
+    /// to log in. Saved when you connect from the DX Cluster window.
+    public string DxClusterHost { get; set; } = "";
+    public int DxClusterPort { get; set; } = 7373;
+    public string DxClusterLoginCall { get; set; } = "";
+
     // ── CW keyer message memories (sent via CI-V command 17) ────────────
     /// Up to 8 editable CW macros. "MYCALL" is a placeholder to replace with a
     /// real callsign. Each is capped at 30 characters when transmitted.

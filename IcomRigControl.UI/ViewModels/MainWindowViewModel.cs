@@ -465,6 +465,17 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenDxCluster()
+    {
+        var clusterViewModel = new DxClusterViewModel(_transceiver, _settingsService);
+        var clusterWindow = new Views.DxClusterWindow
+        {
+            DataContext = clusterViewModel
+        };
+        clusterWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenQsoLogger()
     {
         var loggerViewModel = new QsoLoggerViewModel(_qsoLogger, _callsignLookupSource, _lotwBridge);

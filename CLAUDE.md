@@ -85,7 +85,8 @@ compatibility chart and feature descriptions):
   CW macros up to 30 chars, CI-V 28 fires voice memories T1-T8). Voice RECORDING is done on
   the radio itself; RC-28 USB dial hardware support remains out of scope (no user request).
 - QSO logging, callsign lookup, LoTW, HRD integration, N1MM/WSJT-X integration, APRS
-  beacon, memory bulk editor, CSV activity logging, headless Pi server
+  beacon, memory bulk editor, CSV activity logging, DX cluster (with spot posting),
+  headless Pi server
   mode, cross-platform (macOS confirmed working): IcomRigControl has ALL of these; RS-BA1
   has NONE of them — RS-BA1 is purely a CI-V/audio remote-control tool, not a logging or
   operations ecosystem. This is IcomRigControl's real, substantial differentiation.

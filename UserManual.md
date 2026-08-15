@@ -238,8 +238,11 @@ OmniRig is a small, free helper that opens the radio once and lets several progr
 **Approach C - Use com0com plus a CAT splitter.**
 This is the "split one cable into several" method, and it is what you were thinking of.
 - **com0com** is a free Windows tool that creates pairs of pretend ("virtual") serial ports that are wired to each other.
-- **Important:** com0com by itself is not enough. It only makes the virtual ports; it does not read your radio and copy the data to them. You also need a small **splitter/hub** program that opens the real radio port and mirrors everything to the virtual ports, which HRD, WSJT-X, and N1MM then open instead of the real port.
-- This works, but it is the most moving parts and the most to set up, so try Approach A or the MK2 (below) first.
+- **Important:** com0com by itself is not enough. It only makes the virtual ports; it does not read your radio and copy the data to them. You also need a small **splitter/hub** program that opens the real radio port and mirrors everything to the virtual ports, which HRD, WSJT-X, and N1MM then open instead of the real port. There is no boxed product you buy for this - the splitter is a free (or nearly free) software utility. The two most common choices are:
+  - **hub4com** - this is the actual splitter, and it comes bundled with com0com (they are the same open-source project). com0com makes the virtual ports; hub4com opens the real radio port and copies its data to all of them. Free.
+  - **VSPE (Virtual Serial Ports Emulator)**, by Eterlogic - a friendlier program with a built-in "Splitter" mode that does the same job. It is free on 32-bit Windows; the 64-bit version needs a small paid license.
+- Note: some **hardware** boxes are sold that look related - Icom's own **CT-17** CI-V level converter, and microHAM interfaces - but those are for connecting *several radios* to one computer, not for letting *several programs* share *one* radio, so they will not solve this particular problem.
+- This approach works, but it has the most moving parts and the most to set up, so try Approach A or the MK2 (below) first.
 
 **Approach D - Use an IC-7300MK2 (no sharing needed for two programs).**
 The IC-7300MK2 provides **two independent control channels** at once. That means two programs can each have their own channel with no splitter and no virtual ports at all. (The original IC-7300 and the IC-705 have a single USB control port, so they need Approach A, B, or C.)
@@ -267,7 +270,7 @@ Remember too that IcomRigControl keeps its **own** local log no matter what - th
 | The frequency dial jumps around on its own, or the radio keys unexpectedly | Two programs are both trying to control the radio at once | Pick one "boss" program (13.4); set the others to read-only or use them at different times |
 | WSJT-X has no "Ham Radio Deluxe" option in its Rig list | HRD is not running, or its rig control is not started | Start HRD and its Radio Control first, then reopen WSJT-X's Radio settings |
 | Contacts are not showing up in my other logger | This is a logging (UDP) setting, not a control-cable problem | Check the External Program Integration settings; make sure the other program is listening on the same address/port (usually `127.0.0.1`) |
-| I set up com0com but nothing decodes/controls | com0com alone does not move data - the splitter/hub is missing | Add a CAT splitter program that reads the real radio and mirrors to the virtual ports (see Approach C), or switch to Approach A |
+| I set up com0com but nothing decodes/controls | com0com alone does not move data - the splitter/hub is missing | Add the splitter that reads the real radio and mirrors to the virtual ports - **hub4com** (bundled with com0com) or **VSPE** (see Approach C) - or switch to Approach A |
 
 ---
 
@@ -285,5 +288,5 @@ Remember too that IcomRigControl keeps its **own** local log no matter what - th
 
 2026-07-14: Initial manual created, covering Phases 1 through 8f.
 2026-07-17: Full rewrite covering Phase 8's complete state, Phase 9, and Phase 10.
-2026-08-15: Added Section 13, "Running Alongside Other Programs (Sharing One Radio)" - CAT/CI-V port-sharing options (own-the-radio, OmniRig, com0com + splitter, IC-7300MK2 dual ports) and the separate UDP log-sharing path.
+2026-08-15: Added Section 13, "Running Alongside Other Programs (Sharing One Radio)" - CAT/CI-V port-sharing options (own-the-radio, OmniRig, com0com + splitter, IC-7300MK2 dual ports) and the separate UDP log-sharing path. Named the concrete splitter tools (hub4com, VSPE) and clarified that CT-17/microHAM hardware solves a different problem.
 2026-07-18: Discovered the prior revision had been silently truncated (missing sections 1 through most of 9, both locally and on GitHub) - full rewrite from scratch to restore complete content, plus updates for Phase 10's macOS completion (afplay-based audio, confirmed working live) and the ARRL RTTY Roundup contest addition.

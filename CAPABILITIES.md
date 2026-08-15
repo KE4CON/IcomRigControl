@@ -1,6 +1,6 @@
 # IcomRigControl — What This App Can Do (Capabilities Inventory)
 
-*A complete, plain-language inventory of everything IcomRigControl does today, plus what's planned but not built. Meant as a shared reference and a brainstorming springboard. Grounded in the real code as of 2026-08-15 (Phases 1–10 complete, 283 passing tests).*
+*A complete, plain-language inventory of everything IcomRigControl does today, plus what's planned but not built. Meant as a shared reference and a brainstorming springboard. Grounded in the real code as of 2026-08-15 (Phases 1–10 complete, 373 passing tests).*
 
 **In a nutshell:** IcomRigControl is a free, cross-platform (Windows/macOS/Linux/Raspberry
 Pi) control and logging program for the Icom IC-7300, IC-7300MK2, and IC-705 radios. It does
@@ -133,18 +133,27 @@ something Icom's RS-BA1 doesn't do at all.*
 - Pitch and direction are saved. Proven by a modulate→decode **round-trip test** (no hardware needed).
 - *Honest note:* like every software CW reader, it copies clean and machine-sent CW very well and struggles with sloppy sending, deep fading, or interference — a good ear still wins there.
 
-## 15. Settings & platform
+## 15. RTTY decode
+
+*RTTY (radioteletype) is a defined machine mode, so — unlike CW — it decodes very reliably once you're tuned in.*
+
+- **Live RTTY reader** — decodes standard HF Baudot RTTY (45.45 baud, 170 Hz shift, 2125/2295 Hz tones) off the receive audio into a scrolling text window, in real time.
+- **Automatic letters/figures handling** — follows the Baudot shift codes, so digits and punctuation come out right.
+- **Reverse button** — swaps mark and space for a signal on the wrong sideband (the classic RTTY "why is it garbage" fix); takes effect immediately.
+- Proven by a modulate→decode **round-trip test**, including a figures/numbers message and a reversed-polarity signal.
+
+## 16. Settings & platform
 
 - One Settings window covering connection, APRS, callsign lookup, LoTW/TQSL, HRD, and N1MM.
 - Cross-platform audio (NAudio/WASAPI on Windows, `afplay` on macOS).
 - Settings persisted to JSON; secrets kept out of source control.
 - **Windows, macOS, Linux desktop, and Raspberry Pi OS** all supported via Avalonia.
 
-## 16. Architecture (for context)
+## 17. Architecture (for context)
 
-Four clean layers: **CivEngine** (CI-V framing, serial I/O, APRS/AFSK, CW/Morse DSP) → **RigModel**
+Four clean layers: **CivEngine** (CI-V framing, serial I/O, APRS/AFSK, CW & RTTY DSP) → **RigModel**
 (`Transceiver` + the network layer) → **Services** (all the integrations above) → **UI**
-(Avalonia views/view-models). 365 automated tests.
+(Avalonia views/view-models). 373 automated tests.
 
 ---
 

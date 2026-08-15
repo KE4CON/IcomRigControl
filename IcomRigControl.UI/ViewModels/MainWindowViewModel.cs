@@ -505,6 +505,18 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenRttyDecode()
+    {
+        var rttyViewModel = new RttyDecodeViewModel(_settingsService);
+        var rttyWindow = new Views.RttyDecodeWindow
+        {
+            DataContext = rttyViewModel
+        };
+        rttyWindow.Closed += async (_, _) => await rttyViewModel.DisposeAsync();
+        rttyWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenAprsReceive()
     {
         if (_aprsBeaconService == null) return;

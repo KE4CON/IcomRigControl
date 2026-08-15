@@ -9,6 +9,12 @@ namespace IcomRigControl.Services;
 /// </summary>
 public class AppSettings
 {
+    // ── Receive-only / TX inhibit ────────────────────────────────────────
+    /// When true the app will not key the radio for anything (e.g. while another
+    /// program owns transmit). Persisted so the choice survives a restart — a
+    /// bold on-screen banner makes the state impossible to miss.
+    public bool TransmitInhibited { get; set; } = false;
+
     // ── Radio model ──────────────────────────────────────────────────────
     /// Which supported radio this station uses: "IC7300" (default), "IC7300MK2",
     /// or "IC705". Selects the CI-V address (0x94 / 0xB6 / 0xA4). Changing it

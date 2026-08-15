@@ -28,6 +28,13 @@ public class Transceiver : IAsyncDisposable
     public string Mode { get; private set; } = string.Empty;
     public bool PttActive { get; private set; }
 
+    /// Receive-only / TX inhibit. When true, this Transceiver refuses to KEY the
+    /// radio through ANY path — PTT, CW keyer, voice memory (and therefore the
+    /// beacon and remote-audio TX, which key via SetPttAsync). Un-keying and stop
+    /// commands are always allowed. This is the central, provable "won't transmit"
+    /// guarantee (e.g. while another program such as APRS-Command owns transmit).
+    public bool TransmitInhibited { get; set; }
+
     public double SMeterDbm { get; private set; }
     public int SMeterS { get; private set; }
     public double RfPowerPercent { get; private set; }
@@ -86,6 +93,9 @@ public class Transceiver : IAsyncDisposable
 
     public async Task SetPttAsync(bool transmit, CancellationToken ct = default)
     {
+        // Receive-only guard: refuse to KEY (always allow un-key, for safety).
+        if (transmit && TransmitInhibited) return;
+
         var frame = _builder.SetPtt(transmit);
         await _transport.WriteAsync(frame, ct);
         PttActive = transmit;
@@ -107,6 +117,7 @@ public class Transceiver : IAsyncDisposable
     /// The radio must be in a CW mode for this to key.
     public Task SendCwMessageAsync(string text, CancellationToken ct = default)
     {
+        if (TransmitInhibited) return Task.CompletedTask; // receive-only
         var frame = _builder.SendCwMessage(text);
         return frame is null ? Task.CompletedTask : _transport.WriteAsync(frame, ct);
     }
@@ -117,7 +128,8 @@ public class Transceiver : IAsyncDisposable
 
     /// Transmit a recorded voice memory T1-T8 (command 28 00 01-08).
     public Task SendVoiceMemoryAsync(int slot, CancellationToken ct = default) =>
-        _transport.WriteAsync(_builder.SendVoiceMemory(slot), ct);
+        TransmitInhibited ? Task.CompletedTask // receive-only
+                          : _transport.WriteAsync(_builder.SendVoiceMemory(slot), ct);
 
     /// Stop voice TX memory transmission (command 28 00 00).
     public Task StopVoiceMemoryAsync(CancellationToken ct = default) =>

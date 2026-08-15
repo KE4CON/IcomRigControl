@@ -88,6 +88,9 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty]
     private bool _isSendingBeacon;
 
+    [ObservableProperty]
+    private bool _transmitInhibited;
+
     /// Waterfall frequency axis labels (Phase 7). Each entry has a formatted
     /// frequency string and a 0.0-1.0 fraction the UI multiplies by the
     /// waterfall's actual rendered width to position it.
@@ -158,7 +161,23 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
         ApplySettings(settings);
 
+        // Apply the persisted receive-only state to the radio and the UI without
+        // re-saving (set the backing field directly, not the property).
+        _transmitInhibited = settings.TransmitInhibited;
+        _transceiver.TransmitInhibited = settings.TransmitInhibited;
+
         _ = ConnectAsync();
+    }
+
+    /// Master receive-only switch. Applies the guard to the Transceiver (so no
+    /// path can key the radio) and persists the choice.
+    partial void OnTransmitInhibitedChanged(bool value)
+    {
+        _transceiver.TransmitInhibited = value;
+
+        var settings = _settingsService.Load();
+        settings.TransmitInhibited = value;
+        _settingsService.Save(settings);
     }
 
     /// Recomputes the waterfall's frequency axis labels based on the

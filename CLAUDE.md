@@ -79,7 +79,7 @@ compatibility chart and feature descriptions):
 - CW Keyer, Voice Recording/Playback, RC-28 USB dial hardware support: RS-BA1 has these;
   out of scope for IcomRigControl for now (no user request, low priority vs. logging/APRS work).
 - QSO logging, callsign lookup, LoTW, HRD integration, N1MM/WSJT-X integration, APRS
-  beacon, memory bulk editor, CSV activity logging, EMMCOM integration, headless Pi server
+  beacon, memory bulk editor, CSV activity logging, headless Pi server
   mode, cross-platform (macOS confirmed working): IcomRigControl has ALL of these; RS-BA1
   has NONE of them — RS-BA1 is purely a CI-V/audio remote-control tool, not a logging or
   operations ecosystem. This is IcomRigControl's real, substantial differentiation.
@@ -144,7 +144,7 @@ AX.25/APRS/AFSK protocol layer. No UI, no radio model.
 Layer 2 — RigModel: Transceiver class exposing clean C# properties and events. Consumes
 CivEngine only. Also hosts the Phase 9 network layer (CivNetworkProtocol, CivTcpServer,
 TcpCivTransport).
-Layer 3 — Services: Logger, EMMCOM bridge, ADIF logger, callsign lookup, LoTW bridge, HRD
+Layer 3 — Services: Logger, ADIF logger, callsign lookup, LoTW bridge, HRD
 SQLite bridge, RadioInfo UDP broadcaster, N1MM/WSJT-X UDP listener, SettingsService,
 IAudioPlayer (NAudioPlayer/MacAudioPlayer), AprsBeaconService, PeriodicBeaconScheduler.
 Consume RigModel only.
@@ -252,7 +252,12 @@ Phase 2: Meter polling — COMPLETE (43 tests)
 Phase 3: Avalonia UI — main panel — COMPLETE
 Phase 4: Memory bulk editor — COMPLETE (52 tests)
 Phase 5: Activity logger (CSV) — COMPLETE (56 tests)
-Phase 6: EMMCOM dashboard integration — COMPLETE (60 tests)
+Phase 6: EMMCOM dashboard integration — RETIRED 2026-08-15. Was COMPLETE, but removed
+  as program drift: FieldCommand IMS (which now hosts the emcomm server) is an incident/
+  net-management app that does NOT control radios and has no rig-status ingestion endpoint;
+  during real traffic Winlink/Pat owns the radio, not IcomRigControl. The two apps stay
+  SEPARATE and meet at the RF/APRS layer, not via a rig-telemetry API. Do not re-add a
+  push-rig-status-to-a-dashboard integration without a new, deliberate decision.
 Phase 7: Spectrum scope capture and waterfall display — COMPLETE (180 tests).
 Phase 8: ADIF logging (general + contest + callsign lookup + LoTW + HRD + N1MM/WSJT-X) —
   COMPLETE, ZERO REMAINING ITEMS. Includes ARRL Field Day and ARRL RTTY Roundup, both
@@ -351,7 +356,9 @@ IC-705: 0xA4 (researched, not yet implemented — see IC-705 Support Research ab
 - APRS-Command (formerly CrossPlatformAPRS, KE4CON): originally the intended Phase 10
   beacon target; Phase 10 was ultimately built as a self-contained pipeline within
   IcomRigControl instead.
-- EMMCOM Field Comms Server: Phase 6 — COMPLETE
+- FieldCommand IMS (formerly EMMCOM Field Comms Server): a SEPARATE incident/net-management
+  app. The old Phase 6 rig-status push integration was RETIRED 2026-08-15 (see Phase 6
+  above) — the apps are deliberately kept separate.
 - Ham Radio Deluxe: user's PRIMARY day-to-day logger — Phase 8e COMPLETE
 - N1MM Logger+: Phase 8f COMPLETE
 - WSJT-X: Phase 8f COMPLETE

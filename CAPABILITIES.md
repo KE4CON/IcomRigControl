@@ -6,7 +6,7 @@
 Pi) control and logging program for the Icom IC-7300 and IC-7300MK2 radios. It does
 everything Icom's own RS-BA1 remote software does *except* live remote audio — and adds a
 whole logging-and-operations ecosystem (QSO log, contests, callsign lookup, LoTW, HRD,
-N1MM/WSJT-X, APRS beaconing, EMCOMM) that RS-BA1 has none of.
+N1MM/WSJT-X, APRS beaconing) that RS-BA1 has none of.
 
 ---
 
@@ -74,22 +74,18 @@ lost to a write failure or a thread race.*
 - **Send** live rig state (frequency, mode, PTT) out as RadioInfo UDP packets, to one or more user-configured destinations (127.0.0.1 or explicit LAN).
 - **Receive** logged contacts over UDP from N1MM/WSJT-X/HRD and fold them into the local log.
 
-## 10. EMMCOM field-comms integration (Phase 6)
-
-- Bridge to the EMMCOM Field Comms Server dashboard (HTTP), pushing radio status for emergency-communications operations.
-
-## 11. Activity logging (Phase 5)
+## 10. Activity logging (Phase 5)
 
 - Continuous **CSV activity log** of rig state over time (timestamp, frequency, mode, all meter readings) for later analysis. Separate from the QSO log.
 
-## 12. Remote / network operation (Phase 9)
+## 11. Remote / network operation (Phase 9)
 
 - **Headless server mode** (`IcomRigControl.UI --headless-server`) — runs with no display, serves CI-V control to remote clients over TCP. Designed for a Raspberry Pi sitting next to the radio, reachable over LAN, VPN, or 44Net/AMPRNet.
 - **Token authentication** required (never runs with a blank token).
 - The desktop app can act as a **remote client** — from the app's perspective a remote radio is indistinguishable from a local one; every feature above works remotely.
 - *Proven via loopback; real-hardware-over-real-network test still pending.*
 
-## 13. APRS beacon over HF (Phase 10)
+## 12. APRS beacon over HF (Phase 10)
 
 *Neither IC-7300 has a TNC — this is built as software AFSK/AX.25 packet audio, complete
 and confirmed audible on both Windows and macOS.*
@@ -99,14 +95,14 @@ and confirmed audible on both Windows and macOS.*
 - Keys PTT, plays the packet audio through a chosen sound device, releases PTT — with the safety fixes from this session (guaranteed key-down, no cross-keying, callsign validated before transmit).
 - **Manual** "Send Beacon" and **automatic** periodic beaconing at a configured interval.
 
-## 14. Settings & platform
+## 13. Settings & platform
 
 - One Settings window covering connection, APRS, callsign lookup, LoTW/TQSL, HRD, and N1MM.
 - Cross-platform audio (NAudio/WASAPI on Windows, `afplay` on macOS).
 - Settings persisted to JSON; secrets kept out of source control.
 - **Windows, macOS, Linux desktop, and Raspberry Pi OS** all supported via Avalonia.
 
-## 15. Architecture (for context)
+## 14. Architecture (for context)
 
 Four clean layers: **CivEngine** (CI-V framing, serial I/O, APRS/AFSK) → **RigModel**
 (`Transceiver` + the network layer) → **Services** (all the integrations above) → **UI**

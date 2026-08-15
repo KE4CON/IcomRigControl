@@ -19,8 +19,6 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     public Transceiver TransceiverInstance => _transceiver;
 
     private readonly ActivityLogger _logger;
-    private readonly EmmcomBridge _emmcomBridge;
-    private readonly HttpClient _emmcomHttpClient = new();
     private readonly SettingsService _settingsService;
     private readonly QsoLogger _qsoLogger;
     private readonly IAudioPlayer _audioPlayer = OperatingSystem.IsWindows()
@@ -44,12 +42,6 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
     [ObservableProperty]
     private string _loggingStatus = "Not logging";
-
-    [ObservableProperty]
-    private bool _isEmmcomRunning;
-
-    [ObservableProperty]
-    private string _emmcomStatus = "EMMCOM: not connected";
 
     [ObservableProperty]
     private string _integrationsStatus = "Integrations: not started";
@@ -91,9 +83,6 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
     [ObservableProperty]
     private string _frequencyInput = "14074000";
-
-    [ObservableProperty]
-    private string _emmcomUrlInput = "http://localhost:9000/api/rigstatus";
 
     [ObservableProperty]
     private string _aprsBeaconStatus = "APRS: not configured (see Settings)";
@@ -162,7 +151,6 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             });
 
         _logger = new ActivityLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
-        _emmcomBridge = new EmmcomBridge(_transceiver, _emmcomHttpClient, EmmcomUrlInput);
         _qsoLogger = new QsoLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
         _aprsBeaconService = new AprsBeaconService(_transceiver, _audioPlayer);
         _beaconScheduler = new PeriodicBeaconScheduler(SendBeacon);
@@ -462,30 +450,6 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         catch (Exception ex)
         {
             LoggingStatus = $"Logging error: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private void ToggleEmmcom()
-    {
-        try
-        {
-            if (IsEmmcomRunning)
-            {
-                _emmcomBridge.Stop();
-                IsEmmcomRunning = false;
-                EmmcomStatus = "EMMCOM: not connected";
-            }
-            else
-            {
-                _emmcomBridge.Start();
-                IsEmmcomRunning = true;
-                EmmcomStatus = $"EMMCOM: pushing to {EmmcomUrlInput}";
-            }
-        }
-        catch (Exception ex)
-        {
-            EmmcomStatus = $"EMMCOM error: {ex.Message}";
         }
     }
 

@@ -313,14 +313,19 @@ Phase 9: Remote/network mode — COMPLETE. REMAINING: real-world testing against
 Phase 10: APRS beacon over HF — FULLY COMPLETE ON BOTH WINDOWS AND MACOS. Confirmed live
   on both platforms including real audible playback. 259 passing tests, confirmed stable
   including a flaky-test fix (see Coding Standards above). NOTHING REMAINING.
-  SCOPE DECISION (LOCKED 2026-08-15): IcomRigControl's APRS stays a SELF-CONTAINED, TX-ONLY
-  position beacon by design — no dependency on APRS-Command or any external program. Do NOT
-  expand it into a full APRS client (receive/decode, messaging, station map, APRS-IS/igate,
-  digipeating). That is APRS-Command's job; growing a second APRS client here is program
-  drift (same principle as the EMMCOM/FieldCommand separation). NOTE: RX decode is now
-  technically feasible (Phase 12 added audio capture, and APRS RX is the same demod-from-audio
-  class as the deferred in-app RTTY/CW decode), but it is deliberately NOT pursued — the user
-  chose to keep the beacon self-contained and leave full APRS to APRS-Command.
+  SCOPE DECISION (2026-08-15): IcomRigControl's APRS is a SELF-CONTAINED, TX-ONLY HF position
+  beacon — no dependency on APRS-Command or any external program. IMPORTANT CORRECTION
+  (verified 2026-08-15 by inspecting C:\Dev\APRS-Command): APRS-Command is VHF-ONLY. It has no
+  HF (300-baud) support and no built-in modem — it shells out to Direwolf with a hardcoded
+  MODEM 1200, and there is no documented reason for VHF-only (HF was simply never built; it's a
+  byproduct of the Direwolf-1200 dependency, not a deliberate choice). So the earlier premise
+  "leave HF APRS to APRS-Command" was WRONG — APRS-Command cannot do HF. The correct split is by
+  BAND: HF APRS lives HERE (IcomRigControl has its own self-contained 300-baud AFSK engine),
+  VHF full-APRS is APRS-Command's. General full-APRS-client scope (messaging, map, APRS-IS,
+  igate, digipeat) is still NOT wanted here on VHF (that's APRS-Command). OPEN/UNDECIDED: HF
+  APRS RECEIVE/decode — IcomRigControl is the ONLY realistic home for it (it has the HF radio +
+  Phase 12 audio capture; APRS-Command never will). The user has NOT decided whether to build
+  it; do not build it or re-delegate it to APRS-Command without a decision.
   COEXISTENCE SUPPORT (2026-08-15): to run IcomRigControl and APRS-Command on the same radio
   cleanly, added a central Receive-Only / TX-Inhibit guard on Transceiver
   (TransmitInhibited) — when on, NO path can key the radio (PTT, CW 17, voice 28, beacon,

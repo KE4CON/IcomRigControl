@@ -21,6 +21,10 @@ public class TcpCivTransport : ICivTransport
     private CancellationTokenSource? _readCts;
     private Task? _readLoopTask;
 
+    // NetworkStream forbids overlapping writes. The poll loop, scope loop, and
+    // UI commands can all call WriteAsync concurrently, so serialize them.
+    private readonly SemaphoreSlim _writeGate = new(1, 1);
+
     public bool IsOpen { get; private set; }
     public event EventHandler<byte[]>? DataReceived;
 
@@ -63,6 +67,8 @@ public class TcpCivTransport : ICivTransport
         _readCts?.Cancel();
         _stream?.Close();
         _client?.Close();
+        _readCts?.Dispose();
+        _readCts = null;
         IsOpen = false;
         return Task.CompletedTask;
     }
@@ -74,7 +80,15 @@ public class TcpCivTransport : ICivTransport
             throw new InvalidOperationException("Transport is not open.");
         }
 
-        await _stream.WriteAsync(data, ct);
+        await _writeGate.WaitAsync(ct);
+        try
+        {
+            await _stream.WriteAsync(data, ct);
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
     }
 
     private async Task ReadLoopAsync(CancellationToken ct)

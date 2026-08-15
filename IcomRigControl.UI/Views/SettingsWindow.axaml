@@ -93,10 +93,25 @@
         <TextBlock Text="Ham Radio Deluxe (Phase 8e)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
         <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
             <StackPanel Spacing="8">
-                <ToggleButton Content="{Binding HrdBridgeEnabled, Converter={x:Static vm:LoggingButtonTextConverter.Instance}}"
+                <ToggleButton Content="{Binding HrdBridgeEnabled, Converter={x:Static vm:HrdBridgeButtonTextConverter.Instance}}"
                               IsChecked="{Binding HrdBridgeEnabled}"
                               Width="200" HorizontalAlignment="Left"
-                              Background="#2a2a2a" Foreground="White"/>
+                              Background="#2a2a2a" Foreground="White">
+                    <ToggleButton.Styles>
+                        <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00cc70"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </ToggleButton.Styles>
+                </ToggleButton>
                 <TextBlock Text="HRD Logbook database path" Foreground="Gray" FontSize="11"/>
                 <TextBox Text="{Binding HrdDatabasePath}"
                          PlaceholderText="C:\Users\...\AppData\Roaming\Simon Brown, HB9DRV\HRD Logbook\..."/>
@@ -106,16 +121,46 @@
         <TextBlock Text="N1MM / WSJT-X Integration (Phase 8f)" Foreground="#88ccff" FontSize="14" FontWeight="Bold"/>
         <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
             <StackPanel Spacing="8">
-                <ToggleButton Content="{Binding N1mmSendEnabled, Converter={x:Static vm:LoggingButtonTextConverter.Instance}}"
+                <ToggleButton Content="{Binding N1mmSendEnabled, Converter={x:Static vm:N1mmSendButtonTextConverter.Instance}}"
                               IsChecked="{Binding N1mmSendEnabled}"
                               Width="200" HorizontalAlignment="Left"
-                              Background="#2a2a2a" Foreground="White"/>
+                              Background="#2a2a2a" Foreground="White">
+                    <ToggleButton.Styles>
+                        <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00cc70"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </ToggleButton.Styles>
+                </ToggleButton>
                 <TextBlock Text="Destination (IP:Port)" Foreground="Gray" FontSize="11"/>
                 <TextBox Text="{Binding N1mmDestinationInput}" PlaceholderText="127.0.0.1:12060"/>
-                <ToggleButton Content="{Binding N1mmReceiveEnabled, Converter={x:Static vm:LoggingButtonTextConverter.Instance}}"
+                <ToggleButton Content="{Binding N1mmReceiveEnabled, Converter={x:Static vm:N1mmReceiveButtonTextConverter.Instance}}"
                               IsChecked="{Binding N1mmReceiveEnabled}"
                               Width="200" HorizontalAlignment="Left"
-                              Background="#2a2a2a" Foreground="White" Margin="0,8,0,0"/>
+                              Background="#2a2a2a" Foreground="White" Margin="0,8,0,0">
+                    <ToggleButton.Styles>
+                        <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00cc70"/>
+                            <Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </ToggleButton.Styles>
+                </ToggleButton>
                 <TextBlock Text="Listen Port" Foreground="Gray" FontSize="11"/>
                 <NumericUpDown Value="{Binding ContactListenPort}" Minimum="1" Maximum="65535"/>
             </StackPanel>

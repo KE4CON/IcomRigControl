@@ -82,6 +82,26 @@ public class CivFrameParserTests
     }
 
     [Fact]
+    public void PreambleSplitBetweenTheTwoFeBytes_IsNotDropped()
+    {
+        var parser = new CivFrameParser();
+
+        // A read boundary lands BETWEEN the two 0xFE preamble bytes: the first
+        // read ends with a lone 0xFE, the next begins with the second 0xFE and
+        // the rest of the frame. Regression for the bug where the lone trailing
+        // 0xFE was discarded, corrupting (dropping) the following frame.
+        var part1 = new byte[] { 0xFE };
+        var part2 = new byte[] { 0xFE, 0xE0, 0x94, 0xFB, 0xFD };
+
+        var frames1 = parser.Feed(part1);
+        Assert.Empty(frames1);
+
+        var frames2 = parser.Feed(part2);
+        Assert.Single(frames2);
+        Assert.True(frames2[0].IsPassResponse);
+    }
+
+    [Fact]
     public void IgnoresNoiseBeforePreamble()
     {
         var parser = new CivFrameParser();

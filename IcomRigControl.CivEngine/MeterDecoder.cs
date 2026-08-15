@@ -20,17 +20,22 @@ public static class MeterDecoder
     public static (int sUnit, double dBm) DecodeSMeter(ReadOnlySpan<byte> data)
     {
         int raw = DecodeRawLevel(data);
-        // IC-7300: 0=S0, 120=S9, 241=S9+60dB (per Icom S-meter calibration table)
+        // IC-7300: 0=S0, 120=S9, 241=S9+60dB (per Icom S-meter calibration table).
+        // dBm anchors on the universal S9 = -73 dBm standard, 6 dB per S-unit,
+        // so S0 = -127 dBm and S9+60dB = -13 dBm. (The raw->S-unit breakpoints
+        // are the hardware-specific part; the S-unit->dBm mapping is the IARU
+        // standard.) Previously the anchor was inverted, yielding physically
+        // impossible positive dBm for received signals.
         if (raw <= 120)
         {
             int sUnit = (int)Math.Round(raw / 120.0 * 9);
-            double dBm = -73 + (sUnit * 6); // S9 = -73dBm reference, 6dB per S-unit
+            double dBm = -73 + (sUnit - 9) * 6; // S9 = -73dBm, -6dB per S-unit below
             return (sUnit, dBm);
         }
         else
         {
             double over9 = (raw - 120) / (241.0 - 120.0) * 60;
-            double dBm = -73 + 54 + over9; // S9 baseline + dB over S9
+            double dBm = -73 + over9; // dB over S9, measured up from the -73dBm anchor
             return (9, dBm);
         }
     }

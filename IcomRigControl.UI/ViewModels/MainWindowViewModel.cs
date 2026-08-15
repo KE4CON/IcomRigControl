@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IcomRigControl.CivEngine;
@@ -128,27 +129,37 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
         _transceiver = new Transceiver(transport, RadioModel.IC7300);
 
+        // These events fire on the serial/TCP read thread and the meter-poll
+        // thread — NOT the UI thread. Every handler below writes bound
+        // properties and (for frequency) mutates the AxisLabels
+        // ObservableCollection, so each MUST be marshaled onto the UI thread via
+        // Dispatcher.UIThread.Post or Avalonia throws "Call from invalid thread"
+        // (and can leave the UI in the documented "invisible until interaction"
+        // corrupted state). See CLAUDE.md: "Events fired on the UI thread via
+        // Dispatcher.UIThread". This matches MainWindow.axaml.cs's WaveformUpdated.
         _transceiver.FrequencyChanged += (_, hz) =>
-        {
-            FrequencyDisplay = FormatFrequency(hz);
-            UpdateAxisLabels();
-        };
+            Dispatcher.UIThread.Post(() =>
+            {
+                FrequencyDisplay = FormatFrequency(hz);
+                UpdateAxisLabels();
+            });
 
         _transceiver.ModeChanged += (_, mode) =>
-            Mode = mode;
+            Dispatcher.UIThread.Post(() => Mode = mode);
 
         _transceiver.PttChanged += (_, active) =>
-            PttActive = active;
+            Dispatcher.UIThread.Post(() => PttActive = active);
 
         _transceiver.MeterUpdated += (_, snapshot) =>
-        {
-            SMeterDisplay = snapshot.SMeterS >= 9 ? $"S9+{(int)(snapshot.SMeterDbm + 73 - 54)}dB" : $"S{snapshot.SMeterS}";
-            RfPowerPercent = snapshot.RfPowerPercent;
-            SwrRatio = snapshot.SwrRatio;
-            AlcLevel = snapshot.AlcLevel;
-            SupplyVoltage = snapshot.SupplyVoltage;
-            CurrentDraw = snapshot.CurrentDraw;
-        };
+            Dispatcher.UIThread.Post(() =>
+            {
+                SMeterDisplay = snapshot.SMeterS >= 9 ? $"S9+{(int)(snapshot.SMeterDbm + 73)}dB" : $"S{snapshot.SMeterS}";
+                RfPowerPercent = snapshot.RfPowerPercent;
+                SwrRatio = snapshot.SwrRatio;
+                AlcLevel = snapshot.AlcLevel;
+                SupplyVoltage = snapshot.SupplyVoltage;
+                CurrentDraw = snapshot.CurrentDraw;
+            });
 
         _logger = new ActivityLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
         _emmcomBridge = new EmmcomBridge(_transceiver, _emmcomHttpClient, EmmcomUrlInput);
@@ -173,8 +184,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         foreach (var label in labels)
         {
             AxisLabels.Add(new WaterfallAxisLabelViewModel(
-                WaterfallFrequencyMapper.FormatFrequencyLabel(label.FrequencyHz),
-                label.PixelX));
+                WaterfallFrequencyMapper.FormatFrequencyLabel(label.FrequencyHz)));
         }
     }
 
@@ -232,9 +242,15 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         if (_aprsBeaconService == null) return;
 
-        if (string.IsNullOrWhiteSpace(_currentSettings.AprsCallsign))
+        if (!IsConnected)
         {
-            AprsBeaconStatus = "APRS: no callsign configured (see Settings)";
+            AprsBeaconStatus = "APRS: not connected to a radio — connect first";
+            return;
+        }
+
+        if (!CallsignValidator.IsPlausibleAmateurCallsign(_currentSettings.AprsCallsign))
+        {
+            AprsBeaconStatus = "APRS: callsign missing or invalid — set your real callsign in Settings before transmitting";
             return;
         }
 
@@ -511,4 +527,4 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 }
 
 /// One frequency axis label for the waterfall display.
-public record WaterfallAxisLabelViewModel(string Text, double PixelFraction);
+public record WaterfallAxisLabelViewModel(string Text);

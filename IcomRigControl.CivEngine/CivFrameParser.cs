@@ -25,8 +25,15 @@ public class CivFrameParser
             int start = FindPreambleStart();
             if (start < 0)
             {
-                // No preamble found at all — discard everything (pure noise)
+                // No complete preamble (two consecutive 0xFE) in the buffer.
+                // Discard noise, but KEEP a lone trailing 0xFE — it may be the
+                // first half of a preamble whose second 0xFE arrives in the next
+                // read. Clearing it would drop the very next frame, since its
+                // leading 0xFE would go missing across the read boundary.
+                bool danglingPreamble = _buffer.Count > 0 && _buffer[^1] == CivCommands.Preamble;
                 _buffer.Clear();
+                if (danglingPreamble)
+                    _buffer.Add(CivCommands.Preamble);
                 break;
             }
 

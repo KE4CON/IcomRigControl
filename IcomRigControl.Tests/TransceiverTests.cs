@@ -66,6 +66,29 @@ public class TransceiverTests
     }
 
     [Fact]
+    public void EchoedReadFrequencyRequest_IsIgnored_AndDoesNotCrashReceiveLoop()
+    {
+        var transport = new FakeCivTransport();
+        var tx = new Transceiver(transport, RadioModel.IC7300);
+
+        bool freqChangedFired = false;
+        tx.FrequencyChanged += (_, _) => freqChangedFired = true;
+
+        // The radio echoes our own ReadFrequency request straight back on the
+        // CI-V bus: FE FE 94 E0 03 FD (To=radio, From=controller, cmd=03, NO
+        // data payload). Before the fix this reached BcdCodec.DecodeFrequency
+        // with an empty span and threw IndexOutOfRangeException, which escaped
+        // ReadLoopAsync and silently killed all further reception. It must now
+        // be ignored (echo from the controller address), leaving state untouched.
+        var echo = new byte[] { 0xFE, 0xFE, 0x94, 0xE0, 0x03, 0xFD };
+        var ex = Record.Exception(() => transport.SimulateIncoming(echo));
+
+        Assert.Null(ex);
+        Assert.False(freqChangedFired);
+        Assert.Equal(0, tx.FrequencyHz);
+    }
+
+    [Fact]
     public void IncomingSMeterFrame_UpdatesSMeterProperties()
     {
         var transport = new FakeCivTransport();

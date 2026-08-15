@@ -117,7 +117,21 @@ public partial class QsoLoggerViewModel : ViewModelBase
         }
 
         LookupStatus = "Looking up...";
-        var result = await _lookupSource.LookupAsync(CallsignInput);
+
+        // ICallsignLookupSource implementations are contractually never supposed
+        // to throw, but this UI command must stay robust even if a future/custom
+        // source violates that — a lookup failure should never take down the
+        // logger window. Defense in depth around the contract.
+        CallsignInfo? result;
+        try
+        {
+            result = await _lookupSource.LookupAsync(CallsignInput);
+        }
+        catch (Exception ex)
+        {
+            LookupStatus = $"Lookup failed: {ex.Message}";
+            return;
+        }
 
         if (result == null)
         {
@@ -280,6 +294,14 @@ public partial class QsoLoggerViewModel : ViewModelBase
             }
 
             LotwStatus = $"Checked {confirmed.Count} LoTW confirmations, matched {matchCount} against local log.";
+
+            // The per-row LoTW "confirmed" column binds to ConfirmedCallsigns via
+            // a MultiBinding. Adding items to the ObservableCollection does NOT
+            // change its reference, so those bindings won't re-evaluate on their
+            // own — the ✓ marks would not appear until the rows were rebuilt.
+            // Raise PropertyChanged so the MultiBindings re-run their converter.
+            if (matchCount > 0)
+                OnPropertyChanged(nameof(ConfirmedCallsigns));
         }
         catch (Exception ex)
         {

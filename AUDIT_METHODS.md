@@ -254,9 +254,37 @@ this time; a method you *haven't* run is where the next bugs are.
 
 Keep this current. Status: ☑ fixed · ◐ partial · ☐ open · ⏸ won't-fix (with reason).
 
+### 2026-08-15 — Six-lens audit (M1 Multi-Lens + M2 Oracle) of the whole codebase
+
+Baseline 259 tests green → 283 tests green after fixes (+24 regression tests). Every ☑
+below has a dedicated regression test. Paste-corruption/completeness lens found the code
+**clean** (no truncation, duplication, or half-merged clones).
+
 | Date | Method | Severity | File:line | Finding | Status |
 |---|---|---|---|---|---|
-| | | | | | |
+| 08-15 | M2 | CRITICAL | Transceiver.cs:345 / BcdCodec.cs:18 / SerialCivTransport.cs:88 | Echoed read-freq request (empty data) → `DecodeFrequency` IndexOutOfRange escapes read loop → all reception dies | ☑ echo filter (`From==controller`) + 5-byte length guard |
+| 08-15 | M1 | CRITICAL | MainWindowViewModel.cs:131 | Radio events mutate UI-bound props + `AxisLabels` ObservableCollection off the read thread → Avalonia invalid-thread crash | ☑ all four handlers marshaled via `Dispatcher.UIThread.Post` |
+| 08-15 | M1 | CRITICAL | AprsBeaconService.cs:49 | Beacon PTT key-up outside try/finally → a failure after key-up leaves transmitter stuck ON | ☑ key-up moved inside try |
+| 08-15 | M1 | HIGH | QsoLogger.cs:82 | QSO added to memory before durable file write → write failure leaves phantom in RAM only (backup-of-record violated) | ☑ write-through first, then add; whole op under lock |
+| 08-15 | M1/M5 | HIGH | QsoLogger.cs:82,98 | `_qsos` List + session file unsynchronized across UI + UDP threads → lost/corrupt QSO | ☑ `_logLock` around all list/file ops; `Qsos` returns snapshot |
+| 08-15 | M5 | HIGH | SerialCivTransport.cs:71 / TcpCivTransport.cs:77 | Poll, scope, and UI threads write the transport with no serialization → interleaved/corrupt frames or NetworkStream throw | ☑ per-transport `SemaphoreSlim` write gate |
+| 08-15 | M1/M5 | HIGH | AprsBeaconService.cs:31 | Manual + auto beacon can overlap and cross-key PTT (no re-entrancy guard) | ☑ non-blocking `SemaphoreSlim` gate; second beacon skipped |
+| 08-15 | M2 | HIGH | CivFrameParser.cs:29 | Preamble `0xFE` split across two reads is discarded → next frame lost | ☑ retain lone trailing `0xFE` |
+| 08-15 | M1 | MEDIUM | MainWindowViewModel.cs:235 | Beacon has no connected/real-radio guard (transmits in Demo mode) | ☑ `IsConnected` guard added |
+| 08-15 | M2 | MEDIUM | MeterDecoder.cs:27 | S-meter dBm anchor inverted (+54 dB); test locked in impossible positive dBm | ☑ true dBm (S9=−73), UI `+73` formula, tests corrected |
+| 08-15 | M5 | MEDIUM | RadioInfoUdpBroadcaster.cs:71 | `async void` enumerates `_destinations` during mutation → can throw into event dispatch | ☑ lock+snapshot; whole body wrapped |
+| 08-15 | M5 | MEDIUM | CivTcpServer.cs:99 | Concurrent NetworkStream writes to a client → silent CI-V data drop | ☑ per-connection write gate |
+| 08-15 | M1 | MEDIUM | SettingsWindow.axaml:96,109,115 | 3 toggles reuse `LoggingButtonTextConverter` → labels read "Start Logging" | ☑ 3 dedicated converters |
+| 08-15 | M1 | MEDIUM | SettingsWindow.axaml:96,109,115 | Same 3 toggles missing the three-selector style set | ☑ full style set added to each |
+| 08-15 | M1 | MEDIUM | QsoLoggerViewModel.cs:277 | LoTW ✓ column doesn't refresh after Check Confirmations (MultiBinding on collection ref) | ☑ `OnPropertyChanged(nameof(ConfirmedCallsigns))` |
+| 08-15 | M1 | MEDIUM | MainWindowViewModel.cs:235 | Beacon callsign only checked non-empty; placeholder/invalid could go on air (FCC ID) | ☑ `CallsignValidator` + guard + tests |
+| 08-15 | M5 | LOW | Transceiver.cs / transports | CancellationTokenSources cancelled but never disposed; loop tasks not awaited | ☑ dispose on stop; await tasks in DisposeAsync; transports dispose read CTS |
+| 08-15 | M1 | LOW | QsoLoggerViewModel.cs:120 | Lookup command trusts never-throw contract with no local guard | ☑ try/catch added |
+| 08-15 | M7 | LOW | AxisLabelPositionConverter.cs | Orphaned converter + unused `PixelFraction` field | ☑ deleted converter; removed field |
+| 08-15 | M1 | LOW | MemoryEditorViewModel.cs:54 | `memory_debug.log` debug writes shipping in a user path | ☑ removed |
+| 08-15 | M2/M5 | LOW | Transceiver.cs:20,347 | Pending freq/mode TCS can be completed by an unsolicited transceive frame during a memory read | ☐ **known limitation** — CI-V has no request/response correlation; echo filter removes the echo case; the remaining case needs the operator to turn the dial mid-bulk-read. Documented, not fixed (a wrong correlation scheme adds risk for negligible gain). |
+| 08-15 | M2 | MEDIUM | MeterDecoder.cs:39 (Po) / Transceiver.cs:373 (ALC) | Po/ALC meters use linear /255 instead of Icom 213/120 full-scale | ⏸ **deferred — needs real hardware.** Exact curves are NOT in the in-repo reference PDF; CLAUDE.md mandates byte-for-byte verification against a real radio before changing. |
+| 08-15 | M2 | LOW–MED | CivFrameBuilder.cs:109 (span) / ScopeDataDecoder.cs:11 (waveform) | Scope span sent as a single made-up preset byte; waveform decode ignores the `27 00` header/sequence bytes | ⏸ **deferred — needs real hardware.** The exact `27 15` / `27 00` byte layouts aren't in the in-repo reference; correct bytes can't be stated without the radio or full manual. |
 
 ---
 

@@ -139,30 +139,44 @@ public sealed class WebRemoteServer : IAsyncDisposable
             return;
         }
 
-        // All sends (state pushes and the close reply) go through one gate — a
-        // WebSocket allows only one outstanding send at a time.
+        // All sends (state pushes, scope frames, and the close reply) go through one
+        // gate — a WebSocket allows only one outstanding send at a time. The send
+        // loop is local so it can hold per-connection state (the last scope frame).
         using var sendLock = new SemaphoreSlim(1, 1);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        async Task SendLoop()
+        {
+            int[]? lastWave = null;
+            try
+            {
+                while (ws.State == WebSocketState.Open && !linked.IsCancellationRequested)
+                {
+                    await sendLock.WaitAsync(linked.Token);
+                    try
+                    {
+                        await SendTextAsync(ws, BuildStateJson(), linked.Token);
+
+                        // Send a scope frame only when the waterfall data actually changed.
+                        int[] wave = _rig.LastWaveform;
+                        if (wave.Length > 0 && !ReferenceEquals(wave, lastWave))
+                        {
+                            lastWave = wave;
+                            await SendTextAsync(ws, BuildScopeJson(wave), linked.Token);
+                        }
+                    }
+                    finally { sendLock.Release(); }
+                    await Task.Delay(200, linked.Token); // ~5 Hz
+                }
+            }
+            catch { /* socket closed / cancelled */ }
+        }
+
         var recv = ReceiveLoopAsync(ws, sendLock, linked.Token);
-        var send = SendLoopAsync(ws, sendLock, linked.Token);
+        var send = SendLoop();
         await Task.WhenAny(recv, send);
         linked.Cancel();
         try { await Task.WhenAll(recv, send); } catch { }
-    }
-
-    private async Task SendLoopAsync(WebSocket ws, SemaphoreSlim sendLock, CancellationToken ct)
-    {
-        try
-        {
-            while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
-            {
-                await sendLock.WaitAsync(ct);
-                try { await SendTextAsync(ws, BuildStateJson(), ct); }
-                finally { sendLock.Release(); }
-                await Task.Delay(200, ct); // ~5 Hz state updates
-            }
-        }
-        catch { /* socket closed / cancelled */ }
     }
 
     private async Task ReceiveLoopAsync(WebSocket ws, SemaphoreSlim sendLock, CancellationToken ct)
@@ -249,6 +263,14 @@ public sealed class WebRemoteServer : IAsyncDisposable
         };
         return JsonSerializer.Serialize(state);
     }
+
+    private string BuildScopeJson(int[] wave) => JsonSerializer.Serialize(new
+    {
+        type = "scope",
+        center = _rig.FrequencyHz,
+        span = _rig.CurrentSpanHz,
+        data = wave,
+    });
 
     private static async Task SendTextAsync(WebSocket ws, string text, CancellationToken ct)
     {

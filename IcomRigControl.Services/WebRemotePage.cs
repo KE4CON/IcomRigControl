@@ -42,6 +42,8 @@ public static class WebRemotePage
   .grid2 b { color:var(--blu); font-weight:600; }
   input { width:100%; padding:12px; font-size:16px; background:#000; color:var(--grn); border:1px solid var(--line); border-radius:8px; font-family:'Courier New',monospace; }
   .note { color:var(--dim); font-size:11px; text-align:center; margin-top:4px; }
+  canvas { width:100%; height:150px; display:block; border-radius:8px; background:#000; image-rendering:pixelated; }
+  .wfhint { color:var(--dim); font-size:11px; text-align:center; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -69,6 +71,11 @@ public static class WebRemotePage
       <input id="fentry" inputmode="decimal" placeholder="MHz e.g. 14.074">
       <button id="fset" style="flex:0 0 70px">Set</button>
     </div>
+  </div>
+
+  <div class="panel">
+    <canvas id="wf" width="256" height="150"></canvas>
+    <div class="wfhint">Waterfall &mdash; tap it to tune there</div>
   </div>
 
   <div class="panel">
@@ -131,8 +138,39 @@ public static class WebRemotePage
     return mhz + "." + String(k).padStart(3,"0") + "." + String(h).padStart(3,"0");
   }
 
+  // Waterfall
+  var wf = $("wf"), wctx = wf.getContext("2d"), wmax = 1, lastCenter = 0, lastSpan = 0;
+  function colormap(t){
+    t = Math.max(0, Math.min(1, t));
+    var r = t < 0.5 ? 0 : Math.round((t - 0.5) * 2 * 255);
+    var g = Math.round((t < 0.5 ? t * 2 : 1) * 255);
+    var b = Math.round((1 - t) * 255 * (t < 0.5 ? 1 : 0.25));
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+  function drawScope(sc){
+    lastCenter = sc.center; lastSpan = sc.span;
+    var d = sc.data, n = d.length, w = wf.width, h = wf.height;
+    if (!n) return;
+    wctx.drawImage(wf, 0, 1);                 // scroll down 1px
+    for (var i = 0; i < n; i++) if (d[i] > wmax) wmax = d[i];
+    wmax *= 0.999;                             // slow AGC decay
+    for (var x = 0; x < w; x++){
+      var v = d[Math.floor(x / w * n)];
+      wctx.fillStyle = colormap(v / wmax);
+      wctx.fillRect(x, 0, 1, 1);
+    }
+  }
+  wf.onclick = function(ev){
+    if (!lastSpan) return;
+    var r = wf.getBoundingClientRect();
+    var frac = (ev.clientX - r.left) / r.width;
+    var hz = Math.round(lastCenter - lastSpan / 2 + frac * lastSpan);
+    send({cmd:"freq", hz:hz});
+  };
+
   function render(s){
     if (s.type === "unauthorized"){ askToken(); return; }
+    if (s.type === "scope"){ drawScope(s); return; }
     if (s.freq != null) $("freq").textContent = fmtFreq(s.freq);
     if (s.mode != null){
       $("mode").textContent = s.mode + (s.connected ? "" : "  (radio offline)");

@@ -276,6 +276,18 @@ public class Transceiver : IAsyncDisposable
         _pollCts = null;
     }
 
+    /// Requests the radio's current frequency and mode; the replies update
+    /// FrequencyHz / Mode through the normal parse path (and raise the change
+    /// events). The meter poll intentionally does NOT read these, so a consumer
+    /// that isn't otherwise driving frequency/mode reads — notably the headless
+    /// web remote — calls this to keep the display current (and to reflect tuning
+    /// done on the radio's own front panel).
+    public async Task RefreshFrequencyAndModeAsync(CancellationToken ct = default)
+    {
+        await _transport.WriteAsync(_builder.ReadFrequency(), ct);
+        await _transport.WriteAsync(_builder.ReadMode(), ct);
+    }
+
     private async Task PollLoopAsync(TimeSpan interval, CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)

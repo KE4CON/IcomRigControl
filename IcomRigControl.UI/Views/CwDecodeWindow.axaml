@@ -36,6 +36,9 @@
             </Button>
             <Button Content="Clear" Command="{Binding ClearCommand}"
                     Background="#2a2a2a" Foreground="White" Padding="12,6"/>
+            <Button Content="Save…" Command="{Binding SaveCommand}"
+                    Background="#2a2a2a" Foreground="White" Padding="12,6"
+                    ToolTip.Tip="Save the decoded text to a file you can open and print."/>
 
             <TextBlock Text="Pitch (Hz):" Foreground="Gray" VerticalAlignment="Center" Margin="10,0,0,0"/>
             <TextBox Text="{Binding PitchHz}" Width="70" VerticalAlignment="Center"

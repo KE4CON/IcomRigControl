@@ -116,6 +116,11 @@ compatibility chart and feature descriptions):
   BEFORE the edge — the true edge is p + 0.5*bit, and all bit centers must be measured from there
   (sampling from p directly hits bit BOUNDARIES and misreads). RTTY decodes far more reliably than CW
   (rigid machine standard); real-world gotchas are tuning and mark/space reversal (the Reverse toggle).
+- DECODED-TEXT SAVE: both the CW and RTTY windows have a "Save…" button that writes the decoded
+  buffer to Documents/IcomRigControl/Decoded/{CW|RTTY}_{timestamp}.txt via the shared DecodeLog
+  helper (Services), so the operator can open and print it. (User asked "can the rtty messages be
+  printed out" — this is the cross-platform answer; no direct-to-printer code, which Avalonia doesn't
+  do portably.) 374 tests incl. a DecodeLog write/read test.
 - QSO logging, callsign lookup, LoTW, HRD integration, N1MM/WSJT-X integration, APRS
   beacon, memory bulk editor, CSV activity logging, DX cluster (with spot posting),
   headless Pi server

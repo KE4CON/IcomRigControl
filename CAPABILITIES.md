@@ -131,6 +131,7 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Zero Beat button** — measures the actual pitch of the received tone, then tunes the radio (over CI-V) so it lands exactly on your CW pitch. That puts you precisely on the other station's frequency — "netted" — so they hear you where they expect. A **Reverse** toggle flips the tune direction for CW-Reverse.
 - **Tuning hint** — tells you how far off (in Hz) and which way the signal sits, even before you press Zero Beat.
 - Pitch and direction are saved. Proven by a modulate→decode **round-trip test** (no hardware needed).
+- **Save button** — writes the decoded text to a dated `.txt` file (Documents → IcomRigControl → Decoded) you can open and **print**.
 - *Honest note:* like every software CW reader, it copies clean and machine-sent CW very well and struggles with sloppy sending, deep fading, or interference — a good ear still wins there.
 
 ## 15. RTTY decode
@@ -140,6 +141,7 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Live RTTY reader** — decodes standard HF Baudot RTTY (45.45 baud, 170 Hz shift, 2125/2295 Hz tones) off the receive audio into a scrolling text window, in real time.
 - **Automatic letters/figures handling** — follows the Baudot shift codes, so digits and punctuation come out right.
 - **Reverse button** — swaps mark and space for a signal on the wrong sideband (the classic RTTY "why is it garbage" fix); takes effect immediately.
+- **Save button** — writes the decoded text to a dated `.txt` file (Documents → IcomRigControl → Decoded) that you can open and **print**.
 - Proven by a modulate→decode **round-trip test**, including a figures/numbers message and a reversed-polarity signal.
 
 ## 16. Settings & platform

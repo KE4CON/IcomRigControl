@@ -73,6 +73,46 @@ public class RemoteAudioLinkTests
         Assert.True(gotTone, "Expected the tone to reach the far end's audio output.");
     }
 
+    [Fact]
+    public async Task ServerMode_LearnsClientFromKeepalive_ThenStreamsRxAudioToIt()
+    {
+        int serverPort = FreeUdpPort();
+
+        var serverCapture = new FakeCapture();
+        var clientOutput = new RecordingStreamOutput();
+
+        // Server always streams the "radio" audio; client is receive-only (mic off).
+        await using var server = new RemoteAudioLink(serverCapture, new RecordingStreamOutput()) { SendEnabled = true };
+        await using var client = new RemoteAudioLink(new FakeCapture(), clientOutput) { SendEnabled = false };
+
+        server.StartServer(serverPort);
+        client.Start(localPort: 0, remoteHost: "127.0.0.1", remotePort: serverPort);
+
+        // Give a client keepalive time to reach the server so it learns the address.
+        await Task.Delay(1500);
+
+        serverCapture.Push(MakeTone(320 * 25));
+
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        bool gotTone = false;
+        while (DateTime.UtcNow < deadline && !gotTone)
+        {
+            foreach (var frame in clientOutput.Snapshot())
+                if (Rms(frame) > 500) { gotTone = true; break; }
+            if (!gotTone) await Task.Delay(50);
+        }
+
+        Assert.True(gotTone, "Server should stream RX audio to the client it learned via keepalive.");
+    }
+
+    private static short[] MakeTone(int length)
+    {
+        var tone = new short[length];
+        for (int i = 0; i < length; i++)
+            tone[i] = (short)(8000 * Math.Sin(2 * Math.PI * 1000 * i / 16000));
+        return tone;
+    }
+
     private static int FreeUdpPort()
     {
         using var u = new UdpClient(0);
@@ -99,7 +139,7 @@ public class RemoteAudioLinkTests
     private sealed class RecordingStreamOutput : IAudioStreamOutput
     {
         private readonly List<short[]> _frames = new();
-        public void Start(int sampleRateHz) { }
+        public void Start(int sampleRateHz, string? deviceName = null) { }
         public void Write(short[] pcmFrame) { lock (_frames) _frames.Add(pcmFrame); }
         public void Stop() { }
         public List<short[]> Snapshot() { lock (_frames) return new List<short[]>(_frames); }

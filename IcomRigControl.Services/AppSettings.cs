@@ -25,6 +25,12 @@ public class AppSettings
     public int RemotePort { get; set; } = 7300;
     public string RemoteAuthToken { get; set; } = "";
 
+    // Phase 12 remote audio: the server's UDP audio port (the desktop client
+    // reuses RemoteHost above as the server host) and the client's capture (mic)
+    // device.
+    public int RemoteAudioPort { get; set; } = 7301;
+    public string RemoteAudioCaptureDevice { get; set; } = "";
+
     // ── Phase 10: APRS beacon settings ──────────────────────────────────
     public string AprsCallsign { get; set; } = "";
     public int AprsSsid { get; set; } = 9; // 9 is the conventional SSID for mobile/HF APRS

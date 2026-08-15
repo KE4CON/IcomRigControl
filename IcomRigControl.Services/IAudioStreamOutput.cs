@@ -9,8 +9,10 @@ namespace IcomRigControl.Services;
 /// </summary>
 public interface IAudioStreamOutput
 {
-    /// Open the output at the given sample rate (16-bit mono).
-    void Start(int sampleRateHz);
+    /// Open the output at the given sample rate (16-bit mono). deviceName routes
+    /// to a specific device (e.g. an ALSA "plughw:X,Y" for the radio on the Pi);
+    /// null uses the system default.
+    void Start(int sampleRateHz, string? deviceName = null);
 
     /// Queue one frame of 16-bit mono PCM for continuous play-out.
     void Write(short[] pcmFrame);

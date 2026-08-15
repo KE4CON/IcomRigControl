@@ -73,8 +73,8 @@ FEATURE COMPARISON (RS-BA1 v2 vs. IcomRigControl, based on Icom's own published
 compatibility chart and feature descriptions):
 - Remote CI-V control: both have it (IcomRigControl's Phase 9, proven via loopback,
   real-hardware test still pending).
-- Remote real-time audio (listen/transmit live over IP): RS-BA1 has it; IcomRigControl
-  does NOT — see "Planned: Remote Audio (Phase 12)" below.
+- Remote real-time audio (listen/transmit live over IP): RS-BA1 has it; IcomRigControl now
+  does too (Phase 12, CODE-COMPLETE 2026-08-15, pending live hardware tuning) — see below.
 - Dualwatch / dual scope: RS-BA1 only for IC-7851/7850/7610, not relevant to our target
   radios either way.
 - Spectrum waterfall scope: both have it; IcomRigControl additionally has frequency axis
@@ -126,11 +126,19 @@ Remote Audio (Phase 12) — IN PROGRESS (started 2026-08-15). DESIGN DECIDED wit
   JitterBuffer->Opus decode (PLC on loss)->stream output, with a play-out clock and a SendEnabled
   gate. Capture/output are injected so it's testable: an end-to-end test pushes a tone through two
   links over real UDP loopback and confirms it arrives decoded at the far output.
-  REMAINING MILESTONES: (4) TX path + PTT coordination — the client keys the radio's PTT over the
-  Phase 9 CI-V link and flips SendEnabled while transmitting (server always streams radio RX). (5)
-  UI + settings + wiring: a Remote Audio panel (connect, device selection, ports, buffer depth),
-  and the headless Pi server running a RemoteAudioLink (radio audio in/out) beside CivTcpServer. (6)
-  real-hardware latency tuning (buffer depths, timer precision). Original design rationale follows:
+  MILESTONES 4 + 5 DONE (2026-08-15) — CODE-COMPLETE. (4) TX + PTT: the client's Remote Audio
+  window has a push-to-talk Transmit toggle that keys the radio's PTT over the Phase 9 CI-V link
+  and flips SendEnabled (mic on) while held — key-first/mic-second on, mic-first/unkey-second off,
+  and PTT is always released on disconnect/dispose (never leave the radio keyed). RemoteAudioLink
+  gained a server mode (learns the client's UDP address, NAT-friendly) + client keepalives (so RX
+  flows before PTT) + capture/output device selection. (5) Wiring: RemoteAudioViewModel + window
+  (server host, audio UDP port, mic device, connect/disconnect), a "Remote Audio" dashboard button,
+  AppSettings.RemoteAudioPort/CaptureDevice, and the headless Pi server runs a server-mode
+  RemoteAudioLink via --audioport [--audiocapture <alsadev>] [--audioout <alsadev>] beside
+  CivTcpServer. Tested: the server-mode learn-then-stream path (in addition to the milestone-3
+  end-to-end test). ONLY REMAINING: (6) real-hardware latency tuning (buffer depths, timer
+  precision, device routing) — this is the user's live testing session; the code is ready.
+  Original design rationale follows:
   PLANNED (rationale): Remote Audio is a genuinely different category of engineering from
   Phase 10's
   AFSK audio pipeline, which is one-shot (generate samples once, play them, done). Remote
@@ -307,10 +315,13 @@ Phase 10: APRS beacon over HF — FULLY COMPLETE ON BOTH WINDOWS AND MACOS. Conf
   including a flaky-test fix (see Coding Standards above). NOTHING REMAINING.
 Phase 11: Clickable radio front-panel control — user-photographed or vector image with
   transparent clickable regions overlaid. See UI Design note above. NOT STARTED.
-Phase 12 (planned): Remote Audio — real-time low-latency audio capture/streaming/playback
-  over the network, matching RS-BA1's core capability. See "RS-BA1 Comparison and Planned
-  Additions" above for why this is scoped as its own deliberate phase, not a quick add.
-  NOT STARTED — deliberately deferred, no code written yet.
+Phase 12: Remote Audio — real-time low-latency audio capture/streaming/playback over the
+  network, matching RS-BA1's core capability. CODE-COMPLETE 2026-08-15 (milestones 1-5:
+  Opus/Concentus, UDP + jitter buffer, cross-platform audio I/O incl. Pi/ALSA, the
+  full-duplex RemoteAudioLink engine, the Remote Audio client window with push-to-talk, and
+  the headless Pi audio server). ONLY remaining: milestone 6, real-hardware latency tuning —
+  the live testing session. See the detailed milestone breakdown under "RS-BA1 Comparison and
+  Planned Additions" above.
 Remote Power ON/OFF — IMPLEMENTED 2026-08-15 (CI-V command 0x18; PowerOn wake-up preamble;
   Power On/Off buttons on the dashboard). See "RS-BA1 Comparison and Planned Additions"
   above for the command details and the two real limitations (standby-only; the radio's

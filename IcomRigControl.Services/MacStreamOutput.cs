@@ -9,7 +9,7 @@ namespace IcomRigControl.Services;
 /// </summary>
 public class MacStreamOutput : IAudioStreamOutput
 {
-    public void Start(int sampleRateHz) { }
+    public void Start(int sampleRateHz, string? deviceName = null) { }
     public void Write(short[] pcmFrame) { }
     public void Stop() { }
 }

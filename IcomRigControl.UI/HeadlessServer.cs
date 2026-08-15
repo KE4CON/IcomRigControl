@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using IcomRigControl.CivEngine;
 using IcomRigControl.RigModel;
+using IcomRigControl.Services;
 
 namespace IcomRigControl.UI;
 
@@ -26,8 +27,9 @@ public static class HeadlessServer
             string.IsNullOrWhiteSpace(tcpPortStr) ||
             string.IsNullOrWhiteSpace(authToken))
         {
-            Console.WriteLine("Usage: IcomRigControl.UI --headless-server --port <comport> --tcpport <port> --token <authtoken> [--model IC7300|IC7300MK2|IC705]");
+            Console.WriteLine("Usage: IcomRigControl.UI --headless-server --port <comport> --tcpport <port> --token <authtoken> [--model IC7300|IC7300MK2|IC705] [--audioport <udpport> [--audiocapture <alsadev>] [--audioout <alsadev>]]");
             Console.WriteLine("Example: IcomRigControl.UI --headless-server --port /dev/ttyUSB0 --tcpport 7300 --token mysecret123");
+            Console.WriteLine("With audio: ... --audioport 7301 --audiocapture plughw:1,0 --audioout plughw:1,0");
             return;
         }
 
@@ -61,6 +63,32 @@ public static class HeadlessServer
         var server = new CivTcpServer(serialTransport, authToken, tcpPort);
         server.Start();
 
+        // Phase 12: optionally also serve real-time audio. --audioport enables it;
+        // --audiocapture / --audioout name the ALSA devices for the radio's RX
+        // audio (input) and TX audio (output). The link runs in server mode
+        // (learns the client's address) and always streams the radio's RX audio.
+        RemoteAudioLink? audioLink = null;
+        string? audioPortStr = GetArgValue(args, "--audioport");
+        if (!string.IsNullOrWhiteSpace(audioPortStr) && int.TryParse(audioPortStr, out int audioPort))
+        {
+            string? captureDevice = GetArgValue(args, "--audiocapture");
+            string? outputDevice = GetArgValue(args, "--audioout");
+            try
+            {
+                audioLink = new RemoteAudioLink(AudioDevices.CreateCapture(), AudioDevices.CreateStreamOutput())
+                {
+                    SendEnabled = true // always stream the radio's RX audio to the client
+                };
+                audioLink.StartServer(audioPort, captureDevice, outputDevice);
+                Console.WriteLine($"  Audio server on UDP port {audioPort} (capture={captureDevice ?? "default"}, out={outputDevice ?? "default"}).");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  WARNING: audio server failed to start: {ex.Message}");
+                audioLink = null;
+            }
+        }
+
         Console.WriteLine("  Server running. Press Ctrl+C to stop.");
 
         // Keep the process alive until Ctrl+C or process termination.
@@ -76,6 +104,7 @@ public static class HeadlessServer
 
         Console.WriteLine("Shutting down...");
         server.Stop();
+        if (audioLink is not null) await audioLink.DisposeAsync();
         await serialTransport.CloseAsync();
     }
 

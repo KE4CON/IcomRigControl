@@ -95,7 +95,8 @@ public static class WebRemotePage
 
   <div class="panel">
     <button id="listen" style="margin-bottom:8px">&#128266; Listen to RX audio</button>
-    <button id="ptt" class="ptt">PTT</button>
+    <button id="talk" class="ptt" style="margin-bottom:8px; touch-action:none">&#127908; Hold to Talk</button>
+    <button id="ptt" class="ptt">PTT (key only)</button>
     <div class="note" id="status">Connecting&hellip;</div>
   </div>
 
@@ -103,6 +104,7 @@ public static class WebRemotePage
 (function(){
   var step = 1000, ws = null, tx = false, inhibited = false;
   var listening = false, actx = null, playhead = 0, audioRate = 11025;
+  var txAvailable = false, txBusy = false, talking = false, micStream = null, micCtx = null, micNode = null;
   var $ = function(id){ return document.getElementById(id); };
   var MODES = ["LSB","USB","CW","CW-R","RTTY","RTTY-R","AM","FM","USB-D"];
 
@@ -165,6 +167,58 @@ public static class WebRemotePage
     }
   };
 
+  // Push-to-talk: capture the phone mic, downsample to the stream rate, and send
+  // 16-bit PCM frames while held. (Browsers only allow the mic over HTTPS or
+  // localhost — over plain http the getUserMedia call is rejected; handled below.)
+  function txDisabled(){ return inhibited || !txAvailable || txBusy; }
+  function updateTalkUI(){
+    var t = $("talk");
+    if (!txAvailable){ t.style.display = "none"; return; }
+    t.style.display = "block";
+    if (talking){ t.className = "ptt tx"; t.textContent = "🔴 TRANSMITTING"; }
+    else if (inhibited){ t.className = "ptt inh"; t.textContent = "TX INHIBITED"; }
+    else if (txBusy){ t.className = "ptt"; t.textContent = "another operator is transmitting"; }
+    else { t.className = "ptt"; t.innerHTML = "&#127908; Hold to Talk"; }
+  }
+  async function startMic(){
+    if (!micStream) micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}});
+    if (!micCtx) micCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await micCtx.resume();
+    var src = micCtx.createMediaStreamSource(micStream);
+    micNode = micCtx.createScriptProcessor(2048, 1, 1);
+    var ratio = micCtx.sampleRate / audioRate, acc = 0;
+    micNode.onaudioprocess = function(e){
+      if (!talking || !ws || ws.readyState !== 1) return;
+      var input = e.inputBuffer.getChannelData(0), out = [];
+      for (var i = 0; i < input.length; i++){ acc += 1; if (acc >= ratio){ acc -= ratio; out.push(input[i]); } }
+      if (!out.length) return;
+      var buf = new Int16Array(out.length);
+      for (var j = 0; j < out.length; j++){ var s = Math.max(-1, Math.min(1, out[j])); buf[j] = s < 0 ? s*32768 : s*32767; }
+      ws.send(buf.buffer);
+    };
+    var mute = micCtx.createGain(); mute.gain.value = 0; // avoid mic->speaker feedback
+    src.connect(micNode); micNode.connect(mute); mute.connect(micCtx.destination);
+  }
+  function stopMic(){ if (micNode){ micNode.onaudioprocess = null; try { micNode.disconnect(); } catch(e){} micNode = null; } }
+  async function talkStart(ev){
+    if (ev) ev.preventDefault();
+    if (talking || txDisabled()) return;
+    talking = true; updateTalkUI(); send({cmd:"tx", on:true});
+    try { await startMic(); }
+    catch(e){
+      talking = false; send({cmd:"tx", on:false}); updateTalkUI();
+      setStatus(location.protocol === "https:" ? ("Mic error: " + e.message)
+        : "Talk needs a secure (HTTPS) connection or localhost — the browser blocks the mic over plain http.");
+    }
+  }
+  function talkEnd(ev){ if (ev) ev.preventDefault(); if (!talking) return; talking = false; stopMic(); send({cmd:"tx", on:false}); updateTalkUI(); }
+  var talkBtn = $("talk");
+  talkBtn.addEventListener("pointerdown", talkStart);
+  talkBtn.addEventListener("pointerup", talkEnd);
+  talkBtn.addEventListener("pointercancel", talkEnd);
+  talkBtn.addEventListener("pointerleave", talkEnd);
+  talkBtn.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+
   function fmtFreq(hz){
     var mhz = Math.floor(hz / 1e6), rest = hz % 1e6;
     var k = Math.floor(rest / 1000), h = rest % 1000;
@@ -206,6 +260,8 @@ public static class WebRemotePage
     if (s.type === "scope"){ drawScope(s); return; }
     if (s.audioRate) audioRate = s.audioRate;
     if (s.audioAvailable === false) $("listen").style.display = "none";
+    if (s.txAvailable != null) txAvailable = s.txAvailable;
+    if (s.txBusy != null) txBusy = s.txBusy && !talking;
     if (s.freq != null) $("freq").textContent = fmtFreq(s.freq);
     if (s.mode != null){
       $("mode").textContent = s.mode + (s.connected ? "" : "  (radio offline)");
@@ -220,7 +276,8 @@ public static class WebRemotePage
     inhibited = !!s.inhibited; tx = !!s.ptt;
     var p = $("ptt");
     p.className = "ptt" + (inhibited ? " inh" : (tx ? " tx" : ""));
-    p.textContent = inhibited ? "TX INHIBITED" : (tx ? "ON AIR — TAP TO STOP" : "PTT");
+    p.textContent = inhibited ? "TX INHIBITED" : (tx ? "ON AIR — TAP TO STOP" : "PTT (key only)");
+    updateTalkUI();
   }
 
   function askToken(){

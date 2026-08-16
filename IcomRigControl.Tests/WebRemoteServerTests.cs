@@ -109,6 +109,65 @@ public class WebRemoteServerTests
     }
 
     [Fact]
+    public async Task Transmit_KeysPtt_FeedsMicAudio_AndUnkeys()
+    {
+        var rig = new Transceiver(new FakeCivTransport(), RadioModel.IC7300);
+        int port = FreePort();
+        var txOut = new RecordingStreamOutput();
+        var server = new WebRemoteServer(rig, token: null, port, txOutputFactory: () => txOut);
+        server.Start();
+        try
+        {
+            using var ws = new ClientWebSocket();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{port}/ws"), cts.Token);
+
+            await SendTextAsync(ws, "{\"cmd\":\"tx\",\"on\":true}", cts.Token);
+            await WaitUntil(() => rig.PttActive, TimeSpan.FromSeconds(5));
+            Assert.True(rig.PttActive, "PTT should be keyed while transmitting");
+
+            // Send a mic PCM frame; it should reach the radio's TX output.
+            var frame = new byte[400];
+            await ws.SendAsync(frame, WebSocketMessageType.Binary, true, cts.Token);
+            await WaitUntil(() => txOut.SamplesWritten > 0, TimeSpan.FromSeconds(5));
+            Assert.True(txOut.SamplesWritten > 0, "mic audio should be written to the radio's TX output");
+
+            await SendTextAsync(ws, "{\"cmd\":\"tx\",\"on\":false}", cts.Token);
+            await WaitUntil(() => !rig.PttActive, TimeSpan.FromSeconds(5));
+            Assert.False(rig.PttActive, "PTT should be released when transmit stops");
+
+            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", cts.Token);
+        }
+        finally
+        {
+            await server.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Transmit_IsBlocked_WhenTransmitInhibited()
+    {
+        var rig = new Transceiver(new FakeCivTransport(), RadioModel.IC7300) { TransmitInhibited = true };
+        int port = FreePort();
+        var server = new WebRemoteServer(rig, token: null, port, txOutputFactory: () => new RecordingStreamOutput());
+        server.Start();
+        try
+        {
+            using var ws = new ClientWebSocket();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{port}/ws"), cts.Token);
+
+            await SendTextAsync(ws, "{\"cmd\":\"tx\",\"on\":true}", cts.Token);
+            await Task.Delay(700, cts.Token);
+            Assert.False(rig.PttActive, "TX-inhibit must block keying from the web remote");
+        }
+        finally
+        {
+            await server.DisposeAsync();
+        }
+    }
+
+    [Fact]
     public async Task RejectsWebSocket_WhenTokenIsWrong()
     {
         var rig = new Transceiver(new FakeCivTransport(), RadioModel.IC7300);
@@ -189,5 +248,20 @@ public class WebRemoteServerTests
         }
 
         public void Stop() { _cts?.Cancel(); _cts = null; }
+    }
+
+    private static async Task WaitUntil(Func<bool> cond, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (!cond() && DateTime.UtcNow < deadline) await Task.Delay(25);
+    }
+
+    private sealed class RecordingStreamOutput : IAudioStreamOutput
+    {
+        public int SamplesWritten { get; private set; }
+        public bool Running { get; private set; }
+        public void Start(int sampleRateHz, string? deviceName = null) => Running = true;
+        public void Write(short[] pcmFrame) => SamplesWritten += pcmFrame.Length;
+        public void Stop() => Running = false;
     }
 }

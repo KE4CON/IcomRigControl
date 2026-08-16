@@ -764,6 +764,12 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         _contactListener?.Stop();
         _radioInfoBroadcaster?.Stop();
+        // Dispose the app-lifetime helpers that own timers / Transceiver event
+        // subscriptions BEFORE the Transceiver, so their callbacks stop firing first.
+        _scheduler?.Dispose();
+        _swrProtection?.Dispose();
+        _scopeRecorder.Dispose();
+        _bandRecorder.Dispose();
         await _transceiver.DisposeAsync();
     }
 }

@@ -76,6 +76,9 @@ public static class AdifWriter
         File.WriteAllText(path, sb.ToString());
     }
 
+    // ADIF field length is the BYTE count of the value in the file's encoding (UTF-8),
+    // not the char count — otherwise a non-ASCII value (e.g. a name with an accent)
+    // declares the wrong length and corrupts the record on import.
     private static string Field(string name, string value) =>
-        $"<{name}:{value.Length}>{value}";
+        $"<{name}:{System.Text.Encoding.UTF8.GetByteCount(value)}>{value}";
 }

@@ -610,6 +610,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         {
             DataContext = dvrViewModel
         };
+        dvrWindow.Closed += (_, _) => dvrViewModel.Dispose(); // release the window's player
         dvrWindow.Show();
     }
 

@@ -127,3 +127,4 @@ public class BandRecorderTests
         public void Push(short[] samples) => SamplesCaptured?.Invoke(this, samples);
     }
 }
+

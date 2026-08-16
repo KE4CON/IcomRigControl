@@ -51,7 +51,7 @@
 
         <Border Grid.Row="4" Background="#0d0d0d" CornerRadius="6" Padding="12">
             <StackPanel Spacing="8">
-                <ToggleButton IsChecked="{Binding IsRecording}" Command="{Binding ToggleRecordCommand}"
+                <ToggleButton IsChecked="{Binding IsRecording}"
                               IsEnabled="{Binding IsMonitoring}" HorizontalAlignment="Left">
                     <ToggleButton.Styles>
                         <Style Selector="ToggleButton">

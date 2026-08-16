@@ -21,6 +21,7 @@ public sealed class LiveRttyTransmitter
     private readonly ConcurrentQueue<string> _queue = new();
 
     private CancellationTokenSource? _cts;
+    private Task? _pumpTask;
 
     public bool IsTransmitting { get; private set; }
 
@@ -44,8 +45,7 @@ public sealed class LiveRttyTransmitter
         _output.Start(_rate, deviceName);
         IsTransmitting = true;
         _cts = new CancellationTokenSource();
-        var ct = _cts.Token;
-        _ = Task.Run(() => { while (!ct.IsCancellationRequested) PumpOnce(); });
+        _pumpTask = Task.Run(() => PumpLoopAsync(_cts.Token));
         return true;
     }
 
@@ -55,23 +55,39 @@ public sealed class LiveRttyTransmitter
         if (!string.IsNullOrEmpty(text)) _queue.Enqueue(text);
     }
 
-    /// Stops transmitting and releases PTT — always.
+    /// Stops transmitting and releases PTT — always. Awaits the pump so no late Write
+    /// lands on a stopped output, and disposes the CTS.
     public async Task StopAsync()
     {
-        _cts?.Cancel();
+        var cts = _cts;
         _cts = null;
+        cts?.Cancel();
+
+        var task = _pumpTask;
+        _pumpTask = null;
+        if (task is not null) { try { await task; } catch { } } // wait for the pump to exit
+
         try { _output.Stop(); } catch { }
+        cts?.Dispose();
         IsTransmitting = false;
-        try { await _rig.SetPttAsync(false); } catch { }
+        try { await _rig.SetPttAsync(false); } catch { } // unkey last — always
     }
 
-    // One streaming step: send the next queued text, or an idle chunk if there's none.
-    // Back-pressure in the stream output paces this to real time.
-    private void PumpOnce()
+    // Streams the next queued text, or an idle chunk, then paces itself to the chunk's
+    // real playback duration. This is what makes it correct on Windows too — the
+    // NAudio stream output does NOT block, so without this delay the loop would spin a
+    // CPU core and continuously overflow (discard) the output buffer, garbling TX.
+    private async Task PumpLoopAsync(CancellationToken ct)
     {
-        _queue.TryDequeue(out string? text);
-        short[] chunk = BuildChunk(text, _profile, _rate);
-        try { _output.Write(chunk); } catch { }
+        while (!ct.IsCancellationRequested)
+        {
+            _queue.TryDequeue(out string? text);
+            short[] chunk = BuildChunk(text, _profile, _rate);
+            try { _output.Write(chunk); } catch { }
+
+            int ms = chunk.Length * 1000 / _rate; // real-time duration of this chunk
+            try { await Task.Delay(Math.Max(1, ms), ct); } catch { break; }
+        }
     }
 
     /// Builds one PCM chunk: the modulated text, or ~1/3 s of idle tone if null/empty.
@@ -79,7 +95,7 @@ public sealed class LiveRttyTransmitter
     public static short[] BuildChunk(string? text, RttyProfile profile, int sampleRateHz)
     {
         float[] audio = string.IsNullOrEmpty(text)
-            ? RttyModulator.Modulate("", profile, sampleRateHz, leadIdleBits: 16) // idle (rest) tone
+            ? RttyModulator.Modulate("", profile, sampleRateHz, leadIdleBits: 8) // short idle (rest) tone — keeps typed-char latency low
             : RttyModulator.Modulate(text, profile, sampleRateHz, leadIdleBits: 0);
 
         var pcm = new short[audio.Length];

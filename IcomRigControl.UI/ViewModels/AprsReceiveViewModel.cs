@@ -24,6 +24,7 @@ public partial class AprsReceiveViewModel : ViewModelBase, IAsyncDisposable
     private readonly SettingsService _settingsService;
     private readonly AprsBeaconService _beaconService;
     private readonly Dictionary<string, AprsStationRow> _byCall = new();
+    private readonly PushNotifier _push = new(new System.Net.Http.HttpClient());
     private AprsReceiveService? _rxService;
 
     public ObservableCollection<AprsStationRow> Stations { get; } = new();
@@ -105,7 +106,14 @@ public partial class AprsReceiveViewModel : ViewModelBase, IAsyncDisposable
                                  string.Equals(rx.Packet.MessageAddressee, myCall, StringComparison.OrdinalIgnoreCase);
             bool forUs = string.IsNullOrWhiteSpace(myCall) || addressedToMe;
             if (forUs)
+            {
                 Messages.Insert(0, new AprsMessageRow(call, rx.Packet.MessageText ?? "", now.ToString("HH:mm:ss")));
+
+                // Push the message to the operator's phone if enabled.
+                var settings = _settingsService.Load();
+                if (settings.PushEnabled && !string.IsNullOrWhiteSpace(settings.PushTopic))
+                    _ = _push.SendAsync(settings.PushTopic, $"APRS message from {call}", rx.Packet.MessageText ?? "");
+            }
 
             // Courtesy auto-ACK: only for a numbered message actually addressed to us,
             // and never for an ACK itself (those carry no line number).

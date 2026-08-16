@@ -16,7 +16,7 @@ namespace IcomRigControl.UI.ViewModels;
 /// record-to-WAV, and a recordings manager (play, delete, total size) so the disk
 /// doesn't fill up. See CLAUDE.md Band DVR.
 /// </summary>
-public partial class BandDvrViewModel : ViewModelBase
+public partial class BandDvrViewModel : ViewModelBase, IDisposable
 {
     private readonly SettingsService _settingsService;
     private readonly BandRecorder _recorder;
@@ -77,27 +77,27 @@ public partial class BandDvrViewModel : ViewModelBase
         Status = "Stopped.";
     }
 
-    [RelayCommand]
-    private void ToggleRecord()
+    // Drive recording from the toggle's property change (not a Command) so the
+    // TwoWay IsChecked binding doesn't fight the handler — the earlier Command+TwoWay
+    // combination made the toggle stop itself and never record (audit finding).
+    partial void OnIsRecordingChanged(bool value)
     {
-        if (!_recorder.IsCapturing) { Status = "Start monitoring first."; return; }
-        try
+        if (value)
         {
-            if (!IsRecording)
+            if (!_recorder.IsCapturing) { Status = "Start monitoring first."; IsRecording = false; return; }
+            try
             {
                 string path = _recorder.StartRecording(BandRecorder.RecordingsDir);
-                IsRecording = true;
                 Status = $"Recording to {Path.GetFileName(path)}";
             }
-            else
-            {
-                _recorder.StopRecording();
-                IsRecording = false;
-                Status = "Recording saved.";
-                RefreshRecordings();
-            }
+            catch (Exception ex) { Status = $"Record error: {ex.Message}"; IsRecording = false; }
         }
-        catch (Exception ex) { Status = $"Record error: {ex.Message}"; }
+        else if (_recorder.IsRecording)
+        {
+            _recorder.StopRecording();
+            Status = "Recording saved.";
+            RefreshRecordings();
+        }
     }
 
     [RelayCommand]
@@ -174,6 +174,10 @@ public partial class BandDvrViewModel : ViewModelBase
         }
         catch (Exception ex) { Status = $"Could not open folder: {ex.Message}"; }
     }
+
+    /// Disposes this window's audio player. Does NOT touch the shared BandRecorder /
+    /// ScopeRecorder (owned by the main window).
+    public void Dispose() => (_player as IDisposable)?.Dispose();
 
     private static string SizeText(long bytes) => bytes switch
     {

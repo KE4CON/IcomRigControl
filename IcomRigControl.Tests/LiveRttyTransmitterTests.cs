@@ -39,8 +39,11 @@ public class LiveRttyTransmitterTests
         Assert.True(await tx.StartAsync());
         Assert.True(rig.PttActive);
         tx.Enqueue("TEST");
-        await Task.Delay(150); // let the pump write a few chunks
+        await Task.Delay(350); // let the pump run for a bit
         Assert.True(output.WriteCount > 0, "should be streaming audio while transmitting");
+        // The loop must be PACED to real time, not spinning: a busy-loop (the bug)
+        // would write many thousands of chunks in 350 ms. Paced ≈ a handful.
+        Assert.True(output.WriteCount < 50, $"pump should be paced, not busy-looping (wrote {output.WriteCount})");
 
         await tx.StopAsync();
         Assert.False(rig.PttActive);

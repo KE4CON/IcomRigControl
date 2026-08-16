@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:IcomRigControl.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="320"
+        x:Class="IcomRigControl.UI.Views.GreyLineWindow"
+        x:DataType="vm:GreyLineViewModel"
+        Title="Grey Line"
+        Width="440" Height="320"
+        Background="#1a1a1a">
+
+    <StackPanel Margin="16" Spacing="12">
+        <TextBlock Text="Grey-line DX timing" Foreground="#88ccff" FontSize="16" FontWeight="Bold"/>
+
+        <Border Background="#0d0d0d" CornerRadius="6" Padding="12">
+            <StackPanel Spacing="6">
+                <TextBlock Text="{Binding Location, StringFormat='Your location: {0}'}" Foreground="Gray" FontSize="12"/>
+                <Grid ColumnDefinitions="Auto,*">
+                    <TextBlock Grid.Column="0" Text="Sunrise" Foreground="Gray" Width="70"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Sunrise}" Foreground="#00ff88" FontFamily="Courier New"/>
+                </Grid>
+                <Grid ColumnDefinitions="Auto,*">
+                    <TextBlock Grid.Column="0" Text="Sunset" Foreground="Gray" Width="70"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Sunset}" Foreground="#00ff88" FontFamily="Courier New"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <Border CornerRadius="6" Padding="12">
+            <Border.Styles>
+                <Style Selector="Border">
+                    <Setter Property="Background" Value="#0d0d0d"/>
+                </Style>
+            </Border.Styles>
+            <TextBlock Text="{Binding StatusText}" Foreground="#ffcc00" FontWeight="Bold" TextWrapping="Wrap"/>
+        </Border>
+
+        <TextBlock Text="{Binding Note}" Foreground="Gray" FontSize="11" TextWrapping="Wrap"/>
+
+        <Button Content="Refresh" Command="{Binding RefreshCommand}"
+                HorizontalAlignment="Left" Background="#2a2a2a" Foreground="White" Padding="12,6"/>
+    </StackPanel>
+</Window>

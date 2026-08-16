@@ -549,6 +549,13 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenGreyLine()
+    {
+        var glWindow = new Views.GreyLineWindow { DataContext = new GreyLineViewModel(_settingsService) };
+        glWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenScheduler()
     {
         var vm = new SchedulerViewModel(_settingsService, () => _scheduler?.SetTasks(_settingsService.Load().ScheduledTasks));

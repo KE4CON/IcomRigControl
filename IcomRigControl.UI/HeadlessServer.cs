@@ -90,7 +90,10 @@ public static class HeadlessServer
                 }
             });
 
-            var webServer = new WebRemoteServer(rig, webToken, webPort);
+            // --audiocapture names the ALSA device for the radio's RX audio (browser Listen).
+            string? webAudioDevice = GetArgValue(args, "--audiocapture");
+            var webServer = new WebRemoteServer(rig, webToken, webPort,
+                captureFactory: AudioDevices.CreateCapture, captureDevice: webAudioDevice);
             webServer.Start();
             Console.WriteLine($"  Web remote on http://<this-Pi-IP>:{webPort} (token {(string.IsNullOrWhiteSpace(webToken) ? "none" : "set")}).");
             foreach (string url in WebRemoteServer.GetLanUrls(webPort))

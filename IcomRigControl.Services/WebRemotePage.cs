@@ -94,6 +94,7 @@ public static class WebRemotePage
   </div>
 
   <div class="panel">
+    <button id="listen" style="margin-bottom:8px">&#128266; Listen to RX audio</button>
     <button id="ptt" class="ptt">PTT</button>
     <div class="note" id="status">Connecting&hellip;</div>
   </div>
@@ -101,6 +102,7 @@ public static class WebRemotePage
 <script>
 (function(){
   var step = 1000, ws = null, tx = false, inhibited = false;
+  var listening = false, actx = null, playhead = 0, audioRate = 11025;
   var $ = function(id){ return document.getElementById(id); };
   var MODES = ["LSB","USB","CW","CW-R","RTTY","RTTY-R","AM","FM","USB-D"];
 
@@ -124,13 +126,44 @@ public static class WebRemotePage
 
   function connect(){
     try { ws = new WebSocket(wsUrl()); } catch(e){ setStatus("Bad address"); return; }
-    ws.onopen = function(){ $("conn").className = "dot ok"; setStatus("Connected"); };
+    ws.binaryType = "arraybuffer";
+    ws.onopen = function(){ $("conn").className = "dot ok"; setStatus("Connected"); if (listening) send({cmd:"audio", on:true}); };
     ws.onclose = function(){ $("conn").className = "dot"; setStatus("Disconnected — retrying…"); setTimeout(connect, 1500); };
-    ws.onmessage = function(ev){ try { render(JSON.parse(ev.data)); } catch(e){} };
+    ws.onmessage = function(ev){
+      if (typeof ev.data !== "string"){ playPcm(ev.data); return; }   // binary = RX audio
+      try { render(JSON.parse(ev.data)); } catch(e){}
+    };
   }
 
   function send(obj){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
   function setStatus(s){ $("status").textContent = s; }
+
+  // RX audio: play streamed 16-bit PCM frames gaplessly through WebAudio.
+  function playPcm(ab){
+    if (!actx || actx.state !== "running") return;
+    var i16 = new Int16Array(ab), n = i16.length;
+    if (!n) return;
+    var buf = actx.createBuffer(1, n, audioRate);
+    var ch = buf.getChannelData(0);
+    for (var i = 0; i < n; i++) ch[i] = i16[i] / 32768;
+    var src = actx.createBufferSource(); src.buffer = buf; src.connect(actx.destination);
+    var now = actx.currentTime;
+    if (playhead < now || playhead > now + 0.5) playhead = now + 0.06; // resync on drift/underrun
+    src.start(playhead);
+    playhead += buf.duration;
+  }
+  $("listen").onclick = function(){
+    listening = !listening;
+    if (listening){
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      actx.resume(); playhead = actx.currentTime;
+      send({cmd:"audio", on:true});
+      $("listen").className = "sel"; $("listen").innerHTML = "&#128263; Stop audio";
+    } else {
+      send({cmd:"audio", on:false});
+      $("listen").className = ""; $("listen").innerHTML = "&#128266; Listen to RX audio";
+    }
+  };
 
   function fmtFreq(hz){
     var mhz = Math.floor(hz / 1e6), rest = hz % 1e6;
@@ -171,6 +204,8 @@ public static class WebRemotePage
   function render(s){
     if (s.type === "unauthorized"){ askToken(); return; }
     if (s.type === "scope"){ drawScope(s); return; }
+    if (s.audioRate) audioRate = s.audioRate;
+    if (s.audioAvailable === false) $("listen").style.display = "none";
     if (s.freq != null) $("freq").textContent = fmtFreq(s.freq);
     if (s.mode != null){
       $("mode").textContent = s.mode + (s.connected ? "" : "  (radio offline)");

@@ -46,7 +46,7 @@
             <Button Content="Clear" Command="{Binding ClearSpotsCommand}"
                     Background="#2a2a2a" Foreground="White" Padding="10,6"/>
             <ToggleButton IsChecked="{Binding NewOnly}" Content="★ New only" Margin="6,0,0,0"
-                          ToolTip.Tip="Show only stations you haven't worked on that band.">
+                          ToolTip.Tip="Show only new DXCC entities (not worked before).">
                 <ToggleButton.Styles>
                     <Style Selector="ToggleButton">
                         <Setter Property="Background" Value="#2a2a2a"/><Setter Property="Foreground" Value="White"/><Setter Property="Padding" Value="10,6"/>
@@ -115,7 +115,7 @@
                                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                                     <TextBlock Text="★" Foreground="#ffcc00" Padding="6,5,0,5"
                                                IsVisible="{Binding IsNew}"
-                                               ToolTip.Tip="New — not worked on this band"/>
+                                               ToolTip.Tip="New DXCC entity — not worked before"/>
                                     <TextBlock Text="{Binding DxCallsign}" FontWeight="Bold" Padding="4,5,6,5" FontFamily="Courier New"
                                                Foreground="White"/>
                                 </StackPanel>

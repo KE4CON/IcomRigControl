@@ -578,6 +578,19 @@ CONFIRMED-AND-FIXED BUG 2026-08-15: SettingsViewModel.Save() built a FRESH AppSe
   whenever the user opened Settings and clicked Save. Fixed to LOAD-then-modify (mutate the loaded
   AppSettings, preserving unlisted fields). When adding a setting owned by a non-Settings window, this
   load-then-modify pattern is now the rule everywhere.
+DXCC award tracking + DXCC-aware "new one!" spot alerts — IN PROGRESS 2026-08-15. DxccResolver
+  (Services): callsign->DXCC entity via a CURATED prefix table (~150 common entities, longest-prefix
+  match, portable-suffix handling; NOT the full ~340 — cty.dat import is the noted refinement; unknown
+  -> "Unknown"). AwardTracker (Services): from WorkedContact(call,band,grid) computes distinct DXCC
+  entities + grid squares worked and IsNewEntity(call). LOGGER TIE-IN IS HRD-ONLY (user decision
+  2026-08-15: "i'm going to stick just with hrd … this is open source … if they want another program
+  they can code that themselves"): HrdSqliteBridge.ReadWorkedAsync() reads (call,band,grid) from HRD's
+  log defensively (grid query with call+band fallback; empty on any error, never throws). DX Cluster
+  window now flags a spot with a gold ★ when its DXCC ENTITY isn't in HRD's history OR this session
+  (was call+band via SpotNeedAnalyzer, which still exists/tested) — loaded on Connect via
+  LoadWorkedEntitiesAsync; "New only" filter + live ★-count now mean new-entity. 13 tests (resolver
+  known/unknown; tracker counts + new-one). REMAINING: an Awards window (DXCC/grid progress + missing
+  list); WAS (needs the QSO state field — HRD has it, IcomRigControl QsoRecord doesn't yet).
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

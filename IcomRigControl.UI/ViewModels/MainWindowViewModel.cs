@@ -25,6 +25,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly ScopeRecorder _scopeRecorder;
     private SwrProtection? _swrProtection;
     private Scheduler? _scheduler;
+    private readonly PushNotifier _push = new(new HttpClient());
 
     /// Dashboard clock (local + UTC) and the FCC station-ID reminder.
     public StationClockViewModel Clock { get; }
@@ -335,6 +336,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
             {
                 TransmitInhibited = true; // reflect the guard's inhibit in the UI
                 StatusMessage = $"⚠ SWR guard tripped at {swr:F1}:1 — transmit inhibited. Fix the antenna/tuner, then clear Receive-Only.";
+                var s = _settingsService.Load();
+                if (s.PushEnabled && !string.IsNullOrWhiteSpace(s.PushTopic))
+                    _ = _push.SendAsync(s.PushTopic, "SWR guard tripped",
+                        $"Transmit inhibited at {swr:F1}:1 SWR — check the antenna/tuner.");
             });
         }
         _swrProtection.Enabled = settings.SwrGuardEnabled;

@@ -32,9 +32,13 @@
 
         <!-- Clock (local + UTC) and the FCC 10-minute station-ID reminder -->
         <Grid ColumnDefinitions="*,Auto">
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Clock.LocalTime}" Foreground="#00ff88" FontFamily="Courier New" FontSize="14"/>
                 <TextBlock Text="{Binding Clock.UtcTime, StringFormat='UTC {0}'}" Foreground="#88ccff" FontFamily="Courier New" FontSize="14"/>
+                <Button Content="⟳" Command="{Binding Clock.CheckTimeCommand}" Padding="6,0"
+                        Background="#2a2a2a" Foreground="White"
+                        ToolTip.Tip="Check the PC clock against internet time"/>
+                <TextBlock Text="{Binding Clock.TimeSyncStatus}" Foreground="Gray" FontSize="11" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Clock.IdCountdown}" Foreground="Gray" FontFamily="Courier New"

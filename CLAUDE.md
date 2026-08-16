@@ -497,6 +497,20 @@ Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-0
   listen, and (over HTTPS) talk, from any phone/tablet browser.
   SECURITY: token in query; HTTP is plain (trusted LAN/VPN), HTTPS is self-signed (encrypts the link,
   untrusted issuer). Same posture as Phase 9's remote CI-V.
+Phase 14: Band DVR (record & rewind the radio) — IN PROGRESS (started 2026-08-15). "Who was that? —
+  rewind." WavWriter (Services): pure-managed streaming 16-bit mono WAV (RIFF header patched on Close),
+  works on Windows/mac/Linux/Pi with no audio lib. BandRecorder (Services): IAudioCapture -> a rolling
+  ring buffer (default 60 s) for INSTANT REPLAY, plus optional continuous recording to a timestamped
+  WAV under Documents/IcomRigControl/Recordings; resilient (capture errors recorded, not thrown). UI:
+  non-modal Band DVR window + dashboard button — Start/Stop monitor, "Replay last 30s/60s" (plays the
+  ring buffer via IAudioPlayer), a Record-to-file toggle, and Open-recordings-folder. 3 tests (WAV
+  round-trip incl. 44-byte header + data length + sample value; rewind returns the most-recent N
+  seconds from the ring; record-to-file produces a valid WAV of the pushed audio). REMAINING: (a) scope
+  DVR — record/scrub the waterfall too (store waveform frames); (b) per-QSO audio auto-attached to the
+  log; (c) a playback list of saved recordings with in-app play. HARDWARE NOTE: Band DVR opens its own
+  IAudioCapture; running it at the same time as CW/RTTY decode or the web remote means multiple captures
+  of the radio's one audio device — fine on Windows/WASAPI shared mode, but ALSA (Pi) may report the
+  device busy. Confirm in the testing session; a shared capture-fan-out is the fix if needed.
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

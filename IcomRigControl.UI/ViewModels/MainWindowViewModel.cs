@@ -493,6 +493,18 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenBandDvr()
+    {
+        var dvrViewModel = new BandDvrViewModel(_settingsService);
+        var dvrWindow = new Views.BandDvrWindow
+        {
+            DataContext = dvrViewModel
+        };
+        dvrWindow.Closed += (_, _) => dvrViewModel.Dispose();
+        dvrWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenWebRemote()
     {
         var webViewModel = new WebRemoteViewModel(_transceiver, _settingsService);

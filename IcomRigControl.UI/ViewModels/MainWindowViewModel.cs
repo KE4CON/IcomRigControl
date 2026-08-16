@@ -22,6 +22,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly SettingsService _settingsService;
     private readonly QsoLogger _qsoLogger;
     private readonly BandRecorder _bandRecorder;
+    private readonly ScopeRecorder _scopeRecorder;
     private readonly IAudioPlayer _audioPlayer = AudioDevices.CreatePlayer();
 
     private RadioInfoUdpBroadcaster? _radioInfoBroadcaster;
@@ -161,6 +162,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         // monitoring, each logged QSO gets a short audio clip attached.
         _bandRecorder = new BandRecorder(AudioDevices.CreateCapture());
         _qsoLogger.AudioSource = _bandRecorder;
+        // Waterfall history buffer — just listens to the scope that's already running.
+        _scopeRecorder = new ScopeRecorder(_transceiver);
         _aprsBeaconService = new AprsBeaconService(_transceiver, _audioPlayer);
         _beaconScheduler = new PeriodicBeaconScheduler(SendBeacon);
 
@@ -502,7 +505,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         // Shares the app-wide recorder so per-QSO audio keeps working and monitoring
         // survives closing the window (the recorder is owned by this main VM).
-        var dvrViewModel = new BandDvrViewModel(_settingsService, _bandRecorder);
+        var dvrViewModel = new BandDvrViewModel(_settingsService, _bandRecorder, _scopeRecorder);
         var dvrWindow = new Views.BandDvrWindow
         {
             DataContext = dvrViewModel

@@ -3,14 +3,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:IcomRigControl.UI.ViewModels"
+        xmlns:views="using:IcomRigControl.UI.Views"
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="360"
         x:Class="IcomRigControl.UI.Views.BandDvrWindow"
         x:DataType="vm:BandDvrViewModel"
         Title="Band DVR"
-        Width="580" Height="600"
+        Width="580" Height="700"
         Background="#1a1a1a">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="16">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" Margin="16">
 
         <TextBlock Grid.Row="0" Text="Record and rewind the radio. Monitor keeps the last 60 seconds ready to replay."
                    Foreground="#88ccff" TextWrapping="Wrap" Margin="0,0,0,12"/>
@@ -39,9 +40,16 @@
                     Background="#243b5a" Foreground="White" Padding="12,8"/>
             <Button Content="⏪ Replay last 60s" Command="{Binding ReplayLast60Command}" IsEnabled="{Binding IsMonitoring}"
                     Background="#243b5a" Foreground="White" Padding="12,8"/>
+            <Button Content="📈 Replay waterfall" Command="{Binding ReplayWaterfallCommand}"
+                    Background="#243b5a" Foreground="White" Padding="12,8"
+                    ToolTip.Tip="Redraw the last ~90 seconds of the waterfall (in memory — no disk used)."/>
         </StackPanel>
 
-        <Border Grid.Row="3" Background="#0d0d0d" CornerRadius="6" Padding="12">
+        <Border Grid.Row="3" Background="#000" CornerRadius="6" Height="130" Margin="0,0,0,10">
+            <views:WaterfallControl x:Name="ReplayWaterfall"/>
+        </Border>
+
+        <Border Grid.Row="4" Background="#0d0d0d" CornerRadius="6" Padding="12">
             <StackPanel Spacing="8">
                 <ToggleButton IsChecked="{Binding IsRecording}" Command="{Binding ToggleRecordCommand}"
                               IsEnabled="{Binding IsMonitoring}" HorizontalAlignment="Left">
@@ -67,7 +75,7 @@
         </Border>
 
         <!-- Recordings manager -->
-        <Border Grid.Row="4" Background="#0d0d0d" CornerRadius="6" Padding="10" Margin="0,10,0,0">
+        <Border Grid.Row="5" Background="#0d0d0d" CornerRadius="6" Padding="10" Margin="0,10,0,0">
             <Grid RowDefinitions="Auto,*">
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
                     <TextBlock Text="Recordings" Foreground="#88ccff" FontWeight="Bold" VerticalAlignment="Center"/>
@@ -101,7 +109,7 @@
             </Grid>
         </Border>
 
-        <TextBlock Grid.Row="5" Text="{Binding Status}" Foreground="#00ff88" FontSize="12"
+        <TextBlock Grid.Row="6" Text="{Binding Status}" Foreground="#00ff88" FontSize="12"
                    TextWrapping="Wrap" Margin="0,10,0,0"/>
     </Grid>
 </Window>

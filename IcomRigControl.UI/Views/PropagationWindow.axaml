@@ -1,0 +1,67 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:IcomRigControl.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="560"
+        x:Class="IcomRigControl.UI.Views.PropagationWindow"
+        x:DataType="vm:PropagationViewModel"
+        Title="Propagation"
+        Width="460" Height="560"
+        Background="#1a1a1a">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+
+        <TextBlock Grid.Row="0" Text="Band conditions &amp; solar data" Foreground="#88ccff"
+                   FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*" Margin="0,0,0,12">
+            <Border Grid.Column="0" Background="#0d0d0d" CornerRadius="6" Padding="8" Margin="0,0,3,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding SolarFlux}" Foreground="#00ff88" FontSize="22" FontWeight="Bold"/>
+                    <TextBlock Text="SFI" Foreground="Gray" FontSize="11"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Background="#0d0d0d" CornerRadius="6" Padding="8" Margin="3,0,3,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding Sunspots}" Foreground="#00ff88" FontSize="22" FontWeight="Bold"/>
+                    <TextBlock Text="Sunspots" Foreground="Gray" FontSize="11"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Background="#0d0d0d" CornerRadius="6" Padding="8" Margin="3,0,3,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding AIndex}" Foreground="#88ccff" FontSize="22" FontWeight="Bold"/>
+                    <TextBlock Text="A index" Foreground="Gray" FontSize="11"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="3" Background="#0d0d0d" CornerRadius="6" Padding="8" Margin="3,0,0,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding KIndex}" Foreground="#88ccff" FontSize="22" FontWeight="Bold"/>
+                    <TextBlock Text="K index" Foreground="Gray" FontSize="11"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Background="#0d0d0d" CornerRadius="6" Padding="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Bands}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="120,70,*" Margin="0,0,0,2" Background="#141414">
+                                <TextBlock Grid.Column="0" Text="{Binding Band}" Foreground="#e0e0e0" Padding="6,5" FontFamily="Courier New"/>
+                                <TextBlock Grid.Column="1" Text="{Binding TimeOfDay}" Foreground="Gray" Padding="4,5"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Condition}" Foreground="#00ff88" FontWeight="Bold" Padding="6,5"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="10" Margin="0,10,0,0">
+            <Button Content="Refresh" Command="{Binding RefreshCommand}"
+                    Background="#2a2a2a" Foreground="White" Padding="12,6"/>
+            <TextBlock Text="{Binding Status}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </StackPanel>
+    </Grid>
+</Window>

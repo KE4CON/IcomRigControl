@@ -37,6 +37,9 @@ public class AppSettings
     // trusted LAN or VPN. Port 8080 is the conventional alternate-HTTP port.
     public int WebRemotePort { get; set; } = 8080;
     public string WebRemoteToken { get; set; } = ""; // empty = no token required (LAN only)
+    // Serve the web remote over HTTPS (self-signed). Required for browser microphone
+    // access, so "Hold to Talk" works from a phone over the LAN (not just localhost).
+    public bool WebRemoteUseHttps { get; set; } = false;
 
     // Phase 12 remote audio: the server's UDP audio port (the desktop client
     // reuses RemoteHost above as the server host) and the client's capture (mic)

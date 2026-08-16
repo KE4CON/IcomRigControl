@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -23,6 +26,8 @@ public sealed class WebRemoteServer : IAsyncDisposable
     private readonly Transceiver _rig;
     private readonly string? _token;
     private readonly int _port;
+    private readonly bool _useHttps;
+    private X509Certificate2? _cert;
 
     // RX audio: capture at 44.1 kHz and downsample by this factor for the browser
     // (voice audio needs little bandwidth, and a phone over Wi-Fi appreciates it).
@@ -55,7 +60,8 @@ public sealed class WebRemoteServer : IAsyncDisposable
     /// <param name="captureDevice">Optional capture device name (e.g. an ALSA device).</param>
     public WebRemoteServer(Transceiver rig, string? token, int port = 8080,
         Func<IAudioCapture>? captureFactory = null, string? captureDevice = null,
-        Func<IAudioStreamOutput>? txOutputFactory = null, string? txDevice = null)
+        Func<IAudioStreamOutput>? txOutputFactory = null, string? txDevice = null,
+        bool useHttps = false)
     {
         _rig = rig;
         _token = string.IsNullOrWhiteSpace(token) ? null : token;
@@ -64,11 +70,36 @@ public sealed class WebRemoteServer : IAsyncDisposable
         _captureDevice = captureDevice;
         _txOutputFactory = txOutputFactory;
         _txDevice = txDevice;
+        _useHttps = useHttps;
+    }
+
+    public bool UseHttps => _useHttps;
+    public string Scheme => _useHttps ? "https" : "http";
+
+    // A self-signed certificate generated in-process — no external tools, no files.
+    // Browsers will warn (untrusted issuer); the user accepts once. The private key is
+    // round-tripped through a PFX so SslStream can use it on every platform.
+    private static X509Certificate2 CreateSelfSignedCertificate()
+    {
+        using var rsa = RSA.Create(2048);
+        var req = new CertificateRequest("CN=IcomRigControl", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        req.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
+        req.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddDnsName("localhost");
+        req.CertificateExtensions.Add(san.Build());
+
+        var now = DateTimeOffset.UtcNow;
+        using var cert = req.CreateSelfSigned(now.AddDays(-1), now.AddYears(5));
+        return X509CertificateLoader.LoadPkcs12(cert.Export(X509ContentType.Pfx), null,
+            X509KeyStorageFlags.Exportable);
     }
 
     public void Start()
     {
         Stop();
+        if (_useHttps) _cert ??= CreateSelfSignedCertificate();
         _listener = new TcpListener(IPAddress.Any, _port);
         _listener.Start();
         _cts = new CancellationTokenSource();
@@ -91,10 +122,19 @@ public sealed class WebRemoteServer : IAsyncDisposable
     {
         using (client)
         {
+            SslStream? ssl = null;
             try
             {
                 client.NoDelay = true;
-                var stream = client.GetStream();
+                Stream stream = client.GetStream();
+                if (_useHttps && _cert is not null)
+                {
+                    ssl = new SslStream(stream, leaveInnerStreamOpen: false);
+                    await ssl.AuthenticateAsServerAsync(_cert, clientCertificateRequired: false,
+                        checkCertificateRevocation: false);
+                    stream = ssl;
+                }
+
                 var (requestLine, headers) = await ReadRequestHeadAsync(stream, ct);
                 if (requestLine is null) return;
 
@@ -112,13 +152,14 @@ public sealed class WebRemoteServer : IAsyncDisposable
                     await WriteHttpAsync(stream, "404 Not Found", "text/plain", "Not found", ct);
             }
             catch { /* connection error — just drop it */ }
+            finally { ssl?.Dispose(); }
         }
     }
 
     // Reads request line + headers, stopping exactly at the blank line so any
     // following WebSocket bytes stay in the stream for CreateFromStream.
     private static async Task<(string? requestLine, Dictionary<string, string> headers)> ReadRequestHeadAsync(
-        NetworkStream stream, CancellationToken ct)
+        Stream stream, CancellationToken ct)
     {
         var sb = new StringBuilder();
         var one = new byte[1];
@@ -144,7 +185,7 @@ public sealed class WebRemoteServer : IAsyncDisposable
         return (lines[0], headers);
     }
 
-    private async Task HandleWebSocketAsync(NetworkStream stream, string path,
+    private async Task HandleWebSocketAsync(Stream stream, string path,
         Dictionary<string, string> headers, CancellationToken ct)
     {
         if (!headers.TryGetValue("sec-websocket-key", out var key)) return;
@@ -486,7 +527,7 @@ public sealed class WebRemoteServer : IAsyncDisposable
         await ws.SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, ct);
     }
 
-    private static async Task WriteHttpAsync(NetworkStream stream, string status, string contentType,
+    private static async Task WriteHttpAsync(Stream stream, string status, string contentType,
         string body, CancellationToken ct)
     {
         byte[] bodyBytes = Encoding.UTF8.GetBytes(body);
@@ -514,9 +555,9 @@ public sealed class WebRemoteServer : IAsyncDisposable
         return null;
     }
 
-    /// The http:// URLs a phone/tablet on the same network can open — every IPv4
-    /// address of this machine, for display in the desktop UI.
-    public static List<string> GetLanUrls(int port)
+    /// The URLs a phone/tablet on the same network can open — every IPv4 address of
+    /// this machine, for display in the desktop UI.
+    public static List<string> GetLanUrls(int port, string scheme = "http")
     {
         var urls = new List<string>();
         try
@@ -528,7 +569,7 @@ public sealed class WebRemoteServer : IAsyncDisposable
                 foreach (var ip in ni.GetIPProperties().UnicastAddresses)
                 {
                     if (ip.Address.AddressFamily == AddressFamily.InterNetwork)
-                        urls.Add($"http://{ip.Address}:{port}");
+                        urls.Add($"{scheme}://{ip.Address}:{port}");
                 }
             }
         }
@@ -566,6 +607,8 @@ public sealed class WebRemoteServer : IAsyncDisposable
         _cts?.Dispose();
         _cts = null;
         _listener = null;
+        _cert?.Dispose();
+        _cert = null;
         IsRunning = false;
     }
 

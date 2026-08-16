@@ -168,6 +168,40 @@ public class WebRemoteServerTests
     }
 
     [Fact]
+    public async Task Https_ServesPage_AndWebSocketOverTls()
+    {
+        var rig = new Transceiver(new FakeCivTransport(), RadioModel.IC7300);
+        int port = FreePort();
+        var server = new WebRemoteServer(rig, token: null, port, useHttps: true);
+        server.Start();
+        Assert.Equal("https", server.Scheme);
+        try
+        {
+            // HTTPS page (accept the self-signed cert for the test).
+            using var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+            };
+            using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(10) };
+            string page = await http.GetStringAsync($"https://127.0.0.1:{port}/");
+            Assert.Contains("IcomRigControl Remote", page);
+
+            // WSS over the same TLS endpoint.
+            using var ws = new ClientWebSocket();
+            ws.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await ws.ConnectAsync(new Uri($"wss://127.0.0.1:{port}/ws"), cts.Token);
+            string first = await ReceiveTextAsync(ws, cts.Token);
+            Assert.Contains("\"type\":\"state\"", first);
+            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", cts.Token);
+        }
+        finally
+        {
+            await server.DisposeAsync();
+        }
+    }
+
+    [Fact]
     public async Task RejectsWebSocket_WhenTokenIsWrong()
     {
         var rig = new Transceiver(new FakeCivTransport(), RadioModel.IC7300);

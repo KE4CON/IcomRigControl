@@ -116,6 +116,16 @@ compatibility chart and feature descriptions):
   BEFORE the edge — the true edge is p + 0.5*bit, and all bit centers must be measured from there
   (sampling from p directly hits bit BOUNDARIES and misreads). RTTY decodes far more reliably than CW
   (rigid machine standard); real-world gotchas are tuning and mark/space reversal (the Reverse toggle).
+- RTTY TRANSMIT (keyboard terminal) — IMPLEMENTED 2026-08-15. The RTTY window is now a full TRANSCEIVE
+  terminal: a text box + Send modulates the typed text with RttyModulator (45.45 baud / 170 Hz, "\r\n"
+  diddle) and transmits it, echoing ">> TEXT" into the window. Transmit goes through a new reusable
+  AudioTransmitter (Services) — the generalized safe-transmit primitive (gate; key PTT which honors
+  TransmitInhibited; settle; play; ALWAYS unkey via try/finally), the same discipline as the APRS
+  beacon. RttyDecodeViewModel now takes Transceiver + IAudioPlayer. 2 AudioTransmitter tests (keys
+  during playback + unkeys after; TX-inhibit prevents keying). NOTE: CW keyboard transmit already
+  exists via the Keyer window (CI-V 17 — the radio's own keyer, cleaner than audio OOK), so "digital-
+  mode TX" is complete: RTTY via AFSK audio here, CW via the CI-V keyer. Live character-by-character
+  RTTY keyboard TX (vs send-the-whole-buffer) is a future refinement.
 - DECODED-TEXT SAVE: both the CW and RTTY windows have a "Save…" button that writes the decoded
   buffer to Documents/IcomRigControl/Decoded/{CW|RTTY}_{timestamp}.txt via the shared DecodeLog
   helper (Services), so the operator can open and print it. (User asked "can the rtty messages be

@@ -140,6 +140,7 @@ something Icom's RS-BA1 doesn't do at all.*
 
 - **Live RTTY reader** — decodes standard HF Baudot RTTY (45.45 baud, 170 Hz shift, 2125/2295 Hz tones) off the receive audio into a scrolling text window, in real time.
 - **Automatic letters/figures handling** — follows the Baudot shift codes, so digits and punctuation come out right.
+- **Transmit RTTY** — the window is a full send-and-receive terminal: type a line, click **Send**, and it's keyed out as RTTY (your sent text is echoed in the window). Transmit always obeys the Receive-Only / TX-inhibit switch and never leaves the radio keyed. (Keyboard **CW** transmit is handled by the separate Keyer window.)
 - **Reverse button** — swaps mark and space for a signal on the wrong sideband (the classic RTTY "why is it garbage" fix); takes effect immediately.
 - **Save button** — writes the decoded text to a dated `.txt` file (Documents → IcomRigControl → Decoded) that you can open and **print**.
 - Proven by a modulate→decode **round-trip test**, including a figures/numbers message and a reversed-polarity signal.

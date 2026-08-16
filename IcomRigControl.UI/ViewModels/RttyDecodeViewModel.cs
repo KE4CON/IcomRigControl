@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IcomRigControl.CivEngine;
+using IcomRigControl.RigModel;
 using IcomRigControl.Services;
 
 namespace IcomRigControl.UI.ViewModels;
@@ -19,16 +20,19 @@ public partial class RttyDecodeViewModel : ViewModelBase, IAsyncDisposable
     private const int MaxTextLength = 4000;
 
     private readonly SettingsService _settingsService;
+    private readonly AudioTransmitter _transmitter;
     private RttyDecodeService? _service;
 
     [ObservableProperty] private bool _isReceiving;
     [ObservableProperty] private string _decodedText = "";
     [ObservableProperty] private bool _reverse;
+    [ObservableProperty] private string _sendText = "";
     [ObservableProperty] private string _status = "Set the radio to RTTY (or USB with 2125/2295 Hz tones) and Start. If you get garble, try Reverse.";
 
-    public RttyDecodeViewModel(SettingsService settingsService)
+    public RttyDecodeViewModel(SettingsService settingsService, Transceiver transceiver, IAudioPlayer audioPlayer)
     {
         _settingsService = settingsService;
+        _transmitter = new AudioTransmitter(transceiver, audioPlayer);
         _reverse = settingsService.Load().RttyReverse;
     }
 
@@ -67,6 +71,39 @@ public partial class RttyDecodeViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void Clear() => DecodedText = "";
+
+    /// Modulates the typed text to RTTY audio and transmits it (keys PTT, plays,
+    /// unkeys — honoring TX-inhibit). The sent text is echoed into the window.
+    [RelayCommand]
+    private async Task Send()
+    {
+        string text = SendText.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+        try
+        {
+            var settings = _settingsService.Load();
+            string? device = string.IsNullOrWhiteSpace(settings.AudioOutputDeviceName) ? null : settings.AudioOutputDeviceName;
+
+            // "\r\n" idle diddle + message; RttyProfile defaults to 45.45 baud / 170 Hz.
+            float[] audio = RttyModulator.Modulate(text + "\r\n", RttyProfile.Hf45Baud);
+            Status = "Transmitting RTTY…";
+            bool sent = await _transmitter.TransmitAsync(audio, 44100, device);
+            if (sent)
+            {
+                DecodedText += (DecodedText.Length > 0 ? "\n" : "") + ">> " + text.ToUpperInvariant() + "\n";
+                SendText = "";
+                Status = "Sent.";
+            }
+            else
+            {
+                Status = "Busy transmitting — try again in a moment.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Status = $"Send error: {ex.Message}";
+        }
+    }
 
     /// Writes the decoded text to a timestamped .txt file in Documents/IcomRigControl,
     /// ready to open and print. Returns the path in the status line.

@@ -531,7 +531,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void OpenRttyDecode()
     {
-        var rttyViewModel = new RttyDecodeViewModel(_settingsService);
+        var rttyViewModel = new RttyDecodeViewModel(_settingsService, _transceiver, _audioPlayer);
         var rttyWindow = new Views.RttyDecodeWindow
         {
             DataContext = rttyViewModel

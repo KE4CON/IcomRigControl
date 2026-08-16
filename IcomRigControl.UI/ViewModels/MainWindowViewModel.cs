@@ -21,6 +21,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly ActivityLogger _logger;
     private readonly SettingsService _settingsService;
     private readonly QsoLogger _qsoLogger;
+    private readonly BandRecorder _bandRecorder;
     private readonly IAudioPlayer _audioPlayer = AudioDevices.CreatePlayer();
 
     private RadioInfoUdpBroadcaster? _radioInfoBroadcaster;
@@ -156,6 +157,10 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
         _logger = new ActivityLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
         _qsoLogger = new QsoLogger(_transceiver, System.IO.Path.Combine(docsFolder, "Logs"));
+        // One shared Band DVR recorder: the DVR window controls it, and while it's
+        // monitoring, each logged QSO gets a short audio clip attached.
+        _bandRecorder = new BandRecorder(AudioDevices.CreateCapture());
+        _qsoLogger.AudioSource = _bandRecorder;
         _aprsBeaconService = new AprsBeaconService(_transceiver, _audioPlayer);
         _beaconScheduler = new PeriodicBeaconScheduler(SendBeacon);
 
@@ -495,12 +500,13 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void OpenBandDvr()
     {
-        var dvrViewModel = new BandDvrViewModel(_settingsService);
+        // Shares the app-wide recorder so per-QSO audio keeps working and monitoring
+        // survives closing the window (the recorder is owned by this main VM).
+        var dvrViewModel = new BandDvrViewModel(_settingsService, _bandRecorder);
         var dvrWindow = new Views.BandDvrWindow
         {
             DataContext = dvrViewModel
         };
-        dvrWindow.Closed += (_, _) => dvrViewModel.Dispose();
         dvrWindow.Show();
     }
 

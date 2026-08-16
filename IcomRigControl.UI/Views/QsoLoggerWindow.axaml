@@ -164,7 +164,15 @@
                                         </MultiBinding>
                                     </TextBlock.Text>
                                 </TextBlock>
-                                <TextBlock Grid.Column="6" Text="{Binding Name}" Foreground="White" Padding="6,4"/>
+                                <StackPanel Grid.Column="6" Orientation="Horizontal">
+                                    <Button Content="♪" Padding="6,0" Margin="6,2" VerticalAlignment="Center"
+                                            IsVisible="{Binding HasAudio}"
+                                            ToolTip.Tip="Play this contact's recorded audio"
+                                            Command="{Binding $parent[ItemsControl].((vm:QsoLoggerViewModel)DataContext).PlayQsoAudioCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="#243b5a" Foreground="White"/>
+                                    <TextBlock Text="{Binding Name}" Foreground="White" Padding="6,4" VerticalAlignment="Center"/>
+                                </StackPanel>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

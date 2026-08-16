@@ -164,10 +164,12 @@ something Icom's RS-BA1 doesn't do at all.*
 *A DVR for the airwaves — catch the call you just missed, or record a whole session.*
 
 - **Instant replay** — while monitoring, the last 60 seconds of receive audio are always kept in memory; tap **Replay last 30s** or **60s** to hear it again ("who was that? — rewind").
-- **Record to a file** — flip **Record** to capture the receive audio continuously to a standard **WAV** file (Documents → IcomRigControl → Recordings), openable in any media player or editor.
+- **Record to a file** — flip **Record** to capture the receive audio continuously to a standard **WAV** file, openable in any media player.
+- **Audio for every contact** — while monitoring, each QSO you log automatically gets its own short recording, played back with a **♪** button right on the log row (great for EMCOMM record-keeping — a real recording of what was passed).
+- **Small and manageable** — audio is stored at 11 kHz (about **1.3 MB per minute**), and a built-in **recordings manager** lists every file with its size and lets you **play or delete** individual files, or delete them all, with a live total-size readout.
 - **Cross-platform, no extra software** — the recorder is built in, and works on Windows, macOS, Linux, and the Raspberry Pi.
 - Opens in its own window from the **Band DVR** dashboard button, alongside the radio.
-- *Planned next:* recording/scrubbing the **waterfall**, and auto-attaching each contact's audio to its log entry.
+- *Planned next:* recording/scrubbing the **waterfall** too.
 
 ## 18. Settings & platform
 

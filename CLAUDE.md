@@ -524,12 +524,24 @@ Phase 14: Band DVR (record & rewind the radio) — IN PROGRESS (started 2026-08-
   non-modal Band DVR window + dashboard button — Start/Stop monitor, "Replay last 30s/60s" (plays the
   ring buffer via IAudioPlayer), a Record-to-file toggle, and Open-recordings-folder. 3 tests (WAV
   round-trip incl. 44-byte header + data length + sample value; rewind returns the most-recent N
-  seconds from the ring; record-to-file produces a valid WAV of the pushed audio). REMAINING: (a) scope
-  DVR — record/scrub the waterfall too (store waveform frames); (b) per-QSO audio auto-attached to the
-  log; (c) a playback list of saved recordings with in-app play. HARDWARE NOTE: Band DVR opens its own
-  IAudioCapture; running it at the same time as CW/RTTY decode or the web remote means multiple captures
-  of the radio's one audio device — fine on Windows/WASAPI shared mode, but ALSA (Pi) may report the
-  device busy. Confirm in the testing session; a shared capture-fan-out is the fix if needed.
+  seconds from the ring; record-to-file produces a valid WAV of the pushed audio).
+  STORAGE + PER-QSO AUDIO + DISK MGMT — DONE 2026-08-15: BandRecorder now captures at 44.1k but STORES
+  at 11.025k (decimate by 4) — 4x smaller (~1.3 MB/min, ~80 MB/hr) and plenty for comms; the ring
+  buffer, continuous WAV, and per-QSO clips are all at the store rate. BandRecorder implements
+  IQsoAudioSource (SaveQsoAudio(callsign) -> writes the last QsoClipSeconds=60 to
+  Documents/IcomRigControl/QsoAudio/QSO_<call>_<time>.wav, or null if not monitoring). QsoRecord gained
+  AudioFile + HasAudio; QsoLogger.AudioSource (settable) attaches a clip on LogQso (wrapped in try/catch
+  — an audio failure NEVER blocks the log write, backup-of-record discipline). ONE SHARED BandRecorder
+  is owned by MainWindowViewModel (set as _qsoLogger.AudioSource, passed to the DVR window) so per-QSO
+  audio works and monitoring survives closing the DVR window. UI: the DVR window has a recordings
+  manager (list of WAVs from both Recordings + QsoAudio with size, per-file Play/Delete, Delete-all,
+  live total-size), and the QSO log rows show a "♪" Play button when HasAudio. NOTE: AudioFile is NOT
+  persisted to ADIF (the WAV files persist on disk, named by call+time; the in-app link resets on
+  restart) — an ADIF APP_ custom field is a future refinement. REMAINING: scope DVR — record/scrub the
+  WATERFALL too. HARDWARE NOTE: the shared recorder + CW/RTTY decode + web remote each open their own
+  IAudioCapture — multiple captures of the radio's one audio device is fine on Windows/WASAPI shared
+  mode but ALSA (Pi) may report the device busy; a shared capture-fan-out is the fix if the testing
+  session hits it.
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

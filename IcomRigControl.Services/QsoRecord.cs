@@ -18,5 +18,12 @@ public record QsoRecord(
     string? ContestExchangeSent = null,
     string? ContestExchangeReceived = null,
     int? SerialNumberSent = null,
-    int? SerialNumberReceived = null
-);
+    int? SerialNumberReceived = null,
+    // App-local path to a WAV recording of this contact's audio, when the Band DVR
+    // was monitoring at log time. Not part of ADIF (it's a local convenience).
+    string? AudioFile = null
+)
+{
+    /// True when a per-QSO audio clip is attached — drives the log's play button.
+    public bool HasAudio => !string.IsNullOrEmpty(AudioFile);
+}

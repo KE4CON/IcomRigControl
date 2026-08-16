@@ -101,6 +101,15 @@ public partial class QsoLoggerViewModel : ViewModelBase
         }
     }
 
+    /// Plays the audio clip attached to a QSO (opens it in the default player).
+    [RelayCommand]
+    private void PlayQsoAudio(QsoRecord? qso)
+    {
+        if (qso?.AudioFile is not { } path || !System.IO.File.Exists(path)) return;
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true }); }
+        catch { /* no default handler — ignore */ }
+    }
+
     [RelayCommand]
     private async Task LookupCallsign()
     {

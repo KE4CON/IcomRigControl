@@ -1,6 +1,8 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,53 +11,51 @@ using IcomRigControl.Services;
 namespace IcomRigControl.UI.ViewModels;
 
 /// <summary>
-/// Band DVR window: monitors the radio's receive audio into a rolling buffer so you
-/// can instantly replay the last 30/60 seconds ("who was that? — rewind"), and can
-/// record continuously to a WAV file. Non-modal, alongside the main dashboard.
-/// See CLAUDE.md Band DVR.
+/// Band DVR window: controls the app-wide BandRecorder (shared, so per-QSO audio and
+/// monitoring survive closing this window) — instant replay of the last minute,
+/// record-to-WAV, and a recordings manager (play, delete, total size) so the disk
+/// doesn't fill up. See CLAUDE.md Band DVR.
 /// </summary>
-public partial class BandDvrViewModel : ViewModelBase, IDisposable
+public partial class BandDvrViewModel : ViewModelBase
 {
     private readonly SettingsService _settingsService;
+    private readonly BandRecorder _recorder;
     private readonly IAudioPlayer _player = AudioDevices.CreatePlayer();
-    private BandRecorder? _recorder;
 
     [ObservableProperty] private bool _isMonitoring;
     [ObservableProperty] private bool _isRecording;
-    [ObservableProperty] private string _status = "Off. Start monitoring to buffer the last minute of receive audio, then replay or record it.";
+    [ObservableProperty] private string _totalSize = "";
+    [ObservableProperty] private string _status = "Monitor keeps the last 60 seconds ready to replay. While monitoring, each contact you log gets its audio saved too.";
 
-    private static string RecordingsDir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IcomRigControl", "Recordings");
+    public ObservableCollection<RecordingRow> Recordings { get; } = new();
 
-    public BandDvrViewModel(SettingsService settingsService)
+    public BandDvrViewModel(SettingsService settingsService, BandRecorder recorder)
     {
         _settingsService = settingsService;
+        _recorder = recorder;
+        _isMonitoring = recorder.IsCapturing;
+        _isRecording = recorder.IsRecording;
+        RefreshRecordings();
     }
 
     [RelayCommand]
     private void StartMonitor()
     {
-        if (_recorder is not null) return;
+        if (_recorder.IsCapturing) { IsMonitoring = true; return; }
         try
         {
             string? device = _settingsService.Load().RemoteAudioCaptureDevice;
-            _recorder = new BandRecorder(AudioDevices.CreateCapture(), sampleRateHz: 44100, rollingSeconds: 60);
             _recorder.Start(string.IsNullOrWhiteSpace(device) ? null : device);
             IsMonitoring = true;
-            Status = "Monitoring. The last 60 seconds are always available to replay.";
+            Status = "Monitoring. Replay the last minute, record, and per-QSO audio are all live.";
         }
-        catch (Exception ex)
-        {
-            Status = $"Could not start: {ex.Message}";
-            _recorder = null;
-        }
+        catch (Exception ex) { Status = $"Could not start: {ex.Message}"; }
     }
 
     [RelayCommand]
     private void StopMonitor()
     {
-        _recorder?.Stop();
-        _recorder = null;
+        _recorder.Stop();
         IsMonitoring = false;
         IsRecording = false;
         Status = "Stopped.";
@@ -64,26 +64,24 @@ public partial class BandDvrViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void ToggleRecord()
     {
-        if (_recorder is null) { Status = "Start monitoring first."; return; }
+        if (!_recorder.IsCapturing) { Status = "Start monitoring first."; return; }
         try
         {
             if (!IsRecording)
             {
-                string path = _recorder.StartRecording(RecordingsDir);
+                string path = _recorder.StartRecording(BandRecorder.RecordingsDir);
                 IsRecording = true;
-                Status = $"Recording to {path}";
+                Status = $"Recording to {Path.GetFileName(path)}";
             }
             else
             {
                 _recorder.StopRecording();
                 IsRecording = false;
                 Status = "Recording saved.";
+                RefreshRecordings();
             }
         }
-        catch (Exception ex)
-        {
-            Status = $"Record error: {ex.Message}";
-        }
+        catch (Exception ex) { Status = $"Record error: {ex.Message}"; }
     }
 
     [RelayCommand]
@@ -94,7 +92,7 @@ public partial class BandDvrViewModel : ViewModelBase, IDisposable
 
     private async Task ReplayAsync(int seconds)
     {
-        if (_recorder is null) { Status = "Start monitoring first."; return; }
+        if (!_recorder.IsCapturing) { Status = "Start monitoring first."; return; }
         short[] pcm = _recorder.GetRewind(seconds);
         if (pcm.Length == 0) { Status = "Nothing buffered yet."; return; }
         var audio = new float[pcm.Length];
@@ -105,19 +103,68 @@ public partial class BandDvrViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    private void RefreshRecordings()
+    {
+        Recordings.Clear();
+        long total = 0;
+        foreach (string dir in new[] { BandRecorder.RecordingsDir, BandRecorder.QsoAudioDir })
+        {
+            if (!Directory.Exists(dir)) continue;
+            foreach (var fi in new DirectoryInfo(dir).GetFiles("*.wav").OrderByDescending(f => f.LastWriteTime))
+            {
+                Recordings.Add(new RecordingRow(fi.Name, fi.FullName, SizeText(fi.Length)));
+                total += fi.Length;
+            }
+        }
+        TotalSize = $"{Recordings.Count} file(s), {SizeText(total)} total";
+    }
+
+    [RelayCommand]
+    private void PlayRecording(RecordingRow? row)
+    {
+        if (row is null) return;
+        try { Process.Start(new ProcessStartInfo(row.Path) { UseShellExecute = true }); }
+        catch (Exception ex) { Status = $"Could not play: {ex.Message}"; }
+    }
+
+    [RelayCommand]
+    private void DeleteRecording(RecordingRow? row)
+    {
+        if (row is null) return;
+        try { File.Delete(row.Path); Status = $"Deleted {row.Name}."; }
+        catch (Exception ex) { Status = $"Delete failed: {ex.Message}"; }
+        RefreshRecordings();
+    }
+
+    [RelayCommand]
+    private void DeleteAllRecordings()
+    {
+        int deleted = 0;
+        foreach (var row in Recordings.ToList())
+        {
+            try { File.Delete(row.Path); deleted++; } catch { }
+        }
+        Status = $"Deleted {deleted} file(s).";
+        RefreshRecordings();
+    }
+
+    [RelayCommand]
     private void OpenRecordingsFolder()
     {
         try
         {
-            Directory.CreateDirectory(RecordingsDir);
-            Process.Start(new ProcessStartInfo(RecordingsDir) { UseShellExecute = true });
+            Directory.CreateDirectory(BandRecorder.RecordingsDir);
+            Process.Start(new ProcessStartInfo(BandRecorder.RecordingsDir) { UseShellExecute = true });
         }
         catch (Exception ex) { Status = $"Could not open folder: {ex.Message}"; }
     }
 
-    public void Dispose()
+    private static string SizeText(long bytes) => bytes switch
     {
-        _recorder?.Dispose();
-        _recorder = null;
-    }
+        >= 1_000_000 => $"{bytes / 1_000_000.0:F1} MB",
+        >= 1_000 => $"{bytes / 1_000.0:F0} KB",
+        _ => $"{bytes} B",
+    };
 }
+
+public record RecordingRow(string Name, string Path, string SizeText);

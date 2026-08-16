@@ -20,7 +20,12 @@ public partial class BandDvrViewModel : ViewModelBase
 {
     private readonly SettingsService _settingsService;
     private readonly BandRecorder _recorder;
+    private readonly ScopeRecorder _scopeRecorder;
     private readonly IAudioPlayer _player = AudioDevices.CreatePlayer();
+
+    /// Raised when the user asks to replay the waterfall history — the view renders
+    /// the frames into its waterfall control (kept in the view to stay MVVM-clean).
+    public event Action<IReadOnlyList<int[]>>? WaterfallReplayRequested;
 
     [ObservableProperty] private bool _isMonitoring;
     [ObservableProperty] private bool _isRecording;
@@ -29,13 +34,24 @@ public partial class BandDvrViewModel : ViewModelBase
 
     public ObservableCollection<RecordingRow> Recordings { get; } = new();
 
-    public BandDvrViewModel(SettingsService settingsService, BandRecorder recorder)
+    public BandDvrViewModel(SettingsService settingsService, BandRecorder recorder, ScopeRecorder scopeRecorder)
     {
         _settingsService = settingsService;
         _recorder = recorder;
+        _scopeRecorder = scopeRecorder;
         _isMonitoring = recorder.IsCapturing;
         _isRecording = recorder.IsRecording;
         RefreshRecordings();
+    }
+
+    /// Replays the buffered waterfall history into the view's waterfall control.
+    [RelayCommand]
+    private void ReplayWaterfall()
+    {
+        var frames = _scopeRecorder.GetFrames();
+        if (frames.Count == 0) { Status = "No waterfall history yet — the scope needs to be running."; return; }
+        WaterfallReplayRequested?.Invoke(frames);
+        Status = $"Replayed {frames.Count} waterfall frames (most recent at the bottom).";
     }
 
     [RelayCommand]

@@ -537,8 +537,16 @@ Phase 14: Band DVR (record & rewind the radio) — IN PROGRESS (started 2026-08-
   manager (list of WAVs from both Recordings + QsoAudio with size, per-file Play/Delete, Delete-all,
   live total-size), and the QSO log rows show a "♪" Play button when HasAudio. NOTE: AudioFile is NOT
   persisted to ADIF (the WAV files persist on disk, named by call+time; the in-app link resets on
-  restart) — an ADIF APP_ custom field is a future refinement. REMAINING: scope DVR — record/scrub the
-  WATERFALL too. HARDWARE NOTE: the shared recorder + CW/RTTY decode + web remote each open their own
+  restart) — an ADIF APP_ custom field is a future refinement.
+  WATERFALL DVR — DONE 2026-08-15: ScopeRecorder (Services) keeps a bounded in-memory ring of the most
+  recent scope frames (default 300 ≈ ~90 s) by just listening to Transceiver.WaveformUpdated — the
+  scope is already running, so it costs NOTHING extra, opens NO device, and writes NO disk (a fixed
+  <1 MB of RAM that auto-discards; nothing to fill up or delete). A shared ScopeRecorder is owned by
+  MainWindowViewModel. The DVR window has a "Replay waterfall" button + an embedded WaterfallControl;
+  the VM raises WaterfallReplayRequested with the buffered frames and the window code-behind pushes
+  them into the control via its existing PushSweep (reusing the exact live rendering — no new renderer).
+  2 ScopeRecorder tests (ring caps + order; ignores empty + clear). Both Band DVR extensions now done
+  (per-QSO audio + waterfall rewind). HARDWARE NOTE: the shared recorder + CW/RTTY decode + web remote each open their own
   IAudioCapture — multiple captures of the radio's one audio device is fine on Windows/WASAPI shared
   mode but ALSA (Pi) may report the device busy; a shared capture-fan-out is the fix if the testing
   session hits it.

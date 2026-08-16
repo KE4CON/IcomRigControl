@@ -152,7 +152,10 @@ public partial class AprsReceiveViewModel : ViewModelBase, IAsyncDisposable
         if (row is null) return;
         try
         {
-            Process.Start(new ProcessStartInfo($"https://aprs.fi/#!call={row.Callsign}") { UseShellExecute = true });
+            // The callsign comes off-air (untrusted) — URL-encode it before handing the
+            // string to the OS/browser via ShellExecute.
+            string call = Uri.EscapeDataString(row.Callsign);
+            Process.Start(new ProcessStartInfo($"https://aprs.fi/#!call={call}") { UseShellExecute = true });
         }
         catch (Exception ex)
         {

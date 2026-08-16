@@ -29,7 +29,10 @@ public sealed class PushNotifier
             {
                 Content = new StringContent(message)
             };
-            req.Headers.TryAddWithoutValidation("Title", title);
+            // The title can contain an untrusted callsign — strip control characters
+            // (incl. CR/LF) so it can't inject headers.
+            string safeTitle = new string((title ?? "").Where(c => c >= 32 && c != 127).ToArray());
+            req.Headers.TryAddWithoutValidation("Title", safeTitle);
             var resp = await _http.SendAsync(req);
             return resp.IsSuccessStatusCode;
         }

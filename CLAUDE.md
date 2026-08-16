@@ -468,14 +468,38 @@ Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-0
   CreateCapture) and headless (--audiocapture <alsadev>). VERIFIED live in a browser: 203 PCM buffers
   played in ~2s from a tone-generating capture, state/waterfall still rendered (onmessage text+binary
   split works). 1 audio test (inject a PushCapture, request audio, assert binary PCM frames arrive).
-  REMAINING: M4 TX audio (mic from the browser -> radio TX + PTT, must honor TransmitInhibited).
+  MILESTONE 4 DONE (2026-08-15) — TX audio (browser mic -> radio), completing the flagship. Server:
+  an injected txOutputFactory (AudioDevices.CreateStreamOutput) plays received PCM into the radio's TX
+  audio input; a {cmd:tx,on} toggle keys/unkeys PTT (SetPttAsync — HONORS TransmitInhibited) with
+  key-first/mic-second on, mic-first/unkey-second off; binary WS frames from the client are the mic
+  PCM, written to the TX output only by the current TX owner. SINGLE TRANSMITTER (server-wide _txOwner)
+  so two phones can't cross-key. PTT is ALWAYS released — on tx-off, on session end (finally), and in
+  Stop() — never leave the radio keyed. State adds txAvailable/txBusy. Page: a push-to-talk "Hold to
+  Talk" button (pointer events) captures the mic (getUserMedia), downsamples to the stream rate via a
+  ScriptProcessorNode, and sends Int16 PCM while held; a muted gain node avoids mic->speaker feedback;
+  the plain "PTT" button remains (key-only, for CW/tuning). 2 TX tests (keys PTT + feeds mic audio +
+  unkeys; TX-inhibit blocks keying). BROWSER-VERIFIED: page renders the Talk button, WS connects, and
+  two-way control still works (set 14.074 from the page). KNOWN LIMITATION (documented for the user):
+  browsers only allow the microphone over HTTPS or localhost, so "Hold to Talk" over plain http://LAN
+  is blocked by the browser (the page shows a clear message; RX/control/listen all still work over
+  http). The follow-up that unlocks LAN voice TX is an optional self-signed HTTPS listener (SslStream +
+  generated cert) — a good "M5" if the user wants voice TX from a phone over the LAN.
   SECURITY: plain HTTP + token in query — intended for a trusted LAN or VPN, documented as such (same
-  posture as Phase 9's remote CI-V).
+  posture as Phase 9's remote CI-V). Phase 13 core (M1-M4) COMPLETE; optional HTTPS is the remaining
+  enhancement.
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here
   2026-08-15 (user: "put on the possible future list"). Apply the same testability principle as the
   radios — only build/claim support for a rotator/protocol that can be tested against real hardware.
+- IC-705 CAT OVER BLUETOOTH: the IC-705 has built-in Bluetooth (the 7300/MK2 do NOT). A paired BT
+  serial device enumerates as an ordinary COM port (Windows) / rfcomm tty (Linux), so SerialCivTransport
+  would very likely control a 705 over Bluetooth with NO new code — just pick the Bluetooth COM port.
+  Parked 2026-08-15 (user: "put the bluetooth in the future list") as a REAL-HARDWARE test item, not
+  code work: confirm the 705 enumerates as a serial port and the existing serial path drives it. Do NOT
+  build a Bluetooth stack into the app — the OS already exposes BT as a COM port (CAT) or sound device
+  (audio); BT audio is the radio's/phone's own feature. Wi-Fi (the web remote) already covers wireless
+  operation with more range/bandwidth, so BT is a nicety, not a need.
 - (add other parked ideas here as they come up, with a one-line rationale.)
 ## NuGet Packages (list here BEFORE adding — see "What NOT to do")
 - Avalonia 12.x (UI), CommunityToolkit.Mvvm (MVVM).

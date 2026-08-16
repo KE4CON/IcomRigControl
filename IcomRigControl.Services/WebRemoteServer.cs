@@ -36,6 +36,14 @@ public sealed class WebRemoteServer : IAsyncDisposable
     private readonly List<ChannelWriter<byte[]>> _audioSinks = new();
     private IAudioCapture? _capture;
 
+    // TX audio: the browser's mic -> the radio's transmit-audio input. Only one
+    // session may transmit at a time, and PTT is always released on disconnect.
+    private readonly Func<IAudioStreamOutput>? _txOutputFactory;
+    private readonly string? _txDevice;
+    private readonly object _txLock = new();
+    private object? _txOwner;
+    private IAudioStreamOutput? _txOutput;
+
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
 
@@ -46,13 +54,16 @@ public sealed class WebRemoteServer : IAsyncDisposable
     /// (usually AudioDevices.CreateCapture). Null disables audio (control-only).</param>
     /// <param name="captureDevice">Optional capture device name (e.g. an ALSA device).</param>
     public WebRemoteServer(Transceiver rig, string? token, int port = 8080,
-        Func<IAudioCapture>? captureFactory = null, string? captureDevice = null)
+        Func<IAudioCapture>? captureFactory = null, string? captureDevice = null,
+        Func<IAudioStreamOutput>? txOutputFactory = null, string? txDevice = null)
     {
         _rig = rig;
         _token = string.IsNullOrWhiteSpace(token) ? null : token;
         _port = port;
         _captureFactory = captureFactory;
         _captureDevice = captureDevice;
+        _txOutputFactory = txOutputFactory;
+        _txDevice = txDevice;
     }
 
     public void Start()
@@ -169,6 +180,8 @@ public sealed class WebRemoteServer : IAsyncDisposable
         var audioCh = Channel.CreateBounded<byte[]>(
             new BoundedChannelOptions(48) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
         bool audioOn = false;
+        var sessionId = new object(); // identifies this session as the TX owner
+        bool txOn = false;
 
         async Task SendLoop()
         {
@@ -229,12 +242,24 @@ public sealed class WebRemoteServer : IAsyncDisposable
                     }
                     while (!result.EndOfMessage);
 
-                    // Intercept the audio on/off command; everything else drives the rig.
+                    // Binary = the browser's mic audio for transmit.
+                    if (result.MessageType == WebSocketMessageType.Binary)
+                    {
+                        if (txOn) WriteTxPcm(sessionId, msg.ToArray());
+                        continue;
+                    }
+
+                    // Text commands: audio on/off, transmit on/off, else drive the rig.
                     string text = Encoding.UTF8.GetString(msg.ToArray());
                     if (TryReadAudioToggle(text, out bool wantAudio))
                     {
                         if (wantAudio && !audioOn) { audioOn = true; EnableAudio(audioCh.Writer); }
                         else if (!wantAudio && audioOn) { audioOn = false; DisableAudio(audioCh.Writer); }
+                    }
+                    else if (TryReadTxToggle(text, out bool wantTx))
+                    {
+                        if (wantTx && !txOn) txOn = await EnableTxAsync(sessionId);
+                        else if (!wantTx && txOn) { await DisableTxAsync(sessionId); txOn = false; }
                     }
                     else
                     {
@@ -256,7 +281,21 @@ public sealed class WebRemoteServer : IAsyncDisposable
         finally
         {
             if (audioOn) DisableAudio(audioCh.Writer);
+            if (txOn) await DisableTxAsync(sessionId); // NEVER leave the radio keyed
         }
+    }
+
+    private static bool TryReadTxToggle(string json, out bool on)
+    {
+        on = false;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("cmd", out var c) || c.GetString() != "tx") return false;
+            on = doc.RootElement.TryGetProperty("on", out var o) && o.GetBoolean();
+            return true;
+        }
+        catch { return false; }
     }
 
     private static bool TryReadAudioToggle(string json, out bool on)
@@ -323,6 +362,59 @@ public sealed class WebRemoteServer : IAsyncDisposable
             foreach (var sink in _audioSinks) sink.TryWrite(bytes);
     }
 
+    // ── TX audio: browser mic -> radio transmit input. Key-first/mic-second on,
+    //    mic-first/unkey-second off. Single transmitter; PTT always released. ──
+    private async Task<bool> EnableTxAsync(object session)
+    {
+        if (_txOutputFactory is null || _rig.TransmitInhibited) return false;
+        lock (_txLock)
+        {
+            if (_txOwner is not null) return false; // someone else is transmitting
+            _txOwner = session;
+        }
+        try
+        {
+            await _rig.SetPttAsync(true); // key first (no-op if inhibited)
+            IAudioStreamOutput output = _txOutputFactory();
+            output.Start(AudioRateHz, _txDevice);
+            lock (_txLock) _txOutput = output;
+            return true;
+        }
+        catch
+        {
+            await DisableTxAsync(session); // roll back — never leave keyed
+            return false;
+        }
+    }
+
+    private async Task DisableTxAsync(object session)
+    {
+        IAudioStreamOutput? output = null;
+        lock (_txLock)
+        {
+            if (!ReferenceEquals(_txOwner, session)) return;
+            output = _txOutput;
+            _txOutput = null;
+            _txOwner = null;
+        }
+        try { output?.Stop(); } catch { }
+        try { await _rig.SetPttAsync(false); } catch { } // unkey last — always
+    }
+
+    private void WriteTxPcm(object session, byte[] pcm)
+    {
+        IAudioStreamOutput? output;
+        lock (_txLock)
+        {
+            if (!ReferenceEquals(_txOwner, session)) return;
+            output = _txOutput;
+        }
+        if (output is null || pcm.Length < 2) return;
+        var samples = new short[pcm.Length / 2];
+        Buffer.BlockCopy(pcm, 0, samples, 0, samples.Length * 2);
+        try { output.Write(samples); } catch { }
+    }
+
     private async Task DispatchCommandAsync(string json)
     {
         try
@@ -374,6 +466,8 @@ public sealed class WebRemoteServer : IAsyncDisposable
             amps = _rig.CurrentDraw,
             audioRate = AudioRateHz,
             audioAvailable = _captureFactory is not null,
+            txAvailable = _txOutputFactory is not null,
+            txBusy = _txOwner is not null,
         };
         return JsonSerializer.Serialize(state);
     }
@@ -454,6 +548,19 @@ public sealed class WebRemoteServer : IAsyncDisposable
                 _capture.SamplesCaptured -= OnCaptureSamples;
                 try { _capture.Stop(); } catch { }
                 _capture = null;
+            }
+        }
+        lock (_txLock)
+        {
+            if (_txOutput is not null)
+            {
+                try { _txOutput.Stop(); } catch { }
+                _txOutput = null;
+            }
+            if (_txOwner is not null)
+            {
+                _txOwner = null;
+                try { _ = _rig.SetPttAsync(false); } catch { } // never leave keyed
             }
         }
         _cts?.Dispose();

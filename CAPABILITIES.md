@@ -117,7 +117,8 @@ something Icom's RS-BA1 doesn't do at all.*
 
 - **Connect to a DX cluster** — pick from well-known nodes (NC7J, VE7CC, DXFun, Reverse Beacon Network for CW/RTTY and FT8/FT4) or enter a custom host/port; auto-logs in with your callsign. Connection details are saved.
 - **Live spot list / band map** — incoming spots (time, kHz, DX call, comment, spotter) shown newest-first, capped so a busy node can't grow it without bound.
-- **Smart "new one" alerts** — every spot is checked against your own QSO log; a station you haven't worked **on that band** is flagged with a gold **★**, with a live count and a **New only** filter so you can watch just the ones worth chasing.
+- **Smart "new one!" alerts** — every spot's **DXCC country** is checked against your logs (this app's *and* your **Ham Radio Deluxe** logbook); a spot from a country you've **never worked** is flagged with a gold **★**, with a live count and a **New only** filter, so you instantly see the ones worth chasing.
+- **Award tracking** — an **Awards** window shows your **DXCC** entity count (toward the 100-country award) and **grid squares** worked, drawn from this app's log plus your HRD history.
 - **Click-to-tune** — a Tune button on every spot QSYs the radio to it.
 - **Post your own spots** — announce a DX call to the cluster (`DX <kHz> <call> <comment>`), with a one-click "use radio frequency" prefill.
 - Resilient: a dropped cluster connection is surfaced, never crashes the app.

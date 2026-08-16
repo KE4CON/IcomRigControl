@@ -31,7 +31,16 @@
                            Foreground="Gray" FontSize="10" TextWrapping="Wrap"/>
 
                 <TextBlock Text="Serial Port (Serial mode)" Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
-                <TextBox Text="{Binding SerialPortName}" PlaceholderText="COM3 or /dev/tty.usbserial-XXXX"/>
+                <Grid ColumnDefinitions="*,Auto">
+                    <AutoCompleteBox Grid.Column="0" Text="{Binding SerialPortName}"
+                                     ItemsSource="{Binding AvailablePorts}"
+                                     FilterMode="ContainsOrdinal"
+                                     Watermark="Pick a port, or type COM3 / /dev/tty.usbserial-XXXX"/>
+                    <Button Grid.Column="1" Content="Refresh" Command="{Binding RefreshPortsCommand}"
+                            Margin="6,0,0,0"/>
+                </Grid>
+                <TextBlock Text="For an IC-705 over Bluetooth: pair it first, click Refresh, then pick its Bluetooth port."
+                           Foreground="Gray" FontSize="10" TextWrapping="Wrap"/>
 
                 <TextBlock Text="Remote Host (Remote mode)" Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
                 <TextBox Text="{Binding RemoteHost}" PlaceholderText="44.xx.xx.xx or hostname"/>

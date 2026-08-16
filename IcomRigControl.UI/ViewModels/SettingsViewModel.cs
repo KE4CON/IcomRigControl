@@ -28,8 +28,8 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _serialPortName = "";
 
-    // Serial ports the OS currently sees — includes a paired Bluetooth radio's port
-    // (e.g. the IC-705 over Bluetooth). Refreshable, since pairing/plugging changes it.
+    // Serial ports the OS currently sees. Refreshable, since plugging/unplugging a
+    // USB radio changes what's available.
     public System.Collections.ObjectModel.ObservableCollection<string> AvailablePorts { get; } = new();
 
     [RelayCommand]

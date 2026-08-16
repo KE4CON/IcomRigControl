@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
 using IcomRigControl.RigModel;
 
 namespace IcomRigControl.Services;
@@ -23,17 +24,35 @@ public sealed class WebRemoteServer : IAsyncDisposable
     private readonly string? _token;
     private readonly int _port;
 
+    // RX audio: capture at 44.1 kHz and downsample by this factor for the browser
+    // (voice audio needs little bandwidth, and a phone over Wi-Fi appreciates it).
+    private const int CaptureRateHz = 44100;
+    private const int AudioDecimation = 4;              // 44100 / 4 = 11025 Hz
+    private const int AudioRateHz = CaptureRateHz / AudioDecimation;
+
+    private readonly Func<IAudioCapture>? _captureFactory;
+    private readonly string? _captureDevice;
+    private readonly object _audioLock = new();
+    private readonly List<ChannelWriter<byte[]>> _audioSinks = new();
+    private IAudioCapture? _capture;
+
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
 
     public bool IsRunning { get; private set; }
     public int Port => _port;
 
-    public WebRemoteServer(Transceiver rig, string? token, int port = 8080)
+    /// <param name="captureFactory">Supplies an IAudioCapture for RX audio streaming
+    /// (usually AudioDevices.CreateCapture). Null disables audio (control-only).</param>
+    /// <param name="captureDevice">Optional capture device name (e.g. an ALSA device).</param>
+    public WebRemoteServer(Transceiver rig, string? token, int port = 8080,
+        Func<IAudioCapture>? captureFactory = null, string? captureDevice = null)
     {
         _rig = rig;
         _token = string.IsNullOrWhiteSpace(token) ? null : token;
         _port = port;
+        _captureFactory = captureFactory;
+        _captureDevice = captureDevice;
     }
 
     public void Start()
@@ -139,15 +158,22 @@ public sealed class WebRemoteServer : IAsyncDisposable
             return;
         }
 
-        // All sends (state pushes, scope frames, and the close reply) go through one
-        // gate — a WebSocket allows only one outstanding send at a time. The send
-        // loop is local so it can hold per-connection state (the last scope frame).
+        // All sends (state, scope, RX audio, close reply) go through one gate — a
+        // WebSocket allows only one outstanding send at a time. Both loops are local
+        // so they can share this session's audio channel.
         using var sendLock = new SemaphoreSlim(1, 1);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        // Per-session RX-audio queue; DropOldest keeps latency bounded if the phone
+        // can't keep up rather than growing without limit.
+        var audioCh = Channel.CreateBounded<byte[]>(
+            new BoundedChannelOptions(48) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
+        bool audioOn = false;
 
         async Task SendLoop()
         {
             int[]? lastWave = null;
+            var lastState = DateTime.MinValue;
             try
             {
                 while (ws.State == WebSocketState.Open && !linked.IsCancellationRequested)
@@ -155,60 +181,146 @@ public sealed class WebRemoteServer : IAsyncDisposable
                     await sendLock.WaitAsync(linked.Token);
                     try
                     {
-                        await SendTextAsync(ws, BuildStateJson(), linked.Token);
-
-                        // Send a scope frame only when the waterfall data actually changed.
-                        int[] wave = _rig.LastWaveform;
-                        if (wave.Length > 0 && !ReferenceEquals(wave, lastWave))
+                        // State + scope at ~5 Hz.
+                        if ((DateTime.UtcNow - lastState).TotalMilliseconds >= 200)
                         {
-                            lastWave = wave;
-                            await SendTextAsync(ws, BuildScopeJson(wave), linked.Token);
+                            lastState = DateTime.UtcNow;
+                            await SendTextAsync(ws, BuildStateJson(), linked.Token);
+                            int[] wave = _rig.LastWaveform;
+                            if (wave.Length > 0 && !ReferenceEquals(wave, lastWave))
+                            {
+                                lastWave = wave;
+                                await SendTextAsync(ws, BuildScopeJson(wave), linked.Token);
+                            }
                         }
+                        // Drain any queued RX-audio frames promptly (low latency).
+                        while (audioCh.Reader.TryRead(out byte[]? frame))
+                            await ws.SendAsync(frame, WebSocketMessageType.Binary, true, linked.Token);
                     }
                     finally { sendLock.Release(); }
-                    await Task.Delay(200, linked.Token); // ~5 Hz
+                    await Task.Delay(25, linked.Token); // ~40 Hz service tick
                 }
             }
             catch { /* socket closed / cancelled */ }
         }
 
-        var recv = ReceiveLoopAsync(ws, sendLock, linked.Token);
-        var send = SendLoop();
-        await Task.WhenAny(recv, send);
-        linked.Cancel();
-        try { await Task.WhenAll(recv, send); } catch { }
-    }
+        async Task ReceiveLoop()
+        {
+            var buffer = new byte[4096];
+            var msg = new List<byte>();
+            try
+            {
+                while (ws.State == WebSocketState.Open && !linked.IsCancellationRequested)
+                {
+                    msg.Clear();
+                    WebSocketReceiveResult result;
+                    do
+                    {
+                        result = await ws.ReceiveAsync(buffer, linked.Token);
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            await sendLock.WaitAsync(CancellationToken.None);
+                            try { await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None); }
+                            catch { }
+                            finally { sendLock.Release(); }
+                            return;
+                        }
+                        msg.AddRange(buffer.AsSpan(0, result.Count).ToArray());
+                    }
+                    while (!result.EndOfMessage);
 
-    private async Task ReceiveLoopAsync(WebSocket ws, SemaphoreSlim sendLock, CancellationToken ct)
-    {
-        var buffer = new byte[4096];
-        var msg = new List<byte>();
+                    // Intercept the audio on/off command; everything else drives the rig.
+                    string text = Encoding.UTF8.GetString(msg.ToArray());
+                    if (TryReadAudioToggle(text, out bool wantAudio))
+                    {
+                        if (wantAudio && !audioOn) { audioOn = true; EnableAudio(audioCh.Writer); }
+                        else if (!wantAudio && audioOn) { audioOn = false; DisableAudio(audioCh.Writer); }
+                    }
+                    else
+                    {
+                        await DispatchCommandAsync(text);
+                    }
+                }
+            }
+            catch { /* socket closed / cancelled */ }
+        }
+
         try
         {
-            while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
-            {
-                msg.Clear();
-                WebSocketReceiveResult result;
-                do
-                {
-                    result = await ws.ReceiveAsync(buffer, ct);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        // Reply to the client's close so the handshake completes cleanly.
-                        await sendLock.WaitAsync(CancellationToken.None);
-                        try { await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None); }
-                        catch { }
-                        finally { sendLock.Release(); }
-                        return;
-                    }
-                    msg.AddRange(buffer.AsSpan(0, result.Count).ToArray());
-                }
-                while (!result.EndOfMessage);
+            var recv = ReceiveLoop();
+            var send = SendLoop();
+            await Task.WhenAny(recv, send);
+            linked.Cancel();
+            try { await Task.WhenAll(recv, send); } catch { }
+        }
+        finally
+        {
+            if (audioOn) DisableAudio(audioCh.Writer);
+        }
+    }
 
-                await DispatchCommandAsync(Encoding.UTF8.GetString(msg.ToArray()));
+    private static bool TryReadAudioToggle(string json, out bool on)
+    {
+        on = false;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("cmd", out var c) || c.GetString() != "audio") return false;
+            on = doc.RootElement.TryGetProperty("on", out var o) && o.GetBoolean();
+            return true;
+        }
+        catch { return false; }
+    }
+
+    // ── RX audio: capture the radio's receive audio and fan PCM frames out to every
+    //    listening browser session. Capture starts on the first listener, stops on
+    //    the last. Called under no lock by sessions; guarded by _audioLock. ──
+    private void EnableAudio(ChannelWriter<byte[]> sink)
+    {
+        if (_captureFactory is null) return;
+        lock (_audioLock)
+        {
+            _audioSinks.Add(sink);
+            if (_capture is null)
+            {
+                _capture = _captureFactory();
+                _capture.SamplesCaptured += OnCaptureSamples;
+                try { _capture.Start(CaptureRateHz, _captureDevice); }
+                catch { /* no device — leave sinks registered but silent */ }
             }
         }
-        catch { /* socket closed / cancelled */ }
+    }
+
+    private void DisableAudio(ChannelWriter<byte[]> sink)
+    {
+        lock (_audioLock)
+        {
+            _audioSinks.Remove(sink);
+            if (_audioSinks.Count == 0 && _capture is not null)
+            {
+                _capture.SamplesCaptured -= OnCaptureSamples;
+                try { _capture.Stop(); } catch { }
+                _capture = null;
+            }
+        }
+    }
+
+    private void OnCaptureSamples(object? sender, short[] samples)
+    {
+        // Downsample by simple averaging, then pack little-endian 16-bit PCM.
+        int outCount = samples.Length / AudioDecimation;
+        if (outCount == 0) return;
+        var bytes = new byte[outCount * 2];
+        for (int i = 0; i < outCount; i++)
+        {
+            int sum = 0;
+            for (int j = 0; j < AudioDecimation; j++) sum += samples[i * AudioDecimation + j];
+            short v = (short)(sum / AudioDecimation);
+            bytes[i * 2] = (byte)(v & 0xFF);
+            bytes[i * 2 + 1] = (byte)((v >> 8) & 0xFF);
+        }
+        lock (_audioLock)
+            foreach (var sink in _audioSinks) sink.TryWrite(bytes);
     }
 
     private async Task DispatchCommandAsync(string json)
@@ -260,6 +372,8 @@ public sealed class WebRemoteServer : IAsyncDisposable
             alc = _rig.AlcLevel,
             volts = _rig.SupplyVoltage,
             amps = _rig.CurrentDraw,
+            audioRate = AudioRateHz,
+            audioAvailable = _captureFactory is not null,
         };
         return JsonSerializer.Serialize(state);
     }
@@ -332,6 +446,16 @@ public sealed class WebRemoteServer : IAsyncDisposable
     {
         try { _cts?.Cancel(); } catch { }
         try { _listener?.Stop(); } catch { }
+        lock (_audioLock)
+        {
+            _audioSinks.Clear();
+            if (_capture is not null)
+            {
+                _capture.SamplesCaptured -= OnCaptureSamples;
+                try { _capture.Stop(); } catch { }
+                _capture = null;
+            }
+        }
         _cts?.Dispose();
         _cts = null;
         _listener = null;

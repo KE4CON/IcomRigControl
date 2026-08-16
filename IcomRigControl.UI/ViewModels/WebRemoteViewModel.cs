@@ -47,7 +47,8 @@ public partial class WebRemoteViewModel : ViewModelBase, IAsyncDisposable
             s.WebRemoteToken = Token;
             _settingsService.Save(s);
 
-            _server = new WebRemoteServer(_transceiver, string.IsNullOrWhiteSpace(Token) ? null : Token, Port);
+            _server = new WebRemoteServer(_transceiver, string.IsNullOrWhiteSpace(Token) ? null : Token, Port,
+                captureFactory: AudioDevices.CreateCapture); // lets the phone listen to RX audio
             _server.Start();
 
             Urls.Clear();

@@ -456,9 +456,21 @@ Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-0
   meter poll (PollOnceAsync) does NOT read frequency/mode — the desktop keeps them current itself, but
   the headless web server would show 0, so added Transceiver.RefreshFrequencyAndModeAsync() and a
   ~700ms refresh loop in the headless web branch (also makes the browser reflect front-panel tuning).
-  REMAINING milestones: M3 RX audio over the WebSocket (Opus, decoded in-JS); M4 TX audio (mic from
-  the browser). SECURITY: plain HTTP + token in query — intended for a trusted LAN or VPN, documented
-  as such (same posture as Phase 9's remote CI-V).
+  MILESTONE 3 DONE + BROWSER-VERIFIED (2026-08-15): RX audio in the browser. Chose PCM-over-WebSocket
+  (NOT Opus/WebCodecs) for simplicity, universal phone support, and offline/self-contained operation —
+  the server captures the radio's RX audio (IAudioCapture via an injected captureFactory), downsamples
+  44100->11025 by 4x averaging, packs little-endian 16-bit PCM, and fans binary WS frames out to every
+  listening session (bounded DropOldest queue per session so a slow phone bounds latency, not memory).
+  Capture starts on the first listener, stops on the last. The page has a "Listen" button (satisfies
+  mobile autoplay — needs the tap) that plays frames gaplessly via WebAudio (createBuffer at the sent
+  audioRate, scheduled on a play-out clock with underrun/overrun resync). audioRate + audioAvailable in
+  the state JSON; button hides if the server has no capture. Wired capture into desktop (AudioDevices.
+  CreateCapture) and headless (--audiocapture <alsadev>). VERIFIED live in a browser: 203 PCM buffers
+  played in ~2s from a tone-generating capture, state/waterfall still rendered (onmessage text+binary
+  split works). 1 audio test (inject a PushCapture, request audio, assert binary PCM frames arrive).
+  REMAINING: M4 TX audio (mic from the browser -> radio TX + PTT, must honor TransmitInhibited).
+  SECURITY: plain HTTP + token in query — intended for a trusted LAN or VPN, documented as such (same
+  posture as Phase 9's remote CI-V).
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

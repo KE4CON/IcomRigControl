@@ -152,9 +152,10 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Live and two-way** — the page updates about five times a second and sends your tuning/mode/PTT back to the radio in real time.
 - **Runs from your PC or from a Raspberry Pi at the radio.** On the desktop, a **Phone / Tablet** button lists the exact addresses to type on your phone. On a headless Pi, add `--webport 8080` and browse to the Pi.
 - **Live waterfall, with tap-to-tune** — the spectrum waterfall streams to the phone too; tap anywhere on it to jump the radio to that frequency.
+- **Listen to the radio** — tap **Listen** and the receive audio streams to your phone/tablet and plays in the browser (over the network — no Bluetooth, no app). Works alongside the meters and waterfall.
 - **Nothing to install, works offline** — the page is completely self-contained (no internet, no app store), so it works on an isolated field network.
 - **Safe by design** — an optional access **token** gates it, and transmit still obeys the Receive-Only / TX-inhibit switch. It's a plain (unencrypted) link, so it's meant for a trusted home network or a VPN.
-- *In progress:* **listening and talking** (audio) through the browser is the next addition.
+- *In progress:* **talking** (transmitting your voice from the browser) is the next addition.
 
 ## 17. Settings & platform
 

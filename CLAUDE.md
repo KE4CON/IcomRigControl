@@ -616,6 +616,15 @@ Station scheduler — IMPLEMENTED 2026-08-15. Scheduler (Services): fires Schedu
   SchedulerViewModel + SchedulerWindow ("Scheduler" dashboard button): add (time + action dropdown +
   parameter) / list / delete; changes persist and are pushed to the live Scheduler. For nets and
   unattended (Pi) operation.
+Grey-line DX timing — IMPLEMENTED 2026-08-15. GreyLine (Services): SunriseSunset(lat,lon,date) via the
+  standard sunrise equation (null at polar day/night), plus Windows()/StatusAt() — grey-line windows
+  (event ± 45 min) across yesterday->tomorrow with an active-now / next-in status. DESIGN ADAPTED (with
+  the user's permission — "it's my code") from the user's ActivationPlanner project
+  (ActivationPlanner.Services/GreyLine: GreyLinePeriod/GreyLineStatus/Windows/StatusAt), reimplemented
+  in IcomRigControl's namespaces (no cross-project reference). Uses the operator's APRS lat/lon from
+  settings. GreyLineViewModel + GreyLineWindow ("Grey Line" dashboard button): sunrise/sunset (UTC +
+  local), a live "GREY LINE NOW … / next in Xh Ym" status, and a low-band DX note. 4 tests (equator
+  equinox ~6/18; arctic-summer null; StatusAt active-in-window + reports-next).
 ## Version 2 List (deferred to v2 by the user 2026-08-15 — "put the rest on the version 2 list")
 These are the bigger "light years" ideas explicitly deferred to a version 2. Do NOT build in v1.
 - SATELLITE TRACKING + DOPPLER AUTO-TUNE: predict amateur-satellite passes (SGP4 + TLEs from Celestrak)

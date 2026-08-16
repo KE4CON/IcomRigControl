@@ -121,6 +121,7 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Award tracking** — an **Awards** window shows your **DXCC** entity count (toward the 100-country award) and **grid squares** worked, drawn from this app's log plus your HRD history.
 - **Push to your phone** — turn on push alerts (using the free **ntfy** app, no account) and your phone buzzes the moment a country you need is spotted, even when you're away from the radio.
 - **Propagation** — a **Propagation** window shows live solar numbers (flux, sunspots, A/K index) and which bands are open day and night, so you know where to point your effort.
+- **Grey-line timing** — a **Grey Line** window shows your sunrise/sunset and tells you when you're in a grey-line window (or how long until the next one) — the times the low bands open for long-haul DX.
 - **Scheduler** — set actions to run automatically at a UTC time each day (change frequency/mode, send a beacon, start/stop recording, power the radio on/off) — for scheduled nets or leaving a Raspberry Pi running unattended.
 - **On-screen clock & FCC ID timer** — local and UTC time on the dashboard (with a one-tap check against internet time), plus an optional 10-minute station-identification reminder that pops an unmissable banner so you stay legal.
 - **SWR rig-saver** — optionally auto-stops transmit and locks it out if the SWR climbs past a limit you set, protecting the radio from a bad antenna.

@@ -55,6 +55,49 @@ public class HrdSqliteBridge
     /// the write fails for any reason — this bridge must never be the
     /// reason a QSO goes unrecorded (the local QsoLogger already has it
     /// per the Core Design Principle; this is purely a bonus convenience).
+    /// Reads the worked contacts (call, band, grid) from HRD's log — used by award
+    /// tracking and "new one!" spot alerts so they reflect the whole HRD history.
+    /// Defensive: any schema/lock/read error yields an empty list, never a throw.
+    public async Task<List<WorkedContact>> ReadWorkedAsync()
+    {
+        var result = new List<WorkedContact>();
+        if (!IsAvailable()) return result;
+
+        try
+        {
+            using var connection = new SqliteConnection($"Data Source={_databasePath}");
+            await connection.OpenAsync();
+
+            // Prefer including grid; fall back to call+band if that column is absent.
+            foreach (string sql in new[]
+            {
+                $"SELECT col_call, col_band, col_gridsquare FROM {ExpectedTableName}",
+                $"SELECT col_call, col_band FROM {ExpectedTableName}",
+            })
+            {
+                try
+                {
+                    result.Clear();
+                    var cmd = connection.CreateCommand();
+                    cmd.CommandText = sql;
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        string call = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                        string band = reader.FieldCount > 1 && !reader.IsDBNull(1) ? reader.GetString(1) : "";
+                        string? grid = reader.FieldCount > 2 && !reader.IsDBNull(2) ? reader.GetString(2) : null;
+                        if (!string.IsNullOrWhiteSpace(call)) result.Add(new WorkedContact(call, band, grid));
+                    }
+                    return result; // this query worked
+                }
+                catch { /* try the simpler query */ }
+            }
+        }
+        catch { /* unreachable db etc. */ }
+
+        return result;
+    }
+
     public async Task<bool> WriteQsoAsync(QsoRecord qso)
     {
         if (!IsAvailable()) return false;

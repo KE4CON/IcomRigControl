@@ -107,6 +107,8 @@ public partial class DxClusterViewModel : ViewModelBase, IAsyncDisposable
         settings.DxClusterLoginCall = LoginCall;
         _settingsService.Save(settings);
 
+        await LoadWorkedEntitiesAsync(settings); // for "new DXCC" alerts
+
         await DisposeServiceAsync();
 
         _service = new DxClusterService(LoginCall);
@@ -174,13 +176,36 @@ public partial class DxClusterViewModel : ViewModelBase, IAsyncDisposable
 
     // These events fire on the cluster read-loop thread — marshal to the UI thread
     // before touching the bound collection (see CLAUDE.md's UI-thread rule).
+    // DXCC entities already worked, from HRD's whole log (cached) plus this app's log.
+    private readonly HashSet<string> _hrdEntities = new(StringComparer.OrdinalIgnoreCase);
+
+    private async Task LoadWorkedEntitiesAsync(AppSettings settings)
+    {
+        _hrdEntities.Clear();
+        if (!settings.HrdBridgeEnabled || string.IsNullOrWhiteSpace(settings.HrdDatabasePath)) return;
+        try
+        {
+            var hrd = new HrdSqliteBridge(settings.HrdDatabasePath);
+            foreach (var e in new AwardTracker(await hrd.ReadWorkedAsync()).Entities) _hrdEntities.Add(e);
+            Status = $"Loaded {_hrdEntities.Count} worked DXCC entities from HRD for new-one alerts.";
+        }
+        catch { /* HRD unreachable — alerts fall back to this app's log only */ }
+    }
+
+    // A spot is a "new one" if its DXCC entity isn't in HRD's history or this session.
+    private bool IsNewEntity(string call)
+    {
+        string entity = DxccResolver.Resolve(call);
+        if (entity == "Unknown" || _hrdEntities.Contains(entity)) return false;
+        foreach (var q in _qsoLogger.Qsos)
+            if (DxccResolver.Resolve(q.Callsign).Equals(entity, StringComparison.OrdinalIgnoreCase)) return false;
+        return true;
+    }
+
     private void OnSpotReceived(object? sender, DxSpot spot) =>
         Dispatcher.UIThread.Post(() =>
         {
-            // Flag spots for stations not yet worked on that band (against a fresh
-            // snapshot of the log, so contacts made this session count).
-            var analyzer = new SpotNeedAnalyzer(_qsoLogger.Qsos);
-            spot.IsNew = analyzer.IsNewOnBand(spot.DxCallsign, spot.FrequencyHz);
+            spot.IsNew = IsNewEntity(spot.DxCallsign); // new DXCC entity = "new one!"
 
             if (NewOnly && !spot.IsNew) return; // filtered out
 

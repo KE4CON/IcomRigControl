@@ -1,3 +1,7 @@
+# Shell scripts must always use LF line endings, even when checked out on Windows,
+# or they fail on the Linux/macOS GitHub runners and on the Raspberry Pi.
+*.sh text eol=lf
+
 # Treat binary assets as binary so end-of-line normalization never touches them.
 *.pdf  binary
 *.png  binary

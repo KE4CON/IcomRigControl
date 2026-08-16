@@ -69,6 +69,29 @@
                                    FormatString="0.0" Width="110"/>
                     <TextBlock Text=":1 SWR" Foreground="Gray" VerticalAlignment="Center"/>
                 </StackPanel>
+
+                <TextBlock Text="Phone push alerts (ntfy.sh)" Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ToggleButton IsChecked="{Binding PushEnabled}" Content="Push 'new one!' alerts" VerticalAlignment="Center">
+                        <ToggleButton.Styles>
+                            <Style Selector="ToggleButton">
+                                <Setter Property="Background" Value="#2a2a2a"/><Setter Property="Foreground" Value="White"/><Setter Property="Padding" Value="8,6"/>
+                            </Style>
+                            <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#00ff88"/><Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                            <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#3a3a3a"/>
+                            </Style>
+                            <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#33ffa2"/><Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                        </ToggleButton.Styles>
+                    </ToggleButton>
+                    <TextBox Text="{Binding PushTopic}" Width="160" Watermark="a secret topic name"/>
+                </StackPanel>
+                <TextBlock Text="Install the free 'ntfy' app on your phone and subscribe to this topic name to receive alerts (e.g. when a DXCC country you need is spotted)."
+                           Foreground="Gray" FontSize="10" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
 

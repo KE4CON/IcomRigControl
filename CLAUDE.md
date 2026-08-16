@@ -599,6 +599,12 @@ Propagation / band intelligence — IMPLEMENTED 2026-08-15. SolarDataService (Se
   throw); the fetch returns null on any failure. PropagationViewModel + PropagationWindow
   ("Propagation" dashboard button): the numbers as tiles + a band-conditions list + Refresh. An
   operating assistant that pairs with the DX cluster.
+Phone push alerts — IMPLEMENTED 2026-08-15. PushNotifier (Services) POSTs to ntfy.sh/<topic> (free,
+  no-signup, open push — operator installs the ntfy app + subscribes to a topic). Defensive (returns
+  bool, never throws); SanitizeTopic is unit-tested (4). Settings: PushEnabled + PushTopic (toggle +
+  topic box in Settings, with a how-to hint). Wired into the DX cluster: a genuinely NEW DXCC entity
+  spot fires one push per entity per session ("New one! <entity> — <call> on <kHz>"). Easy future adds:
+  push on SWR trip and on incoming APRS message (the notifier is generic).
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

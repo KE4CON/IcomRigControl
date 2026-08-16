@@ -65,6 +65,10 @@ public class AppSettings
     public bool SwrGuardEnabled { get; set; } = false;
     public double SwrGuardThreshold { get; set; } = 3.0;
 
+    // Push notifications to a phone via ntfy.sh (install the ntfy app, subscribe to the topic).
+    public bool PushEnabled { get; set; } = false;
+    public string PushTopic { get; set; } = "";
+
     // ── Phase 10: APRS beacon settings ──────────────────────────────────
     public string AprsCallsign { get; set; } = "";
     public int AprsSsid { get; set; } = 9; // 9 is the conventional SSID for mobile/HF APRS

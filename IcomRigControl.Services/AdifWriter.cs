@@ -53,6 +53,11 @@ public static class AdifWriter
         if (qso.SerialNumberReceived.HasValue)
             sb.Append(Field("SRX", qso.SerialNumberReceived.Value.ToString(CultureInfo.InvariantCulture)));
 
+        // App-specific field (ADIF APP_<PROGRAMID>_<FIELD>) so the per-QSO audio clip
+        // link travels with the log on export — ignored by other programs.
+        if (!string.IsNullOrEmpty(qso.AudioFile))
+            sb.Append(Field("APP_ICOMRIGCONTROL_AUDIOFILE", qso.AudioFile));
+
         sb.Append("<EOR>");
         return sb.ToString();
     }

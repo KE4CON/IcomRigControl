@@ -484,7 +484,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void OpenDxCluster()
     {
-        var clusterViewModel = new DxClusterViewModel(_transceiver, _settingsService);
+        var clusterViewModel = new DxClusterViewModel(_transceiver, _settingsService, _qsoLogger);
         var clusterWindow = new Views.DxClusterWindow
         {
             DataContext = clusterViewModel

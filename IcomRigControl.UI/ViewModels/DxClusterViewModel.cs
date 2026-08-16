@@ -30,9 +30,15 @@ public partial class DxClusterViewModel : ViewModelBase, IAsyncDisposable
 
     private readonly Transceiver _transceiver;
     private readonly SettingsService _settingsService;
+    private readonly QsoLogger _qsoLogger;
     private DxClusterService? _service;
 
     public ObservableCollection<DxSpot> Spots { get; } = new();
+
+    /// When on, only spots you haven't worked on that band are shown.
+    [ObservableProperty] private bool _newOnly;
+    /// How many "new" (not-yet-worked-on-band) spots are currently listed.
+    [ObservableProperty] private int _newCount;
 
     /// The "type your own host/port" entry.
     public static readonly ClusterPreset Custom = new("Custom / manual entry", "", 0);
@@ -62,10 +68,11 @@ public partial class DxClusterViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private string _spotFrequencyKHz = "";
     [ObservableProperty] private string _spotComment = "";
 
-    public DxClusterViewModel(Transceiver transceiver, SettingsService settingsService)
+    public DxClusterViewModel(Transceiver transceiver, SettingsService settingsService, QsoLogger qsoLogger)
     {
         _transceiver = transceiver;
         _settingsService = settingsService;
+        _qsoLogger = qsoLogger;
 
         var settings = _settingsService.Load();
         _host = settings.DxClusterHost;
@@ -170,8 +177,16 @@ public partial class DxClusterViewModel : ViewModelBase, IAsyncDisposable
     private void OnSpotReceived(object? sender, DxSpot spot) =>
         Dispatcher.UIThread.Post(() =>
         {
+            // Flag spots for stations not yet worked on that band (against a fresh
+            // snapshot of the log, so contacts made this session count).
+            var analyzer = new SpotNeedAnalyzer(_qsoLogger.Qsos);
+            spot.IsNew = analyzer.IsNewOnBand(spot.DxCallsign, spot.FrequencyHz);
+
+            if (NewOnly && !spot.IsNew) return; // filtered out
+
             Spots.Insert(0, spot);
             while (Spots.Count > MaxSpots) Spots.RemoveAt(Spots.Count - 1);
+            NewCount = Spots.Count(s => s.IsNew);
         });
 
     private void OnStatusChanged(object? sender, string message) =>

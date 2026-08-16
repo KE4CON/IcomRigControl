@@ -23,6 +23,9 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly QsoLogger _qsoLogger;
     private readonly BandRecorder _bandRecorder;
     private readonly ScopeRecorder _scopeRecorder;
+
+    /// Dashboard clock (local + UTC) and the FCC station-ID reminder.
+    public StationClockViewModel Clock { get; }
     private readonly IAudioPlayer _audioPlayer = AudioDevices.CreatePlayer();
 
     private RadioInfoUdpBroadcaster? _radioInfoBroadcaster;
@@ -105,6 +108,8 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
 
         _settingsService = new SettingsService(System.IO.Path.Combine(docsFolder, "settings.json"));
         var settings = _settingsService.Load();
+
+        Clock = new StationClockViewModel(_settingsService);
 
         // Phase 9: choose the real transport based on saved connection mode.
         // Demo (default) needs no hardware/network; Serial connects to a

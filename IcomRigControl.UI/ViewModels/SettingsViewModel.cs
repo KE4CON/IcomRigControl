@@ -48,6 +48,13 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _remoteAuthToken = "";
 
+    // ── SWR protection (rig-saver) ───────────────────────────────────────
+    [ObservableProperty]
+    private bool _swrGuardEnabled;
+
+    [ObservableProperty]
+    private double _swrGuardThreshold = 3.0;
+
     // ── Phase 10: APRS beacon settings ──────────────────────────────────
     [ObservableProperty]
     private string _aprsCallsign = "";
@@ -145,6 +152,8 @@ public partial class SettingsViewModel : ViewModelBase
         RemoteHost = settings.RemoteHost;
         RemotePort = settings.RemotePort;
         RemoteAuthToken = settings.RemoteAuthToken;
+        SwrGuardEnabled = settings.SwrGuardEnabled;
+        SwrGuardThreshold = settings.SwrGuardThreshold;
 
         AprsCallsign = settings.AprsCallsign;
         AprsSsid = settings.AprsSsid;
@@ -192,38 +201,41 @@ public partial class SettingsViewModel : ViewModelBase
             char symbolTable = string.IsNullOrEmpty(AprsSymbolTable) ? '/' : AprsSymbolTable[0];
             char symbolCode = string.IsNullOrEmpty(AprsSymbolCode) ? '>' : AprsSymbolCode[0];
 
-            var settings = new AppSettings
-            {
-                RadioModel = SelectedRadioModel,
-                ConnectionMode = ConnectionMode,
-                SerialPortName = SerialPortName,
-                RemoteHost = RemoteHost,
-                RemotePort = RemotePort,
-                RemoteAuthToken = RemoteAuthToken,
+            // Load-then-modify so settings owned by OTHER windows (CW pitch, RTTY
+            // reverse, web remote, ID timer, etc.) are preserved rather than reset.
+            var settings = _settingsService.Load();
+            settings.RadioModel = SelectedRadioModel;
+            settings.ConnectionMode = ConnectionMode;
+            settings.SerialPortName = SerialPortName;
+            settings.RemoteHost = RemoteHost;
+            settings.RemotePort = RemotePort;
+            settings.RemoteAuthToken = RemoteAuthToken;
 
-                AprsCallsign = AprsCallsign,
-                AprsSsid = AprsSsid,
-                AprsSymbolTable = symbolTable,
-                AprsSymbolCode = symbolCode,
-                AprsComment = AprsComment,
-                AprsLatitude = AprsLatitude,
-                AprsLongitude = AprsLongitude,
-                AudioOutputDeviceName = AudioOutputDeviceName == "(System Default)" ? "" : AudioOutputDeviceName,
-                AprsBeaconIntervalMinutes = AprsBeaconIntervalMinutes,
+            settings.AprsCallsign = AprsCallsign;
+            settings.AprsSsid = AprsSsid;
+            settings.AprsSymbolTable = symbolTable;
+            settings.AprsSymbolCode = symbolCode;
+            settings.AprsComment = AprsComment;
+            settings.AprsLatitude = AprsLatitude;
+            settings.AprsLongitude = AprsLongitude;
+            settings.AudioOutputDeviceName = AudioOutputDeviceName == "(System Default)" ? "" : AudioOutputDeviceName;
+            settings.AprsBeaconIntervalMinutes = AprsBeaconIntervalMinutes;
 
-                CallsignLookupSource = CallsignLookupSource,
-                QrzUsername = QrzUsername,
-                QrzPassword = QrzPassword,
-                HamQthUsername = HamQthUsername,
-                HamQthPassword = HamQthPassword,
-                TqslExecutablePath = TqslExecutablePath,
-                HrdBridgeEnabled = HrdBridgeEnabled,
-                HrdDatabasePath = HrdDatabasePath,
-                N1mmSendEnabled = N1mmSendEnabled,
-                N1mmReceiveEnabled = N1mmReceiveEnabled,
-                N1mmDestinations = destinations,
-                ContactListenPort = ContactListenPort
-            };
+            settings.CallsignLookupSource = CallsignLookupSource;
+            settings.QrzUsername = QrzUsername;
+            settings.QrzPassword = QrzPassword;
+            settings.HamQthUsername = HamQthUsername;
+            settings.HamQthPassword = HamQthPassword;
+            settings.TqslExecutablePath = TqslExecutablePath;
+            settings.HrdBridgeEnabled = HrdBridgeEnabled;
+            settings.HrdDatabasePath = HrdDatabasePath;
+            settings.N1mmSendEnabled = N1mmSendEnabled;
+            settings.N1mmReceiveEnabled = N1mmReceiveEnabled;
+            settings.N1mmDestinations = destinations;
+            settings.ContactListenPort = ContactListenPort;
+
+            settings.SwrGuardEnabled = SwrGuardEnabled;
+            settings.SwrGuardThreshold = SwrGuardThreshold;
 
             _settingsService.Save(settings);
             StatusMessage = "Settings saved. Connection mode changes require an app restart to take effect.";

@@ -61,6 +61,10 @@ public class AppSettings
     public bool IdTimerEnabled { get; set; } = false;
     public int IdTimerMinutes { get; set; } = 10;
 
+    // SWR protection: auto-unkey + TX-inhibit if SWR exceeds the threshold while transmitting.
+    public bool SwrGuardEnabled { get; set; } = false;
+    public double SwrGuardThreshold { get; set; } = 3.0;
+
     // ── Phase 10: APRS beacon settings ──────────────────────────────────
     public string AprsCallsign { get; set; } = "";
     public int AprsSsid { get; set; } = 9; // 9 is the conventional SSID for mobile/HF APRS

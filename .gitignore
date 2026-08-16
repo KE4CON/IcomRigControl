@@ -6,6 +6,10 @@ obj/
 artifacts/
 publish/
 
+# Python doc-pipeline bytecode cache
+__pycache__/
+*.pyc
+
 # User-specific files
 *.user
 *.suo

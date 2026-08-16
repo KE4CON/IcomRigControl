@@ -555,7 +555,11 @@ Dashboard clock + FCC ID timer — IMPLEMENTED 2026-08-15. StationClockViewModel
   latches ReminderDue + raises Elapsed once, stays latched until Acknowledge() (operator IDed). Dashboard
   shows the countdown + an "ID timer" toggle (persisted IdTimerEnabled/IdTimerMinutes) and an unmissable
   orange "IDENTIFY YOUR STATION — 10-minute FCC ID is due" banner with an "Identified" reset button (FCC
-  §97.119). 2 tests (elapses once then latches until acknowledged; MM:SS display).
+  §97.119). 2 tests (elapses once then latches until acknowledged; MM:SS display). CLOCK ACCURACY: the
+  display follows the OS clock (DateTime.Now/UtcNow). NtpClient (Services) is a tiny SNTP client — a
+  "⟳" button on the clock checks the PC clock against internet time and reports the offset ("PC clock
+  is 0.4s behind…"). ParseTransmitTimestamp is unit-tested; the UDP query itself returns null on any
+  failure (no network / blocked).
 SWR protection (rig-saver) — IMPLEMENTED 2026-08-15. SwrProtection (Services) watches Transceiver.
   MeterUpdated; if SWR >= threshold WHILE transmitting (PttActive) it unkeys (SetPttAsync false) and
   engages TransmitInhibited to protect the finals; the op clears the inhibit once fixed. Pure

@@ -69,6 +69,9 @@ public class AppSettings
     public bool PushEnabled { get; set; } = false;
     public string PushTopic { get; set; } = "";
 
+    // Scheduled station actions (nets, unattended Pi operation).
+    public List<ScheduledTask> ScheduledTasks { get; set; } = new();
+
     // ── Phase 10: APRS beacon settings ──────────────────────────────────
     public string AprsCallsign { get; set; } = "";
     public int AprsSsid { get; set; } = 9; // 9 is the conventional SSID for mobile/HF APRS

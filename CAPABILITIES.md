@@ -121,6 +121,9 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Award tracking** — an **Awards** window shows your **DXCC** entity count (toward the 100-country award) and **grid squares** worked, drawn from this app's log plus your HRD history.
 - **Push to your phone** — turn on push alerts (using the free **ntfy** app, no account) and your phone buzzes the moment a country you need is spotted, even when you're away from the radio.
 - **Propagation** — a **Propagation** window shows live solar numbers (flux, sunspots, A/K index) and which bands are open day and night, so you know where to point your effort.
+- **Scheduler** — set actions to run automatically at a UTC time each day (change frequency/mode, send a beacon, start/stop recording, power the radio on/off) — for scheduled nets or leaving a Raspberry Pi running unattended.
+- **On-screen clock & FCC ID timer** — local and UTC time on the dashboard (with a one-tap check against internet time), plus an optional 10-minute station-identification reminder that pops an unmissable banner so you stay legal.
+- **SWR rig-saver** — optionally auto-stops transmit and locks it out if the SWR climbs past a limit you set, protecting the radio from a bad antenna.
 - **Click-to-tune** — a Tune button on every spot QSYs the radio to it.
 - **Post your own spots** — announce a DX call to the cluster (`DX <kHz> <call> <comment>`), with a one-click "use radio frequency" prefill.
 - Resilient: a dropped cluster connection is surfaced, never crashes the app.

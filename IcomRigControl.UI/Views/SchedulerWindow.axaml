@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:IcomRigControl.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="480"
+        x:Class="IcomRigControl.UI.Views.SchedulerWindow"
+        x:DataType="vm:SchedulerViewModel"
+        Title="Scheduler"
+        Width="560" Height="480"
+        Background="#1a1a1a">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+
+        <TextBlock Grid.Row="0" Text="Scheduled station actions (UTC, once per day)"
+                   Foreground="#88ccff" FontSize="15" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+            <TextBox Text="{Binding NewTime}" Width="80" Watermark="HH:mm"/>
+            <ComboBox ItemsSource="{Binding Actions}" SelectedItem="{Binding SelectedAction}" Width="130"/>
+            <TextBox Text="{Binding NewParameter}" Width="180" Watermark="e.g. 14074000 or USB"/>
+            <Button Content="Add" Command="{Binding AddCommand}"
+                    Background="#2a2a2a" Foreground="White" Padding="14,6">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#00ff88"/><Setter Property="TextBlock.Foreground" Value="Black"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </StackPanel>
+
+        <Border Grid.Row="2" Background="#0d0d0d" CornerRadius="6" Padding="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Tasks}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="70,130,*,60" Margin="0,0,0,2" Background="#141414">
+                                <TextBlock Grid.Column="0" Text="{Binding TimeUtc}" Foreground="#00ff88" Padding="6,5" FontFamily="Courier New"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Action}" Foreground="#88ccff" Padding="6,5"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Parameter}" Foreground="#e0e0e0" Padding="6,5" TextTrimming="CharacterEllipsis"/>
+                                <Button Grid.Column="3" Content="Del" Margin="2"
+                                        Command="{Binding $parent[ItemsControl].((vm:SchedulerViewModel)DataContext).RemoveCommand}"
+                                        CommandParameter="{Binding}" Background="#5a2a2a" Foreground="White"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock Grid.Row="3" Text="{Binding Status}" Foreground="Gray" FontSize="11"
+                   TextWrapping="Wrap" Margin="0,10,0,0"/>
+    </Grid>
+</Window>

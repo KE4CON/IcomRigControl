@@ -24,6 +24,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly BandRecorder _bandRecorder;
     private readonly ScopeRecorder _scopeRecorder;
     private SwrProtection? _swrProtection;
+    private Scheduler? _scheduler;
 
     /// Dashboard clock (local + UTC) and the FCC station-ID reminder.
     public StationClockViewModel Clock { get; }
@@ -339,6 +340,14 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
         _swrProtection.Enabled = settings.SwrGuardEnabled;
         _swrProtection.Threshold = settings.SwrGuardThreshold;
 
+        // Scheduled station actions (nets / unattended operation).
+        if (_scheduler is null)
+        {
+            _scheduler = new Scheduler();
+            _scheduler.TaskDue += t => Dispatcher.UIThread.Post(() => _ = RunScheduledTaskAsync(t));
+        }
+        _scheduler.SetTasks(settings.ScheduledTasks);
+
         try
         {
             // Callsign lookup source selection (Phase 8c)
@@ -532,6 +541,51 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     {
         var propWindow = new Views.PropagationWindow { DataContext = new PropagationViewModel() };
         propWindow.Show();
+    }
+
+    [RelayCommand]
+    private void OpenScheduler()
+    {
+        var vm = new SchedulerViewModel(_settingsService, () => _scheduler?.SetTasks(_settingsService.Load().ScheduledTasks));
+        new Views.SchedulerWindow { DataContext = vm }.Show();
+    }
+
+    // Executes a scheduled task's action against the live services.
+    private async Task RunScheduledTaskAsync(ScheduledTask t)
+    {
+        try
+        {
+            StatusMessage = $"Scheduled: {t.Action} {t.Parameter} ({t.TimeUtc} UTC)";
+            switch (t.Action)
+            {
+                case "Frequency" when long.TryParse(t.Parameter, out long hz):
+                    await _transceiver.SetFrequencyAsync(hz);
+                    break;
+                case "Mode":
+                    await _transceiver.SetModeAsync(t.Parameter);
+                    break;
+                case "Beacon":
+                    if (SendBeaconCommand.CanExecute(null)) SendBeaconCommand.Execute(null);
+                    break;
+                case "PowerOn":
+                    await _transceiver.PowerOnAsync();
+                    break;
+                case "PowerOff":
+                    await _transceiver.PowerOffAsync();
+                    break;
+                case "RecordStart":
+                    if (!_bandRecorder.IsCapturing) _bandRecorder.Start();
+                    _bandRecorder.StartRecording(BandRecorder.RecordingsDir);
+                    break;
+                case "RecordStop":
+                    _bandRecorder.StopRecording();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Scheduled task '{t.Action}' failed: {ex.Message}";
+        }
     }
 
     [RelayCommand]

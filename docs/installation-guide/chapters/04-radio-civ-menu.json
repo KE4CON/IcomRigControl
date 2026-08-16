@@ -74,7 +74,7 @@
 
     {"h1": "IC-705 Differences"},
     {"p": "The IC-705 has the same CI-V settings, reached almost the same way. Press **MENU**, touch **SET**, then **Connectors**, then **CI-V**, and set the same values as the table above — with the CI-V Address confirmed as **`A4h`**. The wording on screen is essentially identical; the IC-705 simply has a smaller touchscreen and adds features (like GPS and D-STAR) that IcomRigControl does not use."},
-    {"callout": {"kind": "note", "label": "Bluetooth on the IC-705.", "text": "The IC-705 can also do CI-V over Bluetooth, but IcomRigControl connects over the USB-C cable, which carries both control and audio. Use the USB cable; you do not need to set up Bluetooth."}},
+    {"callout": {"kind": "note", "label": "Bluetooth on the IC-705.", "text": "The IC-705 can also do CI-V over Bluetooth, but IcomRigControl connects over the USB cable, which carries both control and audio. Use the USB cable; you do not need to set up Bluetooth."}},
 
     {"h1": "A Note on Transmit Audio"},
     {"p": "IcomRigControl keys the transmitter over the CI-V link itself, so you do **not** need to set up any 'USB SEND' or RTS/DTR keying for push-to-talk to work — that is handled for you."},

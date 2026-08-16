@@ -157,18 +157,28 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Nothing to install, works offline** — the page is completely self-contained (no internet, no app store), so it works on an isolated field network.
 - **Safe by design** — an optional access **token** gates it, transmit always obeys the Receive-Only / TX-inhibit switch, and you can enable **HTTPS** to encrypt the link. Intended for a trusted home network or a VPN.
 
-## 17. Settings & platform
+## 17. Band DVR (record & rewind the radio)
+
+*A DVR for the airwaves — catch the call you just missed, or record a whole session.*
+
+- **Instant replay** — while monitoring, the last 60 seconds of receive audio are always kept in memory; tap **Replay last 30s** or **60s** to hear it again ("who was that? — rewind").
+- **Record to a file** — flip **Record** to capture the receive audio continuously to a standard **WAV** file (Documents → IcomRigControl → Recordings), openable in any media player or editor.
+- **Cross-platform, no extra software** — the recorder is built in, and works on Windows, macOS, Linux, and the Raspberry Pi.
+- Opens in its own window from the **Band DVR** dashboard button, alongside the radio.
+- *Planned next:* recording/scrubbing the **waterfall**, and auto-attaching each contact's audio to its log entry.
+
+## 18. Settings & platform
 
 - One Settings window covering connection, APRS, callsign lookup, LoTW/TQSL, HRD, and N1MM.
 - Cross-platform audio: playback and capture on Windows (NAudio/WASAPI), Linux/Raspberry Pi (ALSA `arecord`/`aplay`), and macOS (`afplay` for beacons, plus SoX `rec`/`play` for the live decoders and remote audio — macOS needs `brew install sox`).
 - Settings persisted to JSON; secrets kept out of source control.
 - **Windows, macOS, Linux desktop, and Raspberry Pi OS** all supported via Avalonia.
 
-## 18. Architecture (for context)
+## 19. Architecture (for context)
 
 Four clean layers: **CivEngine** (CI-V framing, serial I/O, APRS/AFSK, CW & RTTY DSP) → **RigModel**
-(`Transceiver` + the network layer) → **Services** (all the integrations above, incl. the web remote server) → **UI**
-(Avalonia views/view-models). 380 automated tests.
+(`Transceiver` + the network layer) → **Services** (all the integrations above, incl. the web remote server and Band DVR) → **UI**
+(Avalonia views/view-models). 388 automated tests.
 
 ---
 

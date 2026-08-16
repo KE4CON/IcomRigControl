@@ -589,8 +589,10 @@ DXCC award tracking + DXCC-aware "new one!" spot alerts — IN PROGRESS 2026-08-
   window now flags a spot with a gold ★ when its DXCC ENTITY isn't in HRD's history OR this session
   (was call+band via SpotNeedAnalyzer, which still exists/tested) — loaded on Connect via
   LoadWorkedEntitiesAsync; "New only" filter + live ★-count now mean new-entity. 13 tests (resolver
-  known/unknown; tracker counts + new-one). REMAINING: an Awards window (DXCC/grid progress + missing
-  list); WAS (needs the QSO state field — HRD has it, IcomRigControl QsoRecord doesn't yet).
+  known/unknown; tracker counts + new-one). AWARDS WINDOW DONE 2026-08-15: AwardsViewModel + AwardsWindow
+  ("Awards" dashboard button) show DXCC entity count (vs the 100 goal) + grid-square count from this
+  app's log + HRD, a sorted worked-entity list, and Refresh. REMAINING: WAS (needs the QSO state field
+  — HRD has it, IcomRigControl QsoRecord doesn't yet); cty.dat import for full/exact DXCC.
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

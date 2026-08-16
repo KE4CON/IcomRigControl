@@ -520,6 +520,14 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenAwards()
+    {
+        var awardsViewModel = new AwardsViewModel(_qsoLogger, _settingsService);
+        var awardsWindow = new Views.AwardsWindow { DataContext = awardsViewModel };
+        awardsWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenBandDvr()
     {
         // Shares the app-wide recorder so per-QSO audio keeps working and monitoring

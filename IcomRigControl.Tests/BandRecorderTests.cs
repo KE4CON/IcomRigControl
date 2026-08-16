@@ -40,7 +40,8 @@ public class BandRecorderTests
     public void Rewind_ReturnsMostRecentSeconds()
     {
         var capture = new FakeCapture();
-        var rec = new BandRecorder(capture, sampleRateHz: 100, rollingSeconds: 2); // capacity 200
+        // capture==store so no downsampling; capacity = 2s * 100 = 200.
+        var rec = new BandRecorder(capture, captureRateHz: 100, storeRateHz: 100, rollingSeconds: 2);
         rec.Start();
 
         // Push 300 samples (0..299); ring holds the last 200 (100..299).
@@ -63,7 +64,7 @@ public class BandRecorderTests
     public void Records_PushedAudio_ToAWavFile()
     {
         var capture = new FakeCapture();
-        var rec = new BandRecorder(capture, sampleRateHz: 8000, rollingSeconds: 5);
+        var rec = new BandRecorder(capture, captureRateHz: 8000, storeRateHz: 8000, rollingSeconds: 5);
         string dir = Path.Combine(Path.GetTempPath(), $"irc_dvr_{Guid.NewGuid():N}");
         rec.Start();
         string path = rec.StartRecording(dir);
@@ -80,6 +81,40 @@ public class BandRecorderTests
             Assert.Equal(44 + buf.Length * 2, file.Length);
         }
         finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void Downsamples_CaptureRateToStoreRate()
+    {
+        var capture = new FakeCapture();
+        // Capture 8000, store 2000 -> keep every 4th sample.
+        var rec = new BandRecorder(capture, captureRateHz: 8000, storeRateHz: 2000, rollingSeconds: 10);
+        rec.Start();
+        capture.Push(new short[8000]); // 1 second of capture
+        // 1 second stored at 2000 Hz -> ~2000 samples buffered.
+        short[] oneSecond = rec.GetRewind(1);
+        Assert.InRange(oneSecond.Length, 1900, 2001);
+        Assert.Equal(2000, rec.SampleRate);
+        rec.Stop();
+    }
+
+    [Fact]
+    public void SaveQsoAudio_WritesAClip_WhenMonitoring()
+    {
+        var capture = new FakeCapture();
+        var rec = new BandRecorder(capture, captureRateHz: 8000, storeRateHz: 8000, rollingSeconds: 5);
+        Assert.Null(rec.SaveQsoAudio("KE4CON")); // not monitoring yet
+        rec.Start();
+        capture.Push(new short[8000]);
+        string? path = rec.SaveQsoAudio("KE4CON");
+        rec.Stop();
+        try
+        {
+            Assert.NotNull(path);
+            Assert.True(File.Exists(path));
+            Assert.Contains("KE4CON", path!);
+        }
+        finally { if (path is not null && File.Exists(path)) File.Delete(path); }
     }
 
     private sealed class FakeCapture : IAudioCapture

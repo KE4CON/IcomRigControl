@@ -7,10 +7,10 @@
         x:Class="IcomRigControl.UI.Views.BandDvrWindow"
         x:DataType="vm:BandDvrViewModel"
         Title="Band DVR"
-        Width="520" Height="360"
+        Width="580" Height="600"
         Background="#1a1a1a">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="16">
 
         <TextBlock Grid.Row="0" Text="Record and rewind the radio. Monitor keeps the last 60 seconds ready to replay."
                    Foreground="#88ccff" TextWrapping="Wrap" Margin="0,0,0,12"/>
@@ -61,14 +61,47 @@
                     </ToggleButton.Styles>
                     <TextBlock Text="⏺ Record to file"/>
                 </ToggleButton>
-                <Button Content="Open recordings folder" Command="{Binding OpenRecordingsFolderCommand}"
-                        Background="#2a2a2a" Foreground="White" Padding="12,6" HorizontalAlignment="Left"/>
-                <TextBlock Text="Recordings are saved as WAV files in Documents → IcomRigControl → Recordings."
+                <TextBlock Text="Recordings are WAV files at 11 kHz (~1.3 MB/min) in Documents → IcomRigControl. Per-QSO clips save automatically while monitoring."
                            Foreground="Gray" FontSize="11" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
 
-        <TextBlock Grid.Row="4" Text="{Binding Status}" Foreground="#00ff88" FontSize="12"
+        <!-- Recordings manager -->
+        <Border Grid.Row="4" Background="#0d0d0d" CornerRadius="6" Padding="10" Margin="0,10,0,0">
+            <Grid RowDefinitions="Auto,*">
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
+                    <TextBlock Text="Recordings" Foreground="#88ccff" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding TotalSize}" Foreground="Gray" VerticalAlignment="Center"/>
+                    <Button Content="Refresh" Command="{Binding RefreshRecordingsCommand}"
+                            Background="#2a2a2a" Foreground="White" Padding="8,4"/>
+                    <Button Content="Open folder" Command="{Binding OpenRecordingsFolderCommand}"
+                            Background="#2a2a2a" Foreground="White" Padding="8,4"/>
+                    <Button Content="Delete all" Command="{Binding DeleteAllRecordingsCommand}"
+                            Background="#5a2a2a" Foreground="White" Padding="8,4"/>
+                </StackPanel>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Recordings}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,80,60,60" Margin="0,0,0,2" Background="#141414">
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}" Foreground="#e0e0e0"
+                                               FontFamily="Courier New" FontSize="12" Padding="6,5" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SizeText}" Foreground="Gray" Padding="4,5"/>
+                                    <Button Grid.Column="2" Content="Play" Margin="2"
+                                            Command="{Binding $parent[ItemsControl].((vm:BandDvrViewModel)DataContext).PlayRecordingCommand}"
+                                            CommandParameter="{Binding}" Background="#2a2a2a" Foreground="White"/>
+                                    <Button Grid.Column="3" Content="Del" Margin="2"
+                                            Command="{Binding $parent[ItemsControl].((vm:BandDvrViewModel)DataContext).DeleteRecordingCommand}"
+                                            CommandParameter="{Binding}" Background="#5a2a2a" Foreground="White"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <TextBlock Grid.Row="5" Text="{Binding Status}" Foreground="#00ff88" FontSize="12"
                    TextWrapping="Wrap" Margin="0,10,0,0"/>
     </Grid>
 </Window>

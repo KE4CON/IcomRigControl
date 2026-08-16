@@ -34,6 +34,10 @@ public class QsoLogger
     /// that don't need write-through persistence).
     public string? SessionFilePath { get; }
 
+    /// Optional Band DVR (or similar) that saves each contact's audio. When set and
+    /// monitoring, LogQso attaches a WAV clip to the QSO. See CLAUDE.md per-QSO audio.
+    public IQsoAudioSource? AudioSource { get; set; }
+
     /// In-memory-only constructor (no write-through persistence).
     public QsoLogger(Transceiver transceiver)
     {
@@ -70,6 +74,11 @@ public class QsoLogger
         int? serialNumberSent = null,
         int? serialNumberReceived = null)
     {
+        // Attach a recording of the contact if the Band DVR is monitoring. Never let
+        // an audio-save failure block the log write (backup-of-record discipline).
+        string? audioFile = null;
+        try { audioFile = AudioSource?.SaveQsoAudio(callsign); } catch { }
+
         var qso = new QsoRecord(
             Callsign: callsign.ToUpperInvariant(),
             FrequencyMHz: _transceiver.FrequencyHz / 1_000_000.0,
@@ -84,7 +93,8 @@ public class QsoLogger
             ContestExchangeSent: contestExchangeSent,
             ContestExchangeReceived: contestExchangeReceived,
             SerialNumberSent: serialNumberSent,
-            SerialNumberReceived: serialNumberReceived
+            SerialNumberReceived: serialNumberReceived,
+            AudioFile: audioFile
         );
 
         Commit(qso);

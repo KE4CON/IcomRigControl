@@ -28,6 +28,17 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _serialPortName = "";
 
+    // Serial ports the OS currently sees — includes a paired Bluetooth radio's port
+    // (e.g. the IC-705 over Bluetooth). Refreshable, since pairing/plugging changes it.
+    public System.Collections.ObjectModel.ObservableCollection<string> AvailablePorts { get; } = new();
+
+    [RelayCommand]
+    private void RefreshPorts()
+    {
+        AvailablePorts.Clear();
+        foreach (string p in SerialPorts.List()) AvailablePorts.Add(p);
+    }
+
     [ObservableProperty]
     private string _remoteHost = "";
 
@@ -118,6 +129,8 @@ public partial class SettingsViewModel : ViewModelBase
         var devices = new List<string> { "(System Default)" };
         devices.AddRange(_audioPlayer.GetAvailableDevices());
         AvailableAudioDevices = devices;
+
+        RefreshPorts(); // list serial ports (incl. a paired Bluetooth radio)
 
         LoadFromSettings(_settingsService.Load());
     }

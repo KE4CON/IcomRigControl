@@ -492,14 +492,18 @@ Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-0
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here
   2026-08-15 (user: "put on the possible future list"). Apply the same testability principle as the
   radios — only build/claim support for a rotator/protocol that can be tested against real hardware.
-- IC-705 CAT OVER BLUETOOTH: the IC-705 has built-in Bluetooth (the 7300/MK2 do NOT). A paired BT
-  serial device enumerates as an ordinary COM port (Windows) / rfcomm tty (Linux), so SerialCivTransport
-  would very likely control a 705 over Bluetooth with NO new code — just pick the Bluetooth COM port.
-  Parked 2026-08-15 (user: "put the bluetooth in the future list") as a REAL-HARDWARE test item, not
-  code work: confirm the 705 enumerates as a serial port and the existing serial path drives it. Do NOT
-  build a Bluetooth stack into the app — the OS already exposes BT as a COM port (CAT) or sound device
-  (audio); BT audio is the radio's/phone's own feature. Wi-Fi (the web remote) already covers wireless
-  operation with more range/bandwidth, so BT is a nicety, not a need.
+- IC-705 CAT OVER BLUETOOTH — ENABLED (not a separate feature; it's just serial). 2026-08-15: the
+  Settings serial-port field is now a port PICKER (AutoCompleteBox over SerialPorts.List() =
+  SerialPort.GetPortNames(), + a Refresh button), so a paired 705's outgoing Bluetooth COM/tty port is
+  selectable like any USB port and the existing SerialCivTransport drives it — no Bluetooth stack, no
+  new code path. HONEST ASSESSMENT told to the user (who has a 705 to test): Bluetooth has LITTLE real
+  advantage in THIS app's setup, because the audio-dependent features (RX-audio streaming, CW/RTTY
+  decode, APRS, remote audio) all need the USB sound card anyway, and once USB is connected it already
+  carries CAT — so BT CAT is redundant there; and for wireless, the Wi-Fi web remote beats BT on range
+  and carries control+scope+audio. BT's only niche: cable-free LOCAL, CAT-only control of the portable
+  705. The port picker is still a genuine USB UX win. REMAINING (user, real hardware): confirm the 705
+  enumerates as a serial port over Bluetooth and the serial path drives it. Do NOT build a Bluetooth
+  stack — the OS exposes BT as a COM port (CAT) / sound device (audio).
 - (add other parked ideas here as they come up, with a one-line rationale.)
 ## NuGet Packages (list here BEFORE adding — see "What NOT to do")
 - Avalonia 12.x (UI), CommunityToolkit.Mvvm (MVVM).

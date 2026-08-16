@@ -119,6 +119,8 @@ something Icom's RS-BA1 doesn't do at all.*
 - **Live spot list / band map** — incoming spots (time, kHz, DX call, comment, spotter) shown newest-first, capped so a busy node can't grow it without bound.
 - **Smart "new one!" alerts** — every spot's **DXCC country** is checked against your logs (this app's *and* your **Ham Radio Deluxe** logbook); a spot from a country you've **never worked** is flagged with a gold **★**, with a live count and a **New only** filter, so you instantly see the ones worth chasing.
 - **Award tracking** — an **Awards** window shows your **DXCC** entity count (toward the 100-country award) and **grid squares** worked, drawn from this app's log plus your HRD history.
+- **Push to your phone** — turn on push alerts (using the free **ntfy** app, no account) and your phone buzzes the moment a country you need is spotted, even when you're away from the radio.
+- **Propagation** — a **Propagation** window shows live solar numbers (flux, sunspots, A/K index) and which bands are open day and night, so you know where to point your effort.
 - **Click-to-tune** — a Tune button on every spot QSYs the radio to it.
 - **Post your own spots** — announce a DX call to the cluster (`DX <kHz> <call> <comment>`), with a one-click "use radio frequency" prefill.
 - Resilient: a dropped cluster connection is surfaced, never crashes the app.

@@ -202,10 +202,26 @@ public partial class DxClusterViewModel : ViewModelBase, IAsyncDisposable
         return true;
     }
 
+    private readonly PushNotifier _push = new(new System.Net.Http.HttpClient());
+    private readonly HashSet<string> _pushedEntities = new(StringComparer.OrdinalIgnoreCase);
+
     private void OnSpotReceived(object? sender, DxSpot spot) =>
         Dispatcher.UIThread.Post(() =>
         {
             spot.IsNew = IsNewEntity(spot.DxCallsign); // new DXCC entity = "new one!"
+
+            // Push a phone alert for a genuinely new entity (once per entity per session).
+            if (spot.IsNew)
+            {
+                string entity = DxccResolver.Resolve(spot.DxCallsign);
+                if (_pushedEntities.Add(entity))
+                {
+                    var s = _settingsService.Load();
+                    if (s.PushEnabled && !string.IsNullOrWhiteSpace(s.PushTopic))
+                        _ = _push.SendAsync(s.PushTopic, $"New one! {entity}",
+                            $"{spot.DxCallsign} spotted on {spot.FrequencyKHz:F1} kHz — you haven't worked {entity}.");
+                }
+            }
 
             if (NewOnly && !spot.IsNew) return; // filtered out
 

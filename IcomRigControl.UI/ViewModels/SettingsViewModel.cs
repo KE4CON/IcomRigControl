@@ -55,6 +55,13 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private double _swrGuardThreshold = 3.0;
 
+    // ── Phone push alerts (ntfy.sh) ──────────────────────────────────────
+    [ObservableProperty]
+    private bool _pushEnabled;
+
+    [ObservableProperty]
+    private string _pushTopic = "";
+
     // ── Phase 10: APRS beacon settings ──────────────────────────────────
     [ObservableProperty]
     private string _aprsCallsign = "";
@@ -154,6 +161,8 @@ public partial class SettingsViewModel : ViewModelBase
         RemoteAuthToken = settings.RemoteAuthToken;
         SwrGuardEnabled = settings.SwrGuardEnabled;
         SwrGuardThreshold = settings.SwrGuardThreshold;
+        PushEnabled = settings.PushEnabled;
+        PushTopic = settings.PushTopic;
 
         AprsCallsign = settings.AprsCallsign;
         AprsSsid = settings.AprsSsid;
@@ -236,6 +245,8 @@ public partial class SettingsViewModel : ViewModelBase
 
             settings.SwrGuardEnabled = SwrGuardEnabled;
             settings.SwrGuardThreshold = SwrGuardThreshold;
+            settings.PushEnabled = PushEnabled;
+            settings.PushTopic = PushTopic;
 
             _settingsService.Save(settings);
             StatusMessage = "Settings saved. Connection mode changes require an app restart to take effect.";

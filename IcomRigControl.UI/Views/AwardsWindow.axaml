@@ -14,21 +14,28 @@
 
         <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,0,12">
             <TextBlock Text="Award progress" Foreground="#88ccff" FontSize="16" FontWeight="Bold"/>
-            <Grid ColumnDefinitions="*,*">
-                <Border Grid.Column="0" Background="#0d0d0d" CornerRadius="6" Padding="12" Margin="0,0,4,0">
+            <Grid ColumnDefinitions="*,*,*">
+                <Border Grid.Column="0" Background="#0d0d0d" CornerRadius="6" Padding="12" Margin="0,0,3,0">
                     <StackPanel>
-                        <TextBlock Text="{Binding EntityCount}" Foreground="#00ff88" FontSize="30" FontWeight="Bold"/>
-                        <TextBlock Text="DXCC entities" Foreground="Gray"/>
+                        <TextBlock Text="{Binding EntityCount}" Foreground="#00ff88" FontSize="28" FontWeight="Bold"/>
+                        <TextBlock Text="DXCC entities" Foreground="Gray" FontSize="11"/>
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="1" Background="#0d0d0d" CornerRadius="6" Padding="12" Margin="4,0,0,0">
+                <Border Grid.Column="1" Background="#0d0d0d" CornerRadius="6" Padding="12" Margin="3,0,3,0">
                     <StackPanel>
-                        <TextBlock Text="{Binding GridCount}" Foreground="#00ff88" FontSize="30" FontWeight="Bold"/>
-                        <TextBlock Text="grid squares" Foreground="Gray"/>
+                        <TextBlock Text="{Binding StateCount}" Foreground="#00ff88" FontSize="28" FontWeight="Bold"/>
+                        <TextBlock Text="US states" Foreground="Gray" FontSize="11"/>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Background="#0d0d0d" CornerRadius="6" Padding="12" Margin="3,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{Binding GridCount}" Foreground="#00ff88" FontSize="28" FontWeight="Bold"/>
+                        <TextBlock Text="grid squares" Foreground="Gray" FontSize="11"/>
                     </StackPanel>
                 </Border>
             </Grid>
             <TextBlock Text="{Binding DxccStatus}" Foreground="#ffcc00" FontWeight="Bold"/>
+            <TextBlock Text="{Binding WasStatus}" Foreground="#ffcc00" FontWeight="Bold"/>
         </StackPanel>
 
         <Button Grid.Row="1" Content="Refresh" Command="{Binding RefreshCommand}"

@@ -72,7 +72,8 @@ public class QsoLogger
         string? contestExchangeSent = null,
         string? contestExchangeReceived = null,
         int? serialNumberSent = null,
-        int? serialNumberReceived = null)
+        int? serialNumberReceived = null,
+        string? state = null)
     {
         // Attach a recording of the contact if the Band DVR is monitoring. Never let
         // an audio-save failure block the log write (backup-of-record discipline).
@@ -94,7 +95,8 @@ public class QsoLogger
             ContestExchangeReceived: contestExchangeReceived,
             SerialNumberSent: serialNumberSent,
             SerialNumberReceived: serialNumberReceived,
-            AudioFile: audioFile
+            AudioFile: audioFile,
+            State: string.IsNullOrWhiteSpace(state) ? null : state.Trim().ToUpperInvariant()
         );
 
         Commit(qso);

@@ -42,6 +42,8 @@ public static class AdifWriter
             sb.Append(Field("NAME", qso.Name));
         if (!string.IsNullOrEmpty(qso.GridSquare))
             sb.Append(Field("GRIDSQUARE", qso.GridSquare));
+        if (!string.IsNullOrEmpty(qso.State))
+            sb.Append(Field("STATE", qso.State));
         if (!string.IsNullOrEmpty(qso.Notes))
             sb.Append(Field("NOTES", qso.Notes));
         if (!string.IsNullOrEmpty(qso.ContestExchangeSent))

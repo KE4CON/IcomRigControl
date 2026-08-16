@@ -35,6 +35,9 @@ public partial class QsoLoggerViewModel : ViewModelBase
     private string _gridSquareInput = "";
 
     [ObservableProperty]
+    private string _stateInput = "";
+
+    [ObservableProperty]
     private string _notesInput = "";
 
     [ObservableProperty]
@@ -183,7 +186,8 @@ public partial class QsoLoggerViewModel : ViewModelBase
                 IsContestMode && !string.IsNullOrWhiteSpace(ContestExchangeSentInput) ? ContestExchangeSentInput : null,
                 IsContestMode && !string.IsNullOrWhiteSpace(ContestExchangeReceivedInput) ? ContestExchangeReceivedInput : null,
                 serialSent,
-                serialReceived);
+                serialReceived,
+                string.IsNullOrWhiteSpace(StateInput) ? null : StateInput);
 
             Qsos.Insert(0, qso);
             LogStatus = $"Logged {qso.Callsign} at {qso.DateTimeUtc:HH:mm} UTC.";
@@ -191,6 +195,7 @@ public partial class QsoLoggerViewModel : ViewModelBase
             CallsignInput = "";
             NameInput = "";
             GridSquareInput = "";
+            StateInput = "";
             NotesInput = "";
             ContestExchangeReceivedInput = "";
             LookupStatus = "";

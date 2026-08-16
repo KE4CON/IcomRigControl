@@ -68,9 +68,10 @@ public class HrdSqliteBridge
             using var connection = new SqliteConnection($"Data Source={_databasePath}");
             await connection.OpenAsync();
 
-            // Prefer including grid; fall back to call+band if that column is absent.
+            // Prefer including grid + state; fall back progressively if columns are absent.
             foreach (string sql in new[]
             {
+                $"SELECT col_call, col_band, col_gridsquare, col_state FROM {ExpectedTableName}",
                 $"SELECT col_call, col_band, col_gridsquare FROM {ExpectedTableName}",
                 $"SELECT col_call, col_band FROM {ExpectedTableName}",
             })
@@ -86,7 +87,8 @@ public class HrdSqliteBridge
                         string call = reader.IsDBNull(0) ? "" : reader.GetString(0);
                         string band = reader.FieldCount > 1 && !reader.IsDBNull(1) ? reader.GetString(1) : "";
                         string? grid = reader.FieldCount > 2 && !reader.IsDBNull(2) ? reader.GetString(2) : null;
-                        if (!string.IsNullOrWhiteSpace(call)) result.Add(new WorkedContact(call, band, grid));
+                        string? state = reader.FieldCount > 3 && !reader.IsDBNull(3) ? reader.GetString(3) : null;
+                        if (!string.IsNullOrWhiteSpace(call)) result.Add(new WorkedContact(call, band, grid, state));
                     }
                     return result; // this query worked
                 }

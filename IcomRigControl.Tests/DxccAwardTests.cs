@@ -46,4 +46,18 @@ public class AwardTrackerTests
         Assert.True(t.IsNewEntity("VK2DEF"));  // Australia — not worked -> new one
         Assert.False(t.IsNewEntity("QZ9ZZ"));  // Unknown entity is never flagged "new"
     }
+
+    [Fact]
+    public void CountsOnlyValidUsStates_ForWas()
+    {
+        var worked = new[]
+        {
+            new WorkedContact("W1AW", "20M", null, "CT"),
+            new WorkedContact("K5XYZ", "40M", null, "tx"),   // case-insensitive
+            new WorkedContact("N0ABC", "20M", null, "CT"),   // duplicate state
+            new WorkedContact("DL1ABC", "20M", null, "ZZ"),  // not a real state -> ignored
+        };
+        var t = new AwardTracker(worked);
+        Assert.Equal(2, t.StateCount);       // CT + TX
+    }
 }

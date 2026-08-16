@@ -62,6 +62,8 @@
                     <TextBox Text="{Binding RstReceivedInput}" Width="70" PlaceholderText="RST Rcvd"/>
                     <TextBox Text="{Binding NameInput}" Width="150" PlaceholderText="Name"/>
                     <TextBox Text="{Binding GridSquareInput}" Width="90" PlaceholderText="Grid"/>
+                    <TextBox Text="{Binding StateInput}" Width="60" MaxLength="2" PlaceholderText="St"
+                             ToolTip.Tip="US state (2-letter) for Worked All States"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsContestMode}">

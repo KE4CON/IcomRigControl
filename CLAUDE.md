@@ -591,8 +591,11 @@ DXCC award tracking + DXCC-aware "new one!" spot alerts — IN PROGRESS 2026-08-
   LoadWorkedEntitiesAsync; "New only" filter + live ★-count now mean new-entity. 13 tests (resolver
   known/unknown; tracker counts + new-one). AWARDS WINDOW DONE 2026-08-15: AwardsViewModel + AwardsWindow
   ("Awards" dashboard button) show DXCC entity count (vs the 100 goal) + grid-square count from this
-  app's log + HRD, a sorted worked-entity list, and Refresh. REMAINING: WAS (needs the QSO state field
-  — HRD has it, IcomRigControl QsoRecord doesn't yet); cty.dat import for full/exact DXCC.
+  app's log + HRD, a sorted worked-entity list, and Refresh. WAS DONE 2026-08-15: QsoRecord.State +
+  WorkedContact.State; AwardTracker.States counts only valid US states (50-state set) -> StateCount;
+  HrdSqliteBridge.ReadWorkedAsync also reads col_state (progressive fallback); QsoLogger.LogQso takes
+  state; the QSO logger has a 2-letter State box; AdifWriter emits STATE; Awards window shows a
+  US-states tile + "X / 50 for WAS". cty.dat full/exact DXCC is on the Version 2 list.
 Propagation / band intelligence — IMPLEMENTED 2026-08-15. SolarDataService (Services) fetches
   hamqsl.com's public solar XML and Parse()s SFI / A-index / K-index / sunspots + per-band day/night
   modeled conditions (BandCondition). Parse is unit-tested (2: full sample + missing-fields don't
@@ -613,6 +616,19 @@ Station scheduler — IMPLEMENTED 2026-08-15. Scheduler (Services): fires Schedu
   SchedulerViewModel + SchedulerWindow ("Scheduler" dashboard button): add (time + action dropdown +
   parameter) / list / delete; changes persist and are pushed to the live Scheduler. For nets and
   unattended (Pi) operation.
+## Version 2 List (deferred to v2 by the user 2026-08-15 — "put the rest on the version 2 list")
+These are the bigger "light years" ideas explicitly deferred to a version 2. Do NOT build in v1.
+- SATELLITE TRACKING + DOPPLER AUTO-TUNE: predict amateur-satellite passes (SGP4 + TLEs from Celestrak)
+  for the operator's grid, and auto-correct Doppler through a pass (range-rate). Flagship for the IC-705
+  (the portable sat radio). Orbital math is unit-testable; only final on-air tuning needs hardware.
+- VOICE ANNOUNCEMENTS (accessibility + hands-free): speak freq/mode/S-meter/alerts via cross-platform
+  TTS (Windows SAPI, macOS `say`, Linux/Pi `espeak`). Plugs into existing meter/spot/ID events.
+- NCDXF BEACON MONITOR: auto-follow the 18-beacon international network's deterministic 3-min schedule
+  (20/17/15/12/10m) and show real-time propagation by region using our tune + signal read.
+- LOGBOOK ANALYTICS DASHBOARD: QSOs over time, band/mode breakdown, active hours, DXCC growth, worked-
+  world heatmap — pure computation over HRD + local log (testable, no hardware).
+- cty.dat IMPORT for full/exact DXCC (the DxccResolver is a curated ~150-entity subset in v1).
+
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

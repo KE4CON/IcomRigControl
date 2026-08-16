@@ -21,7 +21,9 @@ public partial class AwardsViewModel : ViewModelBase
 
     [ObservableProperty] private int _entityCount;
     [ObservableProperty] private int _gridCount;
+    [ObservableProperty] private int _stateCount;
     [ObservableProperty] private string _dxccStatus = "";
+    [ObservableProperty] private string _wasStatus = "";
     [ObservableProperty] private string _status = "Loading…";
 
     public ObservableCollection<string> Entities { get; } = new();
@@ -40,7 +42,7 @@ public partial class AwardsViewModel : ViewModelBase
     {
         Status = "Loading…";
         var contacts = new List<WorkedContact>(
-            _qsoLogger.Qsos.Select(q => new WorkedContact(q.Callsign, q.Band, q.GridSquare)));
+            _qsoLogger.Qsos.Select(q => new WorkedContact(q.Callsign, q.Band, q.GridSquare, q.State)));
 
         var s = _settingsService.Load();
         int hrd = 0;
@@ -58,9 +60,13 @@ public partial class AwardsViewModel : ViewModelBase
         var tracker = new AwardTracker(contacts);
         EntityCount = tracker.EntityCount;
         GridCount = tracker.GridCount;
+        StateCount = tracker.StateCount;
         DxccStatus = tracker.EntityCount >= 100
             ? $"{tracker.EntityCount} / 100 entities — DXCC achieved! 🎉"
             : $"{tracker.EntityCount} / 100 entities for DXCC ({100 - tracker.EntityCount} to go)";
+        WasStatus = tracker.StateCount >= 50
+            ? "50 / 50 states — WAS achieved! 🎉"
+            : $"{tracker.StateCount} / 50 states for WAS ({50 - tracker.StateCount} to go)";
 
         Entities.Clear();
         foreach (string e in tracker.Entities.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))

@@ -21,7 +21,9 @@ public record QsoRecord(
     int? SerialNumberReceived = null,
     // App-local path to a WAV recording of this contact's audio, when the Band DVR
     // was monitoring at log time. Not part of ADIF (it's a local convenience).
-    string? AudioFile = null
+    string? AudioFile = null,
+    // US state (2-letter) for Worked All States tracking; null/empty if not a US QSO.
+    string? State = null
 )
 {
     /// True when a per-QSO audio clip is attached — drives the log's play button.

@@ -492,18 +492,13 @@ Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-0
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here
   2026-08-15 (user: "put on the possible future list"). Apply the same testability principle as the
   radios — only build/claim support for a rotator/protocol that can be tested against real hardware.
-- IC-705 CAT OVER BLUETOOTH — ENABLED (not a separate feature; it's just serial). 2026-08-15: the
-  Settings serial-port field is now a port PICKER (AutoCompleteBox over SerialPorts.List() =
-  SerialPort.GetPortNames(), + a Refresh button), so a paired 705's outgoing Bluetooth COM/tty port is
-  selectable like any USB port and the existing SerialCivTransport drives it — no Bluetooth stack, no
-  new code path. HONEST ASSESSMENT told to the user (who has a 705 to test): Bluetooth has LITTLE real
-  advantage in THIS app's setup, because the audio-dependent features (RX-audio streaming, CW/RTTY
-  decode, APRS, remote audio) all need the USB sound card anyway, and once USB is connected it already
-  carries CAT — so BT CAT is redundant there; and for wireless, the Wi-Fi web remote beats BT on range
-  and carries control+scope+audio. BT's only niche: cable-free LOCAL, CAT-only control of the portable
-  705. The port picker is still a genuine USB UX win. REMAINING (user, real hardware): confirm the 705
-  enumerates as a serial port over Bluetooth and the serial path drives it. Do NOT build a Bluetooth
-  stack — the OS exposes BT as a COM port (CAT) / sound device (audio).
+- IC-705 CAT OVER BLUETOOTH — CONSIDERED AND DROPPED 2026-08-15 (user: "drop the bluetooth idea").
+  Rationale: little real advantage in this app's setup — the audio-dependent features (RX-audio
+  streaming, CW/RTTY decode, APRS, remote audio) all need the USB sound card, and once USB is connected
+  it already carries CAT, so BT CAT is redundant; for wireless, the Wi-Fi web remote beats BT on range
+  and also carries scope+audio. Do NOT re-propose without a new, deliberate reason. NOTE: the Settings
+  serial-port PICKER (AutoCompleteBox over SerialPorts.List() + Refresh) that came out of this stays —
+  it's a general USB port-selection UX win, not a Bluetooth feature.
 - (add other parked ideas here as they come up, with a one-line rationale.)
 ## NuGet Packages (list here BEFORE adding — see "What NOT to do")
 - Avalonia 12.x (UI), CommunityToolkit.Mvvm (MVVM).

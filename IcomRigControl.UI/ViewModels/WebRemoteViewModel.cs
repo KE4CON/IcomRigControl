@@ -23,6 +23,7 @@ public partial class WebRemoteViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private int _port;
     [ObservableProperty] private string _token = "";
+    [ObservableProperty] private bool _useHttps;
     [ObservableProperty] private string _status = "Off. Start the server, then open one of the addresses on your phone or tablet (same Wi-Fi).";
 
     public ObservableCollection<string> Urls { get; } = new();
@@ -34,6 +35,7 @@ public partial class WebRemoteViewModel : ViewModelBase, IAsyncDisposable
         var s = settingsService.Load();
         _port = s.WebRemotePort;
         _token = s.WebRemoteToken;
+        _useHttps = s.WebRemoteUseHttps;
     }
 
     [RelayCommand]
@@ -45,21 +47,26 @@ public partial class WebRemoteViewModel : ViewModelBase, IAsyncDisposable
             var s = _settingsService.Load();
             s.WebRemotePort = Port;
             s.WebRemoteToken = Token;
+            s.WebRemoteUseHttps = UseHttps;
             _settingsService.Save(s);
 
             _server = new WebRemoteServer(_transceiver, string.IsNullOrWhiteSpace(Token) ? null : Token, Port,
                 captureFactory: AudioDevices.CreateCapture,        // phone can listen to RX audio
-                txOutputFactory: AudioDevices.CreateStreamOutput); // phone can transmit (mic -> radio)
+                txOutputFactory: AudioDevices.CreateStreamOutput,  // phone can transmit (mic -> radio)
+                useHttps: UseHttps);
             _server.Start();
 
             Urls.Clear();
-            foreach (string url in WebRemoteServer.GetLanUrls(Port)) Urls.Add(url);
-            if (Urls.Count == 0) Urls.Add($"http://<this computer's IP>:{Port}");
+            foreach (string url in WebRemoteServer.GetLanUrls(Port, _server.Scheme)) Urls.Add(url);
+            if (Urls.Count == 0) Urls.Add($"{_server.Scheme}://<this computer's IP>:{Port}");
 
             IsRunning = true;
-            Status = string.IsNullOrWhiteSpace(Token)
-                ? "Running. Open an address below on your phone/tablet. (No token set — trusted networks only.)"
-                : "Running. Open an address below; enter the access token when the phone asks.";
+            string tokenNote = string.IsNullOrWhiteSpace(Token)
+                ? "No token set — trusted networks only."
+                : "Enter the access token when the phone asks.";
+            Status = UseHttps
+                ? $"Running (HTTPS). Open an address below; your browser will warn about the certificate — tap Advanced → proceed. {tokenNote} Talk (mic) works over HTTPS."
+                : $"Running. Open an address below. {tokenNote} (Enable HTTPS if you want to Talk from a phone.)";
         }
         catch (Exception ex)
         {

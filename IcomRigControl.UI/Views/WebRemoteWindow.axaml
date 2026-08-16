@@ -22,6 +22,28 @@
                 <TextBox Text="{Binding Token}" Width="150" IsEnabled="{Binding !IsRunning}"
                          Watermark="leave blank = none"/>
             </StackPanel>
+            <ToggleButton IsChecked="{Binding UseHttps}" Content="Use HTTPS (needed to Talk from a phone)"
+                          IsEnabled="{Binding !IsRunning}" HorizontalAlignment="Left"
+                          ToolTip.Tip="Serves over HTTPS with a self-signed certificate. Browsers show a one-time security warning you accept. Required for microphone access from a phone.">
+                <ToggleButton.Styles>
+                    <Style Selector="ToggleButton">
+                        <Setter Property="Background" Value="#2a2a2a"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="Padding" Value="10,6"/>
+                    </Style>
+                    <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#00ff88"/>
+                        <Setter Property="TextBlock.Foreground" Value="Black"/>
+                    </Style>
+                    <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#3a3a3a"/>
+                    </Style>
+                    <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#33ffa2"/>
+                        <Setter Property="TextBlock.Foreground" Value="Black"/>
+                    </Style>
+                </ToggleButton.Styles>
+            </ToggleButton>
         </StackPanel>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">

@@ -484,9 +484,19 @@ Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-0
   is blocked by the browser (the page shows a clear message; RX/control/listen all still work over
   http). The follow-up that unlocks LAN voice TX is an optional self-signed HTTPS listener (SslStream +
   generated cert) — a good "M5" if the user wants voice TX from a phone over the LAN.
-  SECURITY: plain HTTP + token in query — intended for a trusted LAN or VPN, documented as such (same
-  posture as Phase 9's remote CI-V). Phase 13 core (M1-M4) COMPLETE; optional HTTPS is the remaining
-  enhancement.
+  MILESTONE 5 DONE + TESTED (2026-08-15) — optional HTTPS, which unlocks "Hold to Talk" from a phone
+  over the LAN (browsers gate the mic to secure contexts). WebRemoteServer generates a self-signed cert
+  IN-PROCESS (CertificateRequest.CreateSelfSigned, round-tripped through PFX via X509CertificateLoader.
+  LoadPkcs12 so SslStream can use the key on every platform — no external tools, no files), wraps each
+  accepted connection in an SslStream (AuthenticateAsServerAsync) and runs the same HTTP/WS over it
+  (the read/write/WS helpers now take Stream, not NetworkStream). Toggle: WebRemoteUseHttps setting +
+  a "Use HTTPS" ToggleButton in WebRemoteWindow (URLs shown become https://, Scheme drives GetLanUrls);
+  headless --webhttps. The page already derives wss:// from location.protocol. The browser shows a
+  one-time self-signed-cert warning the user accepts (documented). 1 test (HTTPS serves the page + WSS
+  over TLS, with the test bypassing cert validation). Phase 13 (M1-M5) COMPLETE — control, waterfall,
+  listen, and (over HTTPS) talk, from any phone/tablet browser.
+  SECURITY: token in query; HTTP is plain (trusted LAN/VPN), HTTPS is self-signed (encrypts the link,
+  untrusted issuer). Same posture as Phase 9's remote CI-V.
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

@@ -94,12 +94,14 @@ public static class HeadlessServer
             // audio (browser Listen) and TX audio (browser Talk).
             string? webAudioDevice = GetArgValue(args, "--audiocapture");
             string? webTxDevice = GetArgValue(args, "--audioout");
+            bool webHttps = Array.IndexOf(args, "--webhttps") >= 0;
             var webServer = new WebRemoteServer(rig, webToken, webPort,
                 captureFactory: AudioDevices.CreateCapture, captureDevice: webAudioDevice,
-                txOutputFactory: AudioDevices.CreateStreamOutput, txDevice: webTxDevice);
+                txOutputFactory: AudioDevices.CreateStreamOutput, txDevice: webTxDevice,
+                useHttps: webHttps);
             webServer.Start();
-            Console.WriteLine($"  Web remote on http://<this-Pi-IP>:{webPort} (token {(string.IsNullOrWhiteSpace(webToken) ? "none" : "set")}).");
-            foreach (string url in WebRemoteServer.GetLanUrls(webPort))
+            Console.WriteLine($"  Web remote on {webServer.Scheme}://<this-Pi-IP>:{webPort} (token {(string.IsNullOrWhiteSpace(webToken) ? "none" : "set")}{(webHttps ? ", HTTPS self-signed" : "")}).");
+            foreach (string url in WebRemoteServer.GetLanUrls(webPort, webServer.Scheme))
                 Console.WriteLine($"    {url}");
             Console.WriteLine("  (Web mode owns the serial port; the raw CI-V TCP relay is not started.)");
             Console.WriteLine("  Server running. Press Ctrl+C to stop.");

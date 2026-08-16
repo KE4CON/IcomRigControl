@@ -62,7 +62,7 @@ public partial class WebRemoteViewModel : ViewModelBase, IAsyncDisposable
 
             IsRunning = true;
             string tokenNote = string.IsNullOrWhiteSpace(Token)
-                ? "No token set — trusted networks only."
+                ? "No token set — monitoring/tuning only; transmit is disabled until you set a token."
                 : "Enter the access token when the phone asks.";
             Status = UseHttps
                 ? $"Running (HTTPS). Open an address below; your browser will warn about the certificate — tap Advanced → proceed. {tokenNote} Talk (mic) works over HTTPS."

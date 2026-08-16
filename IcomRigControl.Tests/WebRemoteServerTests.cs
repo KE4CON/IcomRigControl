@@ -114,13 +114,13 @@ public class WebRemoteServerTests
         var rig = new Transceiver(new FakeCivTransport(), RadioModel.IC7300);
         int port = FreePort();
         var txOut = new RecordingStreamOutput();
-        var server = new WebRemoteServer(rig, token: null, port, txOutputFactory: () => txOut);
+        var server = new WebRemoteServer(rig, token: "secret", port, txOutputFactory: () => txOut); // TX needs auth
         server.Start();
         try
         {
             using var ws = new ClientWebSocket();
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{port}/ws"), cts.Token);
+            await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{port}/ws?token=secret"), cts.Token);
 
             await SendTextAsync(ws, "{\"cmd\":\"tx\",\"on\":true}", cts.Token);
             await WaitUntil(() => rig.PttActive, TimeSpan.FromSeconds(5));
@@ -149,13 +149,13 @@ public class WebRemoteServerTests
     {
         var rig = new Transceiver(new FakeCivTransport(), RadioModel.IC7300) { TransmitInhibited = true };
         int port = FreePort();
-        var server = new WebRemoteServer(rig, token: null, port, txOutputFactory: () => new RecordingStreamOutput());
+        var server = new WebRemoteServer(rig, token: "secret", port, txOutputFactory: () => new RecordingStreamOutput());
         server.Start();
         try
         {
             using var ws = new ClientWebSocket();
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{port}/ws"), cts.Token);
+            await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{port}/ws?token=secret"), cts.Token);
 
             await SendTextAsync(ws, "{\"cmd\":\"tx\",\"on\":true}", cts.Token);
             await Task.Delay(700, cts.Token);
@@ -194,6 +194,39 @@ public class WebRemoteServerTests
             string first = await ReceiveTextAsync(ws, cts.Token);
             Assert.Contains("\"type\":\"state\"", first);
             await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", cts.Token);
+        }
+        finally
+        {
+            await server.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task NoToken_MonitoringWorks_ButTransmitIsRefused()
+    {
+        // Audit CRITICAL fix: an open (no-token) server must never key the radio.
+        var rig = new Transceiver(new FakeCivTransport(), RadioModel.IC7300);
+        int port = FreePort();
+        var server = new WebRemoteServer(rig, token: null, port,
+            txOutputFactory: () => new RecordingStreamOutput());
+        server.Start();
+        try
+        {
+            using var ws = new ClientWebSocket();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{port}/ws"), cts.Token);
+
+            // Tuning (monitoring) still works without a token.
+            await SendTextAsync(ws, "{\"cmd\":\"freq\",\"hz\":14074000}", cts.Token);
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (rig.FrequencyHz != 14_074_000 && DateTime.UtcNow < deadline) await Task.Delay(25, cts.Token);
+            Assert.Equal(14_074_000, rig.FrequencyHz);
+
+            // But keying is refused: PTT-on and TX-toggle must NOT key the radio.
+            await SendTextAsync(ws, "{\"cmd\":\"ptt\",\"on\":true}", cts.Token);
+            await SendTextAsync(ws, "{\"cmd\":\"tx\",\"on\":true}", cts.Token);
+            await Task.Delay(700, cts.Token);
+            Assert.False(rig.PttActive, "an unauthenticated (no-token) client must not be able to key the transmitter");
         }
         finally
         {

@@ -127,15 +127,22 @@ public sealed class WebRemoteServer : IAsyncDisposable
             {
                 client.NoDelay = true;
                 Stream stream = client.GetStream();
+
+                // Bound the TLS handshake + request-header read with a timeout so a
+                // client that connects and sends nothing (Slowloris) can't park a
+                // task/socket forever — important on a small Pi host.
+                using var setupCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                setupCts.CancelAfter(TimeSpan.FromSeconds(15));
+
                 if (_useHttps && _cert is not null)
                 {
                     ssl = new SslStream(stream, leaveInnerStreamOpen: false);
                     await ssl.AuthenticateAsServerAsync(_cert, clientCertificateRequired: false,
-                        checkCertificateRevocation: false);
+                        checkCertificateRevocation: false).WaitAsync(setupCts.Token);
                     stream = ssl;
                 }
 
-                var (requestLine, headers) = await ReadRequestHeadAsync(stream, ct);
+                var (requestLine, headers) = await ReadRequestHeadAsync(stream, setupCts.Token);
                 if (requestLine is null) return;
 
                 string[] parts = requestLine.Split(' ');
@@ -203,11 +210,20 @@ public sealed class WebRemoteServer : IAsyncDisposable
             keepAliveInterval: TimeSpan.FromSeconds(30));
 
         // Token check happens after upgrade so the browser can prompt and reconnect.
-        if (_token is not null && QueryToken(path) != _token)
+        // A configured-but-wrong token is rejected. `authed` is true only when a token
+        // is configured AND matched — TRANSMITTING (keying the radio) REQUIRES it, so a
+        // no-token (open) server can be monitored/tuned but can never be keyed by an
+        // unauthenticated client (or a drive-by web page). Compared in constant time.
+        bool authed = false;
+        if (_token is not null)
         {
-            await SendTextAsync(ws, "{\"type\":\"unauthorized\"}", ct);
-            await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, "token", ct);
-            return;
+            if (!TokensEqual(QueryToken(path), _token))
+            {
+                await SendTextAsync(ws, "{\"type\":\"unauthorized\"}", ct);
+                await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, "token", ct);
+                return;
+            }
+            authed = true;
         }
 
         // All sends (state, scope, RX audio, close reply) go through one gate — a
@@ -239,7 +255,7 @@ public sealed class WebRemoteServer : IAsyncDisposable
                         if ((DateTime.UtcNow - lastState).TotalMilliseconds >= 200)
                         {
                             lastState = DateTime.UtcNow;
-                            await SendTextAsync(ws, BuildStateJson(), linked.Token);
+                            await SendTextAsync(ws, BuildStateJson(authed), linked.Token);
                             int[] wave = _rig.LastWaveform;
                             if (wave.Length > 0 && !ReferenceEquals(wave, lastWave))
                             {
@@ -283,7 +299,7 @@ public sealed class WebRemoteServer : IAsyncDisposable
                     }
                     while (!result.EndOfMessage);
 
-                    // Binary = the browser's mic audio for transmit.
+                    // Binary = the browser's mic audio for transmit (only if authed & keyed).
                     if (result.MessageType == WebSocketMessageType.Binary)
                     {
                         if (txOn) WriteTxPcm(sessionId, msg.ToArray());
@@ -299,12 +315,13 @@ public sealed class WebRemoteServer : IAsyncDisposable
                     }
                     else if (TryReadTxToggle(text, out bool wantTx))
                     {
-                        if (wantTx && !txOn) txOn = await EnableTxAsync(sessionId);
+                        // Keying the transmitter requires authentication.
+                        if (wantTx && !txOn && authed) txOn = await EnableTxAsync(sessionId);
                         else if (!wantTx && txOn) { await DisableTxAsync(sessionId); txOn = false; }
                     }
                     else
                     {
-                        await DispatchCommandAsync(text);
+                        await DispatchCommandAsync(text, authed);
                     }
                 }
             }
@@ -456,7 +473,7 @@ public sealed class WebRemoteServer : IAsyncDisposable
         try { output.Write(samples); } catch { }
     }
 
-    private async Task DispatchCommandAsync(string json)
+    private async Task DispatchCommandAsync(string json, bool authed)
     {
         try
         {
@@ -481,6 +498,8 @@ public sealed class WebRemoteServer : IAsyncDisposable
                     break;
                 case "ptt":
                     bool on = root.GetProperty("on").GetBoolean();
+                    // KEYING requires authentication; UN-keying is always allowed.
+                    if (on && !authed) return;
                     await _rig.SetPttAsync(on); // honors TransmitInhibited internally
                     break;
             }
@@ -488,7 +507,7 @@ public sealed class WebRemoteServer : IAsyncDisposable
         catch { /* bad command — ignore, never crash the session */ }
     }
 
-    private string BuildStateJson()
+    private string BuildStateJson(bool authed)
     {
         var state = new
         {
@@ -507,10 +526,20 @@ public sealed class WebRemoteServer : IAsyncDisposable
             amps = _rig.CurrentDraw,
             audioRate = AudioRateHz,
             audioAvailable = _captureFactory is not null,
-            txAvailable = _txOutputFactory is not null,
+            // Transmit is offered only when audio TX exists AND this client is
+            // authenticated — so an open (no-token) server shows no PTT/Talk.
+            txAvailable = _txOutputFactory is not null && authed,
             txBusy = _txOwner is not null,
         };
         return JsonSerializer.Serialize(state);
+    }
+
+    // Constant-time token comparison (avoids a timing side channel).
+    private static bool TokensEqual(string? a, string? b)
+    {
+        byte[] ba = Encoding.UTF8.GetBytes(a ?? "");
+        byte[] bb = Encoding.UTF8.GetBytes(b ?? "");
+        return CryptographicOperations.FixedTimeEquals(ba, bb);
     }
 
     private string BuildScopeJson(int[] wave) => JsonSerializer.Serialize(new

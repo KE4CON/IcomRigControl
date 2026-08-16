@@ -2,6 +2,10 @@
 bin/
 obj/
 
+# Packaging / release output (produced by scripts/*.sh and the Release workflow)
+artifacts/
+publish/
+
 # User-specific files
 *.user
 *.suo

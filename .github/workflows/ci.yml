@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      # This repo has no .sln; the UI project transitively references
+      # Services -> RigModel -> CivEngine, and the Tests project references
+      # CivEngine/RigModel/Services, so building the UI and running the tests
+      # together covers every project.
+      - name: Restore
+        run: |
+          dotnet restore IcomRigControl.UI/IcomRigControl.UI.csproj
+          dotnet restore IcomRigControl.Tests/IcomRigControl.Tests.csproj
+
+      - name: Build UI (all app layers)
+        run: dotnet build IcomRigControl.UI/IcomRigControl.UI.csproj -c Release --no-restore -v minimal
+
+      - name: Test
+        run: dotnet test IcomRigControl.Tests/IcomRigControl.Tests.csproj -c Release -v minimal

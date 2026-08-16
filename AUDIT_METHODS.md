@@ -254,6 +254,35 @@ this time; a method you *haven't* run is where the next bugs are.
 
 Keep this current. Status: ☑ fixed · ◐ partial · ☐ open · ⏸ won't-fix (with reason).
 
+### 2026-08-15 (session 2) — M1 Multi-Lens audit of the new feature code
+
+Second pass, run after the large "light-years-ahead" feature drop (phone/tablet web
+remote, Band DVR, CW/RTTY decode + RTTY transmit, HF APRS station, DXCC award/spot
+alerts, propagation, push alerts, scheduler, clock/ID timer, SWR saver, grey-line).
+Five parallel lenses (concurrency, correctness, security, spec, UI/persistence);
+de-duplicated to the verified findings below. Suite: 452 tests green after fixes; every
+☑ has a dedicated regression test **where the Tests project can reach the code** (it
+references CivEngine/RigModel/Services but **not** UI, so UI-VM logic fixes are covered
+by pattern-conformance to the documented CLAUDE.md rules, noted per row).
+
+| Date | Method | Severity | File:line | Finding | Status |
+|---|---|---|---|---|---|
+| 08-15 | M1/M6 | CRITICAL | WebRemoteServer.cs | Remote transmit (PTT-on / TX toggle) was **not** gated on authentication — a client with the URL but no token could key the transmitter. Safety-critical (unidentified transmission). | ☑ transmit requires a configured token match (`authed`); `txAvailable` false without it; constant-time token compare (`FixedTimeEquals`); regression tests for allow/refuse |
+| 08-15 | M5 | HIGH | LiveRttyTransmitter.cs | NAudio stream output does **not** block (DiscardOnBufferOverflow), so the transmit loop spun as fast as the CPU allowed → runaway CPU and mistimed/garbled Baudot. | ☑ dedicated pump task paced to real time via `Task.Delay(chunkMs)`; pacing regression test |
+| 08-15 | M1 | HIGH | BandDvrViewModel.cs / BandDvrWindow.axaml | Record ToggleButton bound **both** `Command` and TwoWay `IsChecked`; the command re-set the property, so the toggle fought itself and never recorded (the documented CLAUDE.md ToggleButton hazard). | ☑ drive recording from `OnIsRecordingChanged`, command removed (pattern-conformance; Tests can't reference UI) |
+| 08-15 | M5/M6 | MEDIUM | WebRemoteServer.cs | No timeout on the TLS handshake / HTTP header read — a client that connected and stalled held the accept slot indefinitely. | ☑ 15 s linked-CTS timeout on `AuthenticateAsServerAsync` + header read |
+| 08-15 | M6 | MEDIUM | PushNotifier.cs | Control characters in the notification title flowed into the ntfy HTTP header → possible header injection / malformed request. | ☑ strip chars < 32 and 127 from the title |
+| 08-15 | M6 | LOW–MED | AprsReceiveViewModel.cs | Callsign interpolated into the aprs.fi URL without escaping. | ☑ `Uri.EscapeDataString` |
+| 08-15 | M1 | MEDIUM | DxccResolver.cs | Portable-callsign side-selection ternary was a no-op (both branches returned `before`), so "W1AW/KH6" resolved to United States instead of Hawaii; also a wrong blanket KG4 entry and duplicate EA8/KH2 keys. | ☑ `ChooseEntityPart` (location = shorter non-qualifier side); KG4-Guantanamo only for 2-char suffix; dup keys removed; Theory tests |
+| 08-15 | M2 | MEDIUM | BaudotCode.cs | CR and LF constants were swapped vs ITA2 (MSB-first CR=01000, LF=00010) → stray blank line / missing line break in decoded and transmitted RTTY. | ☑ corrected; regression test asserts the ITA2 patterns + newline encode order |
+| 08-15 | M9 | MEDIUM | AdifWriter.cs | ADIF field length used the char count, not the UTF-8 **byte** count, so an accented value (e.g. a name) declared the wrong length and corrupted the record on import. | ☑ `Encoding.UTF8.GetByteCount`; regression test with "José" → `<NAME:5>` |
+| 08-15 | M1/M6 | MEDIUM | SettingsService.cs | `N1mmDestinations` is `List<(string Ip,int Port)>`; ValueTuple exposes Ip/Port as **fields**, which System.Text.Json ignores by default → every saved destination round-tripped as ("", 0). | ☑ shared options with `IncludeFields=true` for both serialize + deserialize; test strengthened to assert Ip/Port survive |
+| 08-15 | M2 | LOW | GreyLine.cs | Rounding-based day number + a doubled longitude term risked a 1-day-off near the date line. | ☑ ported to the tested ActivationPlanner (own code) rounding-free mean-solar-noon; added the missing +0.5 JDN conversion; longitude regression test |
+| 08-15 | M5 | LOW | MainWindowViewModel.cs | `DisposeAsync` didn't dispose the app-lifetime `Scheduler`, `SwrProtection`, `ScopeRecorder`, `BandRecorder` (timers / Transceiver event subscriptions leaked on shutdown). | ☑ all four disposed before the Transceiver (pattern-conformance; Tests can't reference UI) |
+| 08-15 | M1 | LOW | BandDvrViewModel.cs | The window's one-shot audio player wasn't disposed when the window closed. | ☑ `IDisposable` + `Closed` handler disposes it (shared recorders untouched) |
+
+---
+
 ### 2026-08-15 — Six-lens audit (M1 Multi-Lens + M2 Oracle) of the whole codebase
 
 Baseline 259 tests green → 283 tests green after fixes (+24 regression tests). Every ☑

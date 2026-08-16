@@ -44,7 +44,7 @@ IcomRigControl supports exactly three radios, and only these three. This is on p
 Gather these before you begin. Every item is explained in detail later; this is the shopping list.
 
 - **One of the three supported radios** — an IC-7300, IC-7300MK2, or IC-705.
-- **One USB cable.** For the IC-7300 and IC-7300MK2 this is a standard **USB-A-to-USB-B** cable (the flat rectangular end goes into the computer; the squarer end goes into the radio). For the IC-705 it is a **USB-A-to-USB-C** cable. The exact cable and where it plugs in are covered in the 'Connecting Your Radio Over USB' chapter.
+- **One USB cable.** For the IC-7300 and IC-7300MK2 this is a standard **USB-A-to-USB-B** cable (the flat rectangular end goes into the computer; the squarer end goes into the radio). For the IC-705 it is a **USB-A-to-micro-USB** cable (the small micro-USB plug goes into the radio). The exact cable and where it plugs in are covered in the 'Connecting Your Radio Over USB' chapter.
 - **A computer** running Windows, macOS, Linux, or a Raspberry Pi (see the table below).
 - **About 300 MB of free disk space** for the program, plus room for your logs and any audio recordings.
 - **Internet access is optional** — you need it only for online callsign lookup, uploading to Logbook of the World, and the like. The radio control itself works with no internet at all.
@@ -267,9 +267,9 @@ You control the radio with a single USB cable between the radio and the computer
 | Radio | Cable | Plain description |
 | --- | --- | --- |
 | IC-7300 / IC-7300MK2 | USB-A to USB-B | The flat rectangular plug (USB-A) goes into the computer; the squarish plug (USB-B, the kind on the back of a printer) goes into the radio. |
-| IC-705 | USB-A to USB-C | The flat rectangular plug (USB-A) goes into the computer; the small oval reversible plug (USB-C) goes into the radio. |
+| IC-705 | USB-A to micro-USB | The flat rectangular plug (USB-A) goes into the computer; the small micro-USB plug goes into the radio's [USB] port. |
 
-> **If your computer only has USB-C sockets.** — Many newer laptops and all recent Macs have only the small oval USB-C sockets. That is fine — use a **USB-C to USB-B** cable for the IC-7300/MK2, or a **USB-C to USB-C** cable for the IC-705, or a simple USB-A-to-USB-C adapter with the cable you already have. The radio does not care which shape is on the computer end.
+> **If your computer only has USB-C sockets.** — Many newer laptops and all recent Macs have only the small oval USB-C sockets. That is fine — use a **USB-C to USB-B** cable for the IC-7300/MK2, or a **USB-C to micro-USB** cable for the IC-705, or a simple USB-A-to-USB-C adapter with the cable you already have. The radio does not care which shape is on the computer end.
 
 > **Use a good, short cable — and a ferrite helps.** — A short, good-quality USB cable makes for a more reliable connection and less radio-frequency noise. A clip-on **ferrite choke** near the radio end can quiet down 'RF getting into the USB' problems that show up as dropped control or stuttering audio when you transmit. This is optional, but worth it on a busy station.
 
@@ -285,11 +285,13 @@ On the **back** of the IC-7300 (and IC-7300MK2), find the small squarish socket 
 
 ## Where It Plugs In — IC-705
 
-On the **side** of the IC-705, behind the rubber cover, find the oval **USB-C** socket (marked with the USB symbol; it sits near the DC-power and headphone jacks). Plug the USB-C end of your cable in there, and the other end into your computer.
+On the **side** of the IC-705, behind the rubber cover, find the small **micro-USB** socket labeled **[USB]** (it sits among the DC-power, microphone, and headphone jacks). Plug the micro-USB end of your cable in there, and the other end into your computer. The micro-USB plug only goes in one way — the wider side of the little plug faces down; do not force it.
 
-> _[Figure: The side of the IC-705 with the rubber port cover open, the USB-C socket circled and labeled, and a USB-C cable plugged in]_
+> _[Figure: The side of the IC-705 with the rubber port cover open, the micro-USB [USB] socket circled and labeled, and a micro-USB cable plugged in]_
 
-> **The IC-705 also charges over USB-C.** — The USB-C port can also power and charge the radio. For steady control and operating, run the IC-705 from its own DC power or a well-charged battery — do not rely on the computer's USB port alone to keep it running while you operate.
+> **The IC-705 also charges over this port.** — The micro-USB port can also power and charge the radio. For steady control and operating, run the IC-705 from its own DC power or a well-charged battery — do not rely on the computer's USB port alone to keep it running while you operate.
+
+> **If your IC-705 has been modified to USB-C.** — Every IC-705 leaves the factory with a **micro-USB** port. Some owners fit an aftermarket board that replaces it with a **USB-C** socket. If yours has been modified that way, simply use a **USB-A-to-USB-C** (or USB-C-to-USB-C) cable instead — everything else in this guide is exactly the same.
 
 
 ## What the Radio Becomes: a COM Port Plus a Sound Card
@@ -461,7 +463,7 @@ Here is the whole radio side on one line each. Set these and you are done.
 
 The IC-705 has the same CI-V settings, reached almost the same way. Press **MENU**, touch **SET**, then **Connectors**, then **CI-V**, and set the same values as the table above — with the CI-V Address confirmed as **`A4h`**. The wording on screen is essentially identical; the IC-705 simply has a smaller touchscreen and adds features (like GPS and D-STAR) that IcomRigControl does not use.
 
-> **Bluetooth on the IC-705.** — The IC-705 can also do CI-V over Bluetooth, but IcomRigControl connects over the USB-C cable, which carries both control and audio. Use the USB cable; you do not need to set up Bluetooth.
+> **Bluetooth on the IC-705.** — The IC-705 can also do CI-V over Bluetooth, but IcomRigControl connects over the USB cable, which carries both control and audio. Use the USB cable; you do not need to set up Bluetooth.
 
 
 ## A Note on Transmit Audio

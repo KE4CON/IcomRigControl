@@ -37,7 +37,7 @@
     {"p": "Gather these before you begin. Every item is explained in detail later; this is the shopping list."},
     {"bullets": [
       "**One of the three supported radios** — an IC-7300, IC-7300MK2, or IC-705.",
-      "**One USB cable.** For the IC-7300 and IC-7300MK2 this is a standard **USB-A-to-USB-B** cable (the flat rectangular end goes into the computer; the squarer end goes into the radio). For the IC-705 it is a **USB-A-to-USB-C** cable. The exact cable and where it plugs in are covered in the 'Connecting Your Radio Over USB' chapter.",
+      "**One USB cable.** For the IC-7300 and IC-7300MK2 this is a standard **USB-A-to-USB-B** cable (the flat rectangular end goes into the computer; the squarer end goes into the radio). For the IC-705 it is a **USB-A-to-micro-USB** cable (the small micro-USB plug goes into the radio). The exact cable and where it plugs in are covered in the 'Connecting Your Radio Over USB' chapter.",
       "**A computer** running Windows, macOS, Linux, or a Raspberry Pi (see the table below).",
       "**About 300 MB of free disk space** for the program, plus room for your logs and any audio recordings.",
       "**Internet access is optional** — you need it only for online callsign lookup, uploading to Logbook of the World, and the like. The radio control itself works with no internet at all."

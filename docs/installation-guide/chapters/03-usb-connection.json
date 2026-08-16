@@ -24,10 +24,10 @@
       "widths": [1.8, 2.2, 2.5],
       "rows": [
         ["IC-7300 / IC-7300MK2", "USB-A to USB-B", "The flat rectangular plug (USB-A) goes into the computer; the squarish plug (USB-B, the kind on the back of a printer) goes into the radio."],
-        ["IC-705", "USB-A to USB-C", "The flat rectangular plug (USB-A) goes into the computer; the small oval reversible plug (USB-C) goes into the radio."]
+        ["IC-705", "USB-A to micro-USB", "The flat rectangular plug (USB-A) goes into the computer; the small micro-USB plug goes into the radio's [USB] port."]
       ]
     }},
-    {"callout": {"kind": "note", "label": "If your computer only has USB-C sockets.", "text": "Many newer laptops and all recent Macs have only the small oval USB-C sockets. That is fine — use a **USB-C to USB-B** cable for the IC-7300/MK2, or a **USB-C to USB-C** cable for the IC-705, or a simple USB-A-to-USB-C adapter with the cable you already have. The radio does not care which shape is on the computer end."}},
+    {"callout": {"kind": "note", "label": "If your computer only has USB-C sockets.", "text": "Many newer laptops and all recent Macs have only the small oval USB-C sockets. That is fine — use a **USB-C to USB-B** cable for the IC-7300/MK2, or a **USB-C to micro-USB** cable for the IC-705, or a simple USB-A-to-USB-C adapter with the cable you already have. The radio does not care which shape is on the computer end."}},
     {"callout": {"kind": "tip", "label": "Use a good, short cable — and a ferrite helps.", "text": "A short, good-quality USB cable makes for a more reliable connection and less radio-frequency noise. A clip-on **ferrite choke** near the radio end can quiet down 'RF getting into the USB' problems that show up as dropped control or stuttering audio when you transmit. This is optional, but worth it on a busy station."}},
 
     {"h1": "Where It Plugs In — IC-7300 and IC-7300MK2"},
@@ -36,9 +36,10 @@
     {"callout": {"kind": "important", "label": "This is not the microphone jack or the ACC jack.", "text": "Use the rear **[USB]** socket only. Do not use the front microphone connector or the round **[ACC]** accessory socket for computer control — those are for other things. The single rear USB port carries both the control link and the audio you need."}},
 
     {"h1": "Where It Plugs In — IC-705"},
-    {"p": "On the **side** of the IC-705, behind the rubber cover, find the oval **USB-C** socket (marked with the USB symbol; it sits near the DC-power and headphone jacks). Plug the USB-C end of your cable in there, and the other end into your computer."},
-    {"screenshot": "The side of the IC-705 with the rubber port cover open, the USB-C socket circled and labeled, and a USB-C cable plugged in"},
-    {"callout": {"kind": "note", "label": "The IC-705 also charges over USB-C.", "text": "The USB-C port can also power and charge the radio. For steady control and operating, run the IC-705 from its own DC power or a well-charged battery — do not rely on the computer's USB port alone to keep it running while you operate."}},
+    {"p": "On the **side** of the IC-705, behind the rubber cover, find the small **micro-USB** socket labeled **[USB]** (it sits among the DC-power, microphone, and headphone jacks). Plug the micro-USB end of your cable in there, and the other end into your computer. The micro-USB plug only goes in one way — the wider side of the little plug faces down; do not force it."},
+    {"screenshot": "The side of the IC-705 with the rubber port cover open, the micro-USB [USB] socket circled and labeled, and a micro-USB cable plugged in"},
+    {"callout": {"kind": "note", "label": "The IC-705 also charges over this port.", "text": "The micro-USB port can also power and charge the radio. For steady control and operating, run the IC-705 from its own DC power or a well-charged battery — do not rely on the computer's USB port alone to keep it running while you operate."}},
+    {"callout": {"kind": "note", "label": "If your IC-705 has been modified to USB-C.", "text": "Every IC-705 leaves the factory with a **micro-USB** port. Some owners fit an aftermarket board that replaces it with a **USB-C** socket. If yours has been modified that way, simply use a **USB-A-to-USB-C** (or USB-C-to-USB-C) cable instead — everything else in this guide is exactly the same."}},
 
     {"h1": "What the Radio Becomes: a COM Port Plus a Sound Card"},
     {"p": "This is worth understanding because it explains why one cable does so much. When you plug in the radio, the computer sees **two** new devices at once:"},

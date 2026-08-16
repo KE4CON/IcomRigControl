@@ -14,4 +14,8 @@ public record DxSpot(
 {
     /// Frequency in kHz (as clusters report it), for display.
     public double FrequencyKHz => FrequencyHz / 1000.0;
+
+    /// Set by the DX-cluster view when the spot is a station not yet worked on this
+    /// band (see SpotNeedAnalyzer) — drives the "NEW" highlight.
+    public bool IsNew { get; set; }
 }

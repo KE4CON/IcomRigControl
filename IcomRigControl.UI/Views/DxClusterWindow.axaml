@@ -45,6 +45,25 @@
             </Button>
             <Button Content="Clear" Command="{Binding ClearSpotsCommand}"
                     Background="#2a2a2a" Foreground="White" Padding="10,6"/>
+            <ToggleButton IsChecked="{Binding NewOnly}" Content="★ New only" Margin="6,0,0,0"
+                          ToolTip.Tip="Show only stations you haven't worked on that band.">
+                <ToggleButton.Styles>
+                    <Style Selector="ToggleButton">
+                        <Setter Property="Background" Value="#2a2a2a"/><Setter Property="Foreground" Value="White"/><Setter Property="Padding" Value="10,6"/>
+                    </Style>
+                    <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#ffcc00"/><Setter Property="TextBlock.Foreground" Value="Black"/>
+                    </Style>
+                    <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#3a3a3a"/>
+                    </Style>
+                    <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#ffd633"/><Setter Property="TextBlock.Foreground" Value="Black"/>
+                    </Style>
+                </ToggleButton.Styles>
+            </ToggleButton>
+            <TextBlock Text="{Binding NewCount, StringFormat='{}★ {0} new'}" Foreground="#ffcc00"
+                       VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="Bold"/>
         </WrapPanel>
 
         <!-- Report (post) a spot -->
@@ -93,7 +112,13 @@
                             <Grid ColumnDefinitions="60,90,120,*,90,70" Background="#0d0d0d" Margin="0,0,0,1">
                                 <TextBlock Grid.Column="0" Text="{Binding TimeUtc}" Foreground="Gray" Padding="6,5" FontFamily="Courier New"/>
                                 <TextBlock Grid.Column="1" Text="{Binding FrequencyKHz, StringFormat='{}{0:F1}'}" Foreground="#00ff88" Padding="6,5" FontFamily="Courier New"/>
-                                <TextBlock Grid.Column="2" Text="{Binding DxCallsign}" Foreground="White" FontWeight="Bold" Padding="6,5" FontFamily="Courier New"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                    <TextBlock Text="★" Foreground="#ffcc00" Padding="6,5,0,5"
+                                               IsVisible="{Binding IsNew}"
+                                               ToolTip.Tip="New — not worked on this band"/>
+                                    <TextBlock Text="{Binding DxCallsign}" FontWeight="Bold" Padding="4,5,6,5" FontFamily="Courier New"
+                                               Foreground="White"/>
+                                </StackPanel>
                                 <TextBlock Grid.Column="3" Text="{Binding Comment}" Foreground="#88ccff" Padding="6,5" TextTrimming="CharacterEllipsis"/>
                                 <TextBlock Grid.Column="4" Text="{Binding Spotter}" Foreground="Gray" Padding="6,5" FontFamily="Courier New"/>
                                 <Button Grid.Column="5" Content="Tune"

@@ -507,6 +507,15 @@ Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-0
   listen, and (over HTTPS) talk, from any phone/tablet browser.
   SECURITY: token in query; HTTP is plain (trusted LAN/VPN), HTTPS is self-signed (encrypts the link,
   untrusted issuer). Same posture as Phase 9's remote CI-V.
+Smart DX spot alerts — IMPLEMENTED 2026-08-15. Cross-references DX cluster spots against the operator's
+  own QSO log: SpotNeedAnalyzer (Services) builds worked-call and worked-call+band sets from
+  QsoLogger.Qsos; a spot for a station not worked ON THAT BAND is flagged (DxSpot.IsNew). DX Cluster
+  window highlights new spots with a gold ★, shows a live "★ N new" count, and has a "New only" filter
+  toggle. Band mapping extracted from QsoLogger's private FrequencyToBand into a shared Bands.FromHz so
+  the logger and analyzer classify bands identically. DxClusterViewModel now takes the QsoLogger; the
+  analyzer is rebuilt per spot so contacts made during the session count immediately. 2 analyzer tests
+  (new-call + new-on-band + case-insensitive). Entity/DXCC-level "new one" (prefix->entity) is a future
+  refinement; this first version is per-callsign-per-band, which is the common daily need.
 Phase 14: Band DVR (record & rewind the radio) — IN PROGRESS (started 2026-08-15). "Who was that? —
   rewind." WavWriter (Services): pure-managed streaming 16-bit mono WAV (RIFF header patched on Close),
   works on Windows/mac/Linux/Pi with no audio lib. BandRecorder (Services): IAudioCapture -> a rolling

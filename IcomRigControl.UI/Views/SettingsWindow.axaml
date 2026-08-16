@@ -46,6 +46,29 @@
                 <NumericUpDown Value="{Binding RemotePort}" Minimum="1" Maximum="65535"/>
                 <TextBlock Text="Remote Auth Token" Foreground="Gray" FontSize="11"/>
                 <TextBox Text="{Binding RemoteAuthToken}" PasswordChar="*"/>
+
+                <TextBlock Text="SWR protection (rig-saver)" Foreground="Gray" FontSize="11" Margin="0,8,0,0"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ToggleButton IsChecked="{Binding SwrGuardEnabled}" Content="Auto-inhibit TX above" VerticalAlignment="Center">
+                        <ToggleButton.Styles>
+                            <Style Selector="ToggleButton">
+                                <Setter Property="Background" Value="#2a2a2a"/><Setter Property="Foreground" Value="White"/><Setter Property="Padding" Value="8,6"/>
+                            </Style>
+                            <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#00ff88"/><Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                            <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#3a3a3a"/>
+                            </Style>
+                            <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#33ffa2"/><Setter Property="TextBlock.Foreground" Value="Black"/>
+                            </Style>
+                        </ToggleButton.Styles>
+                    </ToggleButton>
+                    <NumericUpDown Value="{Binding SwrGuardThreshold}" Minimum="1.5" Maximum="10" Increment="0.5"
+                                   FormatString="0.0" Width="110"/>
+                    <TextBlock Text=":1 SWR" Foreground="Gray" VerticalAlignment="Center"/>
+                </StackPanel>
             </StackPanel>
         </Border>
 

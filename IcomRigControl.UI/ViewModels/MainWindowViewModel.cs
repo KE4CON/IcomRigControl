@@ -23,6 +23,7 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private readonly QsoLogger _qsoLogger;
     private readonly BandRecorder _bandRecorder;
     private readonly ScopeRecorder _scopeRecorder;
+    private SwrProtection? _swrProtection;
 
     /// Dashboard clock (local + UTC) and the FCC station-ID reminder.
     public StationClockViewModel Clock { get; }
@@ -324,6 +325,19 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     private void ApplySettings(AppSettings settings)
     {
         _currentSettings = settings;
+
+        // SWR rig-saver: created once, reconfigured on every settings apply.
+        if (_swrProtection is null)
+        {
+            _swrProtection = new SwrProtection(_transceiver);
+            _swrProtection.Tripped += swr => Dispatcher.UIThread.Post(() =>
+            {
+                TransmitInhibited = true; // reflect the guard's inhibit in the UI
+                StatusMessage = $"⚠ SWR guard tripped at {swr:F1}:1 — transmit inhibited. Fix the antenna/tuner, then clear Receive-Only.";
+            });
+        }
+        _swrProtection.Enabled = settings.SwrGuardEnabled;
+        _swrProtection.Threshold = settings.SwrGuardThreshold;
 
         try
         {

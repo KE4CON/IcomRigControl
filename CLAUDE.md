@@ -556,6 +556,18 @@ Dashboard clock + FCC ID timer — IMPLEMENTED 2026-08-15. StationClockViewModel
   shows the countdown + an "ID timer" toggle (persisted IdTimerEnabled/IdTimerMinutes) and an unmissable
   orange "IDENTIFY YOUR STATION — 10-minute FCC ID is due" banner with an "Identified" reset button (FCC
   §97.119). 2 tests (elapses once then latches until acknowledged; MM:SS display).
+SWR protection (rig-saver) — IMPLEMENTED 2026-08-15. SwrProtection (Services) watches Transceiver.
+  MeterUpdated; if SWR >= threshold WHILE transmitting (PttActive) it unkeys (SetPttAsync false) and
+  engages TransmitInhibited to protect the finals; the op clears the inhibit once fixed. Pure
+  ShouldTrip(enabled,transmitting,swr,threshold) is unit-tested (5 cases). Settings: SwrGuardEnabled +
+  SwrGuardThreshold (default 3.0); a ToggleButton + NumericUpDown in the Settings window; MainWindowVM
+  creates the guard once and reconfigures it on ApplySettings, and on Tripped shows a status warning.
+CONFIRMED-AND-FIXED BUG 2026-08-15: SettingsViewModel.Save() built a FRESH AppSettings from only the
+  fields it knew, silently RESETTING every setting owned by other windows (CwPitchHz, RttyReverse,
+  WebRemotePort/Token/UseHttps, RemoteAudioPort, IdTimer*, AprsAutoAck, DxCluster*, etc.) to defaults
+  whenever the user opened Settings and clicked Save. Fixed to LOAD-then-modify (mutate the loaded
+  AppSettings, preserving unlisted fields). When adding a setting owned by a non-Settings window, this
+  load-then-modify pattern is now the rule everywhere.
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

@@ -28,7 +28,7 @@ wanted, the right path is delegating the generic tier to Hamlib/rigctld, NOT han
 untested per-radio CI-V. The three supported radios have a large combined installed base;
 depth-on-three beats breadth-on-many here. These three radios also happen to be exactly
 the SDR-scope class, so the spectrum waterfall — the app's headline feature — applies to
-all of them. See CAPABILITIES.md for the full inventory and the tier analysis behind this.
+all of them. See docs/internal/reference/CAPABILITIES.md for the full inventory and the tier analysis behind this.
 ## Core Design Principle: Resilience / Backup-of-Record (EMCOMM discipline)
 IcomRigControl's own QsoLogger is the resilient backup of record for all logged QSOs,
 independent of whether HRD Logbook, N1MM, or any other external program is running,

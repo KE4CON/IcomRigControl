@@ -21,8 +21,9 @@ public static class BaudotCode
     public const string Ltrs = "11111";
     public const string Figs = "11011";
     public const string Space = "00100";
-    public const string Cr = "00010";
-    public const string Lf = "01000";
+    // ITA2 (MSB-first): CR = unit-4 mark = "01000", LF = unit-2 mark = "00010".
+    public const string Cr = "01000";
+    public const string Lf = "00010";
     public const string Null = "00000";
 
     // (5-bit pattern, letter, figure). Figures follow the common US/amateur layout

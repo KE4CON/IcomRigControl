@@ -24,6 +24,22 @@ public class GreyLineTests
         Assert.InRange(noonHour, 11.5, 12.5);
     }
 
+    [Theory]
+    // Solar noon (the sunrise/sunset midpoint) shifts by lon/15 hours: west (negative
+    // east-longitude) is later in UTC, east is earlier. Exercises the longitude term of
+    // the sunrise equation, which the day=0 tests (lon 0) never touch.
+    [InlineData(-75.0, 17.0)]  // ~US East Coast: noon ~12:00 + 5h = 17:00 UTC
+    [InlineData(75.0, 7.0)]    // ~Central Asia: noon ~12:00 - 5h = 07:00 UTC
+    public void SolarNoon_ShiftsWithLongitude(double lonDeg, double expectedNoonHourUtc)
+    {
+        var date = new DateTime(2026, 3, 20, 0, 0, 0, DateTimeKind.Utc);
+        var r = GreyLine.SunriseSunset(0, lonDeg, date);
+        Assert.NotNull(r);
+        var (rise, set) = r!.Value;
+        double noonHour = (rise.TimeOfDay + (set - rise) / 2).TotalHours;
+        Assert.InRange(noonHour, expectedNoonHourUtc - 0.5, expectedNoonHourUtc + 0.5);
+    }
+
     [Fact]
     public void HighArctic_InSummer_HasNoSunset()
     {

@@ -1,0 +1,89 @@
+{
+  "order": 5,
+  "title": "First Launch — Connecting in the App",
+  "subtitle": "Open IcomRigControl, point it at your radio, and confirm it's really talking.",
+  "in_this_chapter": [
+    "Starting the app for the first time",
+    "Trying it in Demo mode",
+    "Opening Settings",
+    "The Radio Connection settings",
+    "Picking your radio model",
+    "Choosing Serial mode and your port",
+    "Saving and restarting",
+    "Confirming the connection",
+    "Troubleshooting"
+  ],
+  "blocks": [
+    {"callout": {"kind": "tip", "label": "In a nutshell", "text": "Open the app, click **Settings**. Under **Radio Connection**, set **Radio Model** to your radio, set **Connection Mode** to **Serial**, click **Refresh** and pick your **Serial Port** from the list, then click **Save Settings** and restart the app. When it reopens it connects automatically and shows your radio's real frequency."}},
+
+    {"h1": "Starting the App for the First Time"},
+    {"p": "Start IcomRigControl the normal way — the Desktop or Start-menu shortcut on Windows, the app in your Applications folder on macOS, or the application-menu entry on Linux and the Raspberry Pi. The main **dashboard** opens: a frequency readout, mode buttons, meters, a spectrum waterfall area, a row of transmit controls, and a strip of buttons that open the other features."},
+    {"screenshot": "The IcomRigControl main dashboard as it first opens in Demo mode, with the frequency readout, meters, waterfall area, and the button strip labeled"},
+
+    {"h1": "Trying It in Demo Mode"},
+    {"p": "Out of the box, IcomRigControl starts in **Demo** mode. Demo needs no radio and no cable — it makes up a frequency, meters, and a moving waterfall so you can click around safely and learn where things are. Nothing in Demo mode touches a real radio or puts anything on the air."},
+    {"callout": {"kind": "note", "label": "Demo is a great first stop.", "text": "Before you connect real hardware, spend a minute in Demo mode. Click the feature buttons, open a window or two, and get a feel for the layout. When you are ready for the real radio, follow the rest of this chapter."}},
+
+    {"h1": "Opening Settings"},
+    {"steps": [
+      "On the dashboard, find and click the **Settings** button.",
+      "The **Settings** window opens. The very first section at the top is **Radio Connection (Phase 9)** — that is the only section you need for now."
+    ]},
+    {"screenshot": "The Settings window open, scrolled to the top, with the 'Radio Connection (Phase 9)' section and its Radio Model, Connection Mode, and Serial Port controls visible"},
+
+    {"h1": "The Radio Connection Settings"},
+    {"p": "This section has three controls that matter for connecting, in this order: **Radio Model**, **Connection Mode**, and **Serial Port**. Set them top to bottom."},
+
+    {"h1": "Picking Your Radio Model"},
+    {"p": "Click the **Radio Model** dropdown and choose the entry for your radio. The three choices read exactly like this in the list:"},
+    {"table": {
+      "headers": ["Choose this entry", "For this radio"],
+      "widths": [2.4, 3.4],
+      "rows": [
+        ["`IC7300`", "Icom IC-7300"],
+        ["`IC7300MK2`", "Icom IC-7300MK2"],
+        ["`IC705`", "Icom IC-705"]
+      ]
+    }},
+    {"p": "The helper line under the dropdown reminds you which CI-V address each model uses — **IC-7300 (CI-V 0x94), IC-7300MK2 (0xB6), or IC-705 (0xA4)** — and notes that the change 'takes effect after an app restart.' Picking the right model here is what makes the address in the app match the address you confirmed on the radio in the previous chapter."},
+    {"callout": {"kind": "note", "label": "Why the names have no hyphen.", "text": "The list shows `IC7300` rather than `IC-7300`. That is just the internal spelling; it is the same radio. Match it to yours: `IC7300` for a 7300, `IC7300MK2` for the MK2, `IC705` for the 705."}},
+
+    {"h1": "Choosing Serial Mode and Your Port"},
+    {"p": "Next, set **Connection Mode**. Click its dropdown and choose **`Serial`** — that means 'a radio connected to this computer by USB cable.' (The other choices are **`Demo`**, the no-hardware simulator you just tried, and **`Remote`**, for connecting to a radio over the network, which has its own chapter.)"},
+    {"p": "Now set the **Serial Port (Serial mode)** box to the port you wrote down in the USB chapter:"},
+    {"steps": [
+      "Click the **Refresh** button next to the Serial Port box. This asks the computer for the list of ports available right now.",
+      "Click in the **Serial Port** box and pick your radio's port from the list that drops down — for example `COM3` on Windows, or `/dev/tty.usbserial-0001` on a Mac.",
+      "If your port is not in the list, you can type it in directly. The box even hints at the format: 'Pick a port, or type COM3 / /dev/tty.usbserial-XXXX.'"
+    ]},
+    {"callout": {"kind": "tip", "label": "Not sure which port is the radio?", "text": "Click **Refresh** with the radio unplugged, note the list, then plug the radio in and click **Refresh** again — the port that just appeared is your radio. Pick that one."}},
+
+    {"h1": "Saving and Restarting"},
+    {"steps": [
+      "Scroll to the bottom of the Settings window and click **Save Settings**.",
+      "**Close and reopen IcomRigControl.** The radio model and connection mode only take effect after a restart, so this step is required, not optional."
+    ]},
+    {"callout": {"kind": "important", "label": "A restart is required after changing the model or mode.", "text": "IcomRigControl builds its connection to the radio when it starts up. So after you switch to Serial mode (or change the radio model), you must fully close the app and open it again for the change to take hold. Just clicking Save is not enough on its own."}},
+
+    {"h1": "Confirming the Connection"},
+    {"p": "When the app reopens, it connects to the radio automatically — there is no separate 'Connect' button to press. Here is how to know it worked:"},
+    {"bullets": [
+      "**The frequency readout shows your radio's real frequency.** Tune the radio's dial by hand; the number on screen should follow along (this is the CI-V Transceive setting doing its job).",
+      "**The mode matches** what the radio is set to (USB, LSB, CW, FM, and so on).",
+      "**The meters move** when a signal comes in.",
+      "**The status shows Connected.** If something is wrong, it shows **Connection failed** instead — see Troubleshooting below."
+    ]},
+    {"screenshot": "The dashboard connected to a real radio: the frequency readout showing an on-air frequency, the mode indicator, and a moving S-meter"},
+    {"callout": {"kind": "tip", "label": "A quick two-way test.", "text": "Type a nearby frequency into the frequency box and click **Set Freq**. The radio should jump to it. If the radio follows both your dial (radio → app) and your Set Freq (app → radio), control is working in both directions and you are fully connected."}},
+
+    {"h1": "Troubleshooting"},
+    {"bullets": [
+      "**\"It says Connection failed.\"** Work back through the chain: is the right **port** selected (try Refresh and pick again)? Is the **radio model** right? On the radio, is the **CI-V Address** correct for the model and the **CI-V USB Baud Rate** `115200` or `Auto`? Is the radio powered **on**?",
+      "**\"The port isn't in the Refresh list.\"** The computer isn't seeing the radio's serial port. Go back to the USB chapter — check the cable, that the radio is on, and (Windows) that the CP210x driver is installed with no yellow warning in Device Manager.",
+      "**\"It connects but the frequency never changes when I turn the dial.\"** Turn **CI-V Transceive** to `ON` on the radio.",
+      "**\"It connected once but not after I moved the cable.\"** Windows can assign a different COM number on a different USB socket. Re-open Settings, click **Refresh**, pick the new port, Save, and restart. Using the same USB socket each time keeps the number stable.",
+      "**\"On Linux it fails with a permission error.\"** Add yourself to the `dialout` group (`sudo usermod -aG dialout $USER`), then log out and back in."
+    ]},
+    {"p": "Your radio is connected. If you only wanted local control, you are finished — the User Manual covers operating every feature. The remaining chapters set up the extras: operating over the network, from a phone, and alongside your other logging programs."}
+  ]
+}

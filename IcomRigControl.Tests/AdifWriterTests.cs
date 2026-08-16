@@ -90,6 +90,16 @@ public class AdifWriterTests
     }
 
     [Fact]
+    public void FormatQso_FieldLength_IsUtf8ByteCount_NotCharCount()
+    {
+        // "José" is 4 chars but 5 UTF-8 bytes (é = 2 bytes). ADIF length is the BYTE
+        // count; using char count declares <NAME:4> and corrupts the record on import.
+        var qso = SampleQso() with { Name = "José" };
+        var line = AdifWriter.FormatQso(qso);
+        Assert.Contains("<NAME:5>José", line);
+    }
+
+    [Fact]
     public void GenerateHeader_ContainsAdifVersionAndProgramId()
     {
         var header = AdifWriter.GenerateHeader();

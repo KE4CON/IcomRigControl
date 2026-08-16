@@ -1,0 +1,109 @@
+{
+  "order": 3,
+  "title": "Connecting Your Radio Over USB",
+  "subtitle": "The exact cable, the exact jack, and how each computer sees the radio once it's plugged in.",
+  "in_this_chapter": [
+    "The one cable you need",
+    "Where it plugs in — IC-7300 and IC-7300MK2",
+    "Where it plugs in — IC-705",
+    "What the radio becomes: a COM port plus a sound card",
+    "Installing the USB driver (Windows)",
+    "Finding the port on Windows",
+    "Finding the port on macOS",
+    "Finding the port on Linux and Raspberry Pi",
+    "Write down your port name",
+    "Troubleshooting"
+  ],
+  "blocks": [
+    {"callout": {"kind": "tip", "label": "In a nutshell", "text": "Plug one USB cable from the radio's USB port into the computer. The radio then shows up on the computer as a **serial port** (a name like `COM3` on Windows, or `/dev/tty.usbserial-XXXX` on a Mac). Find that name and write it down — you will type it into the app in a later chapter. The same cable also gives the computer the radio's **audio**, which is what makes the waterfall's audio features, CW/RTTY decode, and remote audio possible."}},
+
+    {"h1": "The One Cable You Need"},
+    {"p": "You control the radio with a single USB cable between the radio and the computer. Which cable depends on your radio:"},
+    {"table": {
+      "headers": ["Radio", "Cable", "Plain description"],
+      "widths": [1.8, 2.2, 2.5],
+      "rows": [
+        ["IC-7300 / IC-7300MK2", "USB-A to USB-B", "The flat rectangular plug (USB-A) goes into the computer; the squarish plug (USB-B, the kind on the back of a printer) goes into the radio."],
+        ["IC-705", "USB-A to USB-C", "The flat rectangular plug (USB-A) goes into the computer; the small oval reversible plug (USB-C) goes into the radio."]
+      ]
+    }},
+    {"callout": {"kind": "note", "label": "If your computer only has USB-C sockets.", "text": "Many newer laptops and all recent Macs have only the small oval USB-C sockets. That is fine — use a **USB-C to USB-B** cable for the IC-7300/MK2, or a **USB-C to USB-C** cable for the IC-705, or a simple USB-A-to-USB-C adapter with the cable you already have. The radio does not care which shape is on the computer end."}},
+    {"callout": {"kind": "tip", "label": "Use a good, short cable — and a ferrite helps.", "text": "A short, good-quality USB cable makes for a more reliable connection and less radio-frequency noise. A clip-on **ferrite choke** near the radio end can quiet down 'RF getting into the USB' problems that show up as dropped control or stuttering audio when you transmit. This is optional, but worth it on a busy station."}},
+
+    {"h1": "Where It Plugs In — IC-7300 and IC-7300MK2"},
+    {"p": "On the **back** of the IC-7300 (and IC-7300MK2), find the small squarish socket labeled **[USB]**. It is a USB type-B connector, the same shape as the socket on the back of a typical printer. Push the USB-B end of your cable firmly into it, and the other end into a USB socket on your computer."},
+    {"screenshot": "The rear panel of the IC-7300 with the square [USB] type-B socket clearly circled and labeled, and the USB-B cable plugged into it"},
+    {"callout": {"kind": "important", "label": "This is not the microphone jack or the ACC jack.", "text": "Use the rear **[USB]** socket only. Do not use the front microphone connector or the round **[ACC]** accessory socket for computer control — those are for other things. The single rear USB port carries both the control link and the audio you need."}},
+
+    {"h1": "Where It Plugs In — IC-705"},
+    {"p": "On the **side** of the IC-705, behind the rubber cover, find the oval **USB-C** socket (marked with the USB symbol; it sits near the DC-power and headphone jacks). Plug the USB-C end of your cable in there, and the other end into your computer."},
+    {"screenshot": "The side of the IC-705 with the rubber port cover open, the USB-C socket circled and labeled, and a USB-C cable plugged in"},
+    {"callout": {"kind": "note", "label": "The IC-705 also charges over USB-C.", "text": "The USB-C port can also power and charge the radio. For steady control and operating, run the IC-705 from its own DC power or a well-charged battery — do not rely on the computer's USB port alone to keep it running while you operate."}},
+
+    {"h1": "What the Radio Becomes: a COM Port Plus a Sound Card"},
+    {"p": "This is worth understanding because it explains why one cable does so much. When you plug in the radio, the computer sees **two** new devices at once:"},
+    {"bullets": [
+      "**A serial port** (also called a COM port or a 'CAT' port). This is the control channel — the app sends CI-V commands and reads the frequency, mode, and meters through it. This is the port name you will type into the app.",
+      "**A USB audio device** (a sound card named for the radio). This carries the received audio into the computer and your transmit audio back out. IcomRigControl uses it for the audio-based features: CW and RTTY decode, the APRS beacon, the Band DVR, remote audio, and 'Listen' on the phone remote."
+    ]},
+    {"p": "You configure the **serial port** in this chapter and the next. The **audio device** is picked later, only for the features that need it — most people can ignore it at first."},
+
+    {"h1": "Installing the USB Driver (Windows)"},
+    {"p": "The IC-7300, IC-7300MK2, and IC-705 all use a common **Silicon Labs CP210x** USB chip to create the serial port. Windows 10 and 11 usually install the driver automatically the first time you plug the radio in — wait a minute after connecting and you may be done."},
+    {"steps": [
+      "Plug the radio in (with the radio powered on) and wait about a minute for Windows to finish 'Setting up a device.'",
+      "Open **Device Manager** (press the **Windows key**, type `Device Manager`, and press **Enter**).",
+      "Expand **Ports (COM & LPT)**. If you see **Silicon Labs CP210x USB to UART Bridge (COM#)**, the driver is installed and you are done — note the `COM#` number.",
+      "If instead the radio appears under **Other devices** with a yellow warning triangle, the driver is missing. Download the **Silicon Labs CP210x VCP driver** (Icom links to it on the radio's download page), run it, then unplug and replug the radio."
+    ]},
+    {"screenshot": "Windows Device Manager with 'Ports (COM & LPT)' expanded, showing 'Silicon Labs CP210x USB to UART Bridge (COM3)' highlighted"},
+    {"callout": {"kind": "note", "label": "macOS and Linux usually need no driver.", "text": "Recent versions of macOS and Linux already include the CP210x driver, so the serial port appears on its own when you plug the radio in. If it does not on an older macOS, install Silicon Labs' macOS VCP driver."}},
+
+    {"h1": "Finding the Port on Windows"},
+    {"p": "You need the port's name — `COM3`, `COM5`, and so on. From the Device Manager step above, read the number in parentheses after **Silicon Labs CP210x USB to UART Bridge**. That whole name in parentheses, for example **`COM3`**, is your port."},
+    {"callout": {"kind": "tip", "label": "Which COM number is the radio?", "text": "If several COM ports are listed, unplug the radio, watch which entry disappears, then plug it back in and watch which one returns — that is the radio. IcomRigControl's own port picker (next chapter) also lists the available ports for you, so you can simply pick from the list."}},
+
+    {"h1": "Finding the Port on macOS"},
+    {"steps": [
+      "Open **Terminal** (press **Command-Space**, type `Terminal`, press **Return**).",
+      "Type this and press **Return**:",
+      "Look for a line like `/dev/tty.usbserial-0001` or `/dev/tty.SLAB_USBtoUART`. That whole path is your port name."
+    ]},
+    {"code": "ls /dev/tty.*"},
+    {"callout": {"kind": "tip", "label": "Too many lines?", "text": "Run `ls /dev/tty.*` once with the radio unplugged and once plugged in, and compare — the line that appears only when the radio is connected is the one you want. Note it exactly, including the `/dev/tty.` at the front."}},
+
+    {"h1": "Finding the Port on Linux and Raspberry Pi"},
+    {"steps": [
+      "Open a terminal.",
+      "Plug in the radio, then run:",
+      "The newest line usually names the radio's port, typically `/dev/ttyUSB0`. You can also just list them with `ls /dev/ttyUSB*`."
+    ]},
+    {"code": "dmesg | tail -20"},
+    {"callout": {"kind": "important", "label": "One extra step on Linux — permission to use the port.", "text": "By default your user is not allowed to open serial ports, so the app would fail to connect. Fix it once: run the command below, then **log out and log back in** (or reboot) for it to take effect. On the Raspberry Pi this is often already done, but running it does no harm."}},
+    {"code": "sudo usermod -aG dialout $USER"},
+
+    {"h1": "Write Down Your Port Name"},
+    {"p": "Before moving on, write down the exact port name for your computer. You will type it into IcomRigControl in the 'First Launch' chapter. Concrete examples of what a real port name looks like:"},
+    {"table": {
+      "headers": ["Computer", "A real example", "Where you found it"],
+      "widths": [1.7, 2.6, 2.2],
+      "rows": [
+        ["Windows", "`COM3`", "Device Manager → Ports (COM & LPT)"],
+        ["macOS", "`/dev/tty.usbserial-0001`", "Terminal: `ls /dev/tty.*`"],
+        ["Linux / Raspberry Pi", "`/dev/ttyUSB0`", "Terminal: `ls /dev/ttyUSB*`"]
+      ]
+    }},
+    {"callout": {"kind": "note", "label": "Don't type these examples literally.", "text": "`COM3` and `/dev/ttyUSB0` are only examples. Use the real name your own computer showed you. If yours is `COM5` or `/dev/ttyUSB1`, use that."}},
+
+    {"h1": "Troubleshooting"},
+    {"bullets": [
+      "**\"Nothing new appeared when I plugged in the radio.\"** Make sure the radio is powered **on**, try a different USB cable (some cheap cables are charge-only, with no data wires), and try a different USB socket on the computer. On Windows, check Device Manager for a yellow warning triangle, which means the driver is missing (see the Windows driver section).",
+      "**\"Windows shows the device under 'Other devices' with a warning triangle.\"** The CP210x driver is not installed. Download and run the Silicon Labs CP210x VCP driver, then unplug and replug the radio.",
+      "**\"I see a COM port but which one is the radio?\"** Unplug the radio and watch which entry disappears; plug it back in and it reappears. That is the radio's port.",
+      "**\"On Linux the app says permission denied when it connects.\"** You are not in the `dialout` group yet. Run `sudo usermod -aG dialout $USER`, then log out and back in.",
+      "**\"Control works but drops out when I transmit.\"** This is usually radio-frequency energy getting into the USB cable. Use a shorter, better-shielded cable, add a clip-on ferrite near the radio end, and check your antenna system's SWR.",
+      "**\"I don't see a sound card for the radio.\"** The audio device is only needed for the audio features. It appears under your system's sound settings named for the radio's USB codec; you will select it later, only if you use those features."
+    ]},
+    {"p": "With the cable connected and the port name written down, the next chapter sets the matching options **on the radio itself** so it will answer the computer."}
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "order": 4,
+  "title": "Setting Up Your Radio's CI-V Menu",
+  "subtitle": "The handful of settings to change on the radio itself so it answers the computer.",
+  "in_this_chapter": [
+    "Why this chapter matters",
+    "Opening the CI-V menu",
+    "The settings to check, one by one",
+    "A quick table you can copy",
+    "IC-705 differences",
+    "A note on transmit audio",
+    "The remote power-on setting",
+    "Troubleshooting"
+  ],
+  "blocks": [
+    {"callout": {"kind": "tip", "label": "In a nutshell", "text": "On the radio, go to **Menu → SET → Connectors → CI-V** and confirm five things: the **CI-V USB Baud Rate** is `115200` (or `Auto`), the **CI-V Address** matches your model, **CI-V USB Echo Back** is `OFF`, **CI-V Transceive** is `ON`, and — for the IC-7300/MK2 — the **CI-V USB Port** is set to **Unlink from [REMOTE]**. Save and back out. That is the whole radio side."}},
+
+    {"h1": "Why This Chapter Matters"},
+    {"p": "The USB cable is only half the connection. The radio also has to be told to listen and answer over that cable, at a speed and under a name the computer expects. These live in the radio's **CI-V** settings. There are only a few, you set them once, and this chapter walks through every one — what it is, what to set it to, and why."},
+    {"callout": {"kind": "note", "label": "You will not break anything.", "text": "These are just menu settings. If you change the wrong one, you can change it back. Nothing here transmits or affects your radio's receive performance — they only govern how the radio talks to the computer."}},
+
+    {"h1": "Opening the CI-V Menu (IC-7300 and IC-7300MK2)"},
+    {"steps": [
+      "Press the **MENU** button on the radio's front panel.",
+      "Touch **SET** on the screen.",
+      "Scroll down and touch **Connectors**.",
+      "Touch **CI-V**. You are now looking at the list of CI-V settings you will adjust below."
+    ]},
+    {"screenshot": "The IC-7300 touchscreen showing the CI-V settings list under Menu → SET → Connectors → CI-V, with the items named in the steps visible"},
+    {"callout": {"kind": "tip", "label": "How to change a value on the IC-7300 screen.", "text": "Touch the setting's name, then turn the main dial (or touch the up/down arrows) to change its value. Touching **EXIT** backs out one level and keeps your change. There is no separate 'Save' button — the setting is kept as soon as you change it."}},
+
+    {"h1": "The Settings to Check, One by One"},
+    {"p": "Go through these in order. For most people the factory defaults are already correct; the point is to confirm each one so nothing is a surprise later."},
+
+    {"h2": "CI-V USB Baud Rate"},
+    {"p": "This is the speed of the control link over USB. Set it to **`115200`**, which is the speed IcomRigControl uses. If you prefer, you may leave it at **`Auto`** — the radio then matches whatever the computer uses — but a fixed `115200` is the most predictable."},
+    {"callout": {"kind": "note", "label": "In plain words.", "text": "Baud rate is how fast the two sides talk. Both ends must agree, or they hear gibberish. Setting the radio to `115200` makes it agree with the app; `Auto` lets the radio figure it out."}},
+
+    {"h2": "CI-V Address"},
+    {"p": "This is the radio's 'name tag' — the number the computer uses to address it. Confirm it matches the factory default for your model, because that is what IcomRigControl expects when you pick that model in the app:"},
+    {"table": {
+      "headers": ["Your radio", "CI-V Address should read"],
+      "widths": [2.6, 2.4],
+      "rows": [
+        ["IC-7300", "`94h`"],
+        ["IC-7300MK2", "`B6h`"],
+        ["IC-705", "`A4h`"]
+      ]
+    }},
+    {"callout": {"kind": "important", "label": "If you ever changed this, change it back.", "text": "If your CI-V Address shows anything other than the value above for your model, set it back to that value — unless you know exactly why you changed it. The address in the radio and the model you pick in the app must agree, or the app cannot reach the radio."}},
+
+    {"h2": "CI-V USB Echo Back"},
+    {"p": "Set this to **`OFF`** (the factory default). When it is ON, the radio repeats every command back to the computer, which is unnecessary here. IcomRigControl is built to ignore those echoes if they occur, so ON will still work — but `OFF` is the clean choice."},
+
+    {"h2": "CI-V Transceive"},
+    {"p": "Set this to **`ON`** (the factory default). With Transceive ON, the radio automatically tells the computer whenever you turn the dial or change mode on the front panel, so the app's display follows what you do at the radio. Turn it OFF only if you have a specific reason."},
+
+    {"h2": "CI-V USB Port (IC-7300 / IC-7300MK2 only)"},
+    {"p": "Set this to **`Unlink from [REMOTE]`** (the default). This keeps the USB control port independent of the round [REMOTE] jack on the back, which is what you want when controlling over USB."},
+
+    {"h1": "A Quick Table You Can Copy"},
+    {"p": "Here is the whole radio side on one line each. Set these and you are done."},
+    {"table": {
+      "headers": ["Setting", "Set it to", "Why"],
+      "widths": [2.1, 1.9, 2.5],
+      "rows": [
+        ["CI-V USB Baud Rate", "`115200` (or `Auto`)", "Matches the app's speed"],
+        ["CI-V Address", "`94h` / `B6h` / `A4h` for your model", "Must match the app's model"],
+        ["CI-V USB Echo Back", "`OFF`", "No echoes needed"],
+        ["CI-V Transceive", "`ON`", "Front-panel changes update the app"],
+        ["CI-V USB Port (7300/MK2)", "`Unlink from [REMOTE]`", "Use the USB port for control"]
+      ]
+    }},
+
+    {"h1": "IC-705 Differences"},
+    {"p": "The IC-705 has the same CI-V settings, reached almost the same way. Press **MENU**, touch **SET**, then **Connectors**, then **CI-V**, and set the same values as the table above — with the CI-V Address confirmed as **`A4h`**. The wording on screen is essentially identical; the IC-705 simply has a smaller touchscreen and adds features (like GPS and D-STAR) that IcomRigControl does not use."},
+    {"callout": {"kind": "note", "label": "Bluetooth on the IC-705.", "text": "The IC-705 can also do CI-V over Bluetooth, but IcomRigControl connects over the USB-C cable, which carries both control and audio. Use the USB cable; you do not need to set up Bluetooth."}},
+
+    {"h1": "A Note on Transmit Audio"},
+    {"p": "IcomRigControl keys the transmitter over the CI-V link itself, so you do **not** need to set up any 'USB SEND' or RTS/DTR keying for push-to-talk to work — that is handled for you."},
+    {"p": "The only time the radio needs extra setup is for features that send **audio** to the radio to transmit — the APRS beacon, RTTY transmit, and remote-audio transmit. For those, the radio must be told to take its transmit audio from the USB port (typically by operating in a **USB / DATA** mode and setting the modulation input to **USB**). This is an operating detail rather than an install step, and the User Manual covers it for each of those features. If you are only controlling the radio and listening, you can ignore it entirely for now."},
+    {"callout": {"kind": "warning", "label": "Keep Receive-Only on until you're ready.", "text": "While you are still setting things up, leave the app's **Receive-Only** switch on (the red 'TRANSMIT INHIBITED' banner). That way nothing can key the radio by accident before you have deliberately set up transmitting."}},
+
+    {"h1": "The Remote Power-On Setting (Optional)"},
+    {"p": "IcomRigControl can power the radio on and off over the link (the **Power On** and **Power Off** buttons on the dashboard). Powering **off** always works. Powering back **on** only works if the radio was left in a low-power standby where its control brain stays awake — and that is governed by one radio setting."},
+    {"steps": [
+      "If you want remote power-on to be possible, find the radio's **Power OFF Setting** for remote control (in the radio's SET menu) and set it to allow **Standby** (often shown as **Standby/Shutdown**) rather than **Shutdown only**.",
+      "With that set, a remote **Power Off** puts the radio in standby (not fully off), so a later **Power On** can wake it."
+    ]},
+    {"callout": {"kind": "important", "label": "The honest limits of remote power-on.", "text": "Remote power-on can wake a radio from standby, but it cannot power on a radio that is fully unplugged, hard-switched off, or whose USB connection has dropped. This is the same limitation Icom's own remote software has — it is not specific to IcomRigControl. If remote power is important to you, leave the radio in standby (not fully off) when you step away."}},
+
+    {"h1": "Troubleshooting"},
+    {"bullets": [
+      "**\"I set everything but the app still won't connect.\"** Double-check the **CI-V Address** matches your model, and that the **CI-V USB Baud Rate** is `115200` (or `Auto`). Then confirm you picked the right **port** in the app (previous chapter) and the right **model** (next chapter).",
+      "**\"The app connects but the frequency doesn't update when I turn the dial.\"** Turn **CI-V Transceive** to `ON`.",
+      "**\"I can't find the CI-V menu.\"** On the IC-7300/MK2 it is **Menu → SET → Connectors → CI-V**. If your radio's firmware is older, the wording may differ slightly, but it is always under **SET → Connectors**.",
+      "**\"Remote Power On does nothing.\"** The radio must have been in **standby** (not fully off), and the **Power OFF Setting** must allow Standby. A fully powered-off or unplugged radio cannot be woken."
+    ]},
+    {"p": "The radio is now ready to answer. The next chapter opens the app, points it at your radio, and confirms the connection."}
+  ]
+}

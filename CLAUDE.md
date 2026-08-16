@@ -516,6 +516,12 @@ Smart DX spot alerts — IMPLEMENTED 2026-08-15. Cross-references DX cluster spo
   analyzer is rebuilt per spot so contacts made during the session count immediately. 2 analyzer tests
   (new-call + new-on-band + case-insensitive). Entity/DXCC-level "new one" (prefix->entity) is a future
   refinement; this first version is per-callsign-per-band, which is the common daily need.
+RTTY LIVE (keyboard) TRANSMIT — IMPLEMENTED 2026-08-15. LiveRttyTransmitter (Services): keeps the radio
+  keyed and continuously streams RTTY via IAudioStreamOutput (back-pressured), sending characters as
+  typed and idle rest-tone between; StartAsync honors TransmitInhibited (returns false), StopAsync
+  ALWAYS unkeys, DisposeAsync stops it. BuildChunk(text|null) is pure/testable. RTTY window: a "Live TX"
+  toggle (keys + streams); OnSendTextChanged enqueues newly-typed chars (per-keystroke), echoed into the
+  window. The one-shot Send button remains. 3 tests. The "live char-by-char" refinement atop buffer TX.
 Phase 14: Band DVR (record & rewind the radio) — IN PROGRESS (started 2026-08-15). "Who was that? —
   rewind." WavWriter (Services): pure-managed streaming 16-bit mono WAV (RIFF header patched on Close),
   works on Windows/mac/Linux/Pi with no audio lib. BandRecorder (Services): IAudioCapture -> a rolling

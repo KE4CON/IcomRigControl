@@ -550,6 +550,12 @@ Phase 14: Band DVR (record & rewind the radio) — IN PROGRESS (started 2026-08-
   IAudioCapture — multiple captures of the radio's one audio device is fine on Windows/WASAPI shared
   mode but ALSA (Pi) may report the device busy; a shared capture-fan-out is the fix if the testing
   session hits it.
+Dashboard clock + FCC ID timer — IMPLEMENTED 2026-08-15. StationClockViewModel shows local + UTC time
+  (1s DispatcherTimer). IdReminderTimer (Services, pure/testable): counts down IdTimerMinutes*60; at zero
+  latches ReminderDue + raises Elapsed once, stays latched until Acknowledge() (operator IDed). Dashboard
+  shows the countdown + an "ID timer" toggle (persisted IdTimerEnabled/IdTimerMinutes) and an unmissable
+  orange "IDENTIFY YOUR STATION — 10-minute FCC ID is due" banner with an "Identified" reset button (FCC
+  §97.119). 2 tests (elapses once then latches until acknowledged; MM:SS display).
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

@@ -57,6 +57,10 @@ public class AppSettings
     // RTTY decode: swap mark/space (wrong-sideband / reversed signal).
     public bool RttyReverse { get; set; } = false;
 
+    // Station-ID reminder (FCC §97.119 — identify at least every 10 minutes).
+    public bool IdTimerEnabled { get; set; } = false;
+    public int IdTimerMinutes { get; set; } = 10;
+
     // ── Phase 10: APRS beacon settings ──────────────────────────────────
     public string AprsCallsign { get; set; } = "";
     public int AprsSsid { get; set; } = 9; // 9 is the conventional SSID for mobile/HF APRS

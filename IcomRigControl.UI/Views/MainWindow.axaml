@@ -30,6 +30,45 @@
             </StackPanel>
         </Border>
 
+        <!-- Clock (local + UTC) and the FCC 10-minute station-ID reminder -->
+        <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Clock.LocalTime}" Foreground="#00ff88" FontFamily="Courier New" FontSize="14"/>
+                <TextBlock Text="{Binding Clock.UtcTime, StringFormat='UTC {0}'}" Foreground="#88ccff" FontFamily="Courier New" FontSize="14"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Clock.IdCountdown}" Foreground="Gray" FontFamily="Courier New"
+                           VerticalAlignment="Center" IsVisible="{Binding Clock.IdTimerEnabled}"/>
+                <ToggleButton IsChecked="{Binding Clock.IdTimerEnabled}" Content="ID timer"
+                              ToolTip.Tip="FCC §97.119: identify at least every 10 minutes. Reminds you when it's due.">
+                    <ToggleButton.Styles>
+                        <Style Selector="ToggleButton">
+                            <Setter Property="Background" Value="#2a2a2a"/><Setter Property="Foreground" Value="White"/><Setter Property="Padding" Value="8,4"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#00ff88"/><Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                        <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3a3a3a"/>
+                        </Style>
+                        <Style Selector="ToggleButton:checked:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#33ffa2"/><Setter Property="TextBlock.Foreground" Value="Black"/>
+                        </Style>
+                    </ToggleButton.Styles>
+                </ToggleButton>
+            </StackPanel>
+        </Grid>
+
+        <!-- Unmissable "you must identify" banner -->
+        <Border Background="#d97706" CornerRadius="4" Padding="10,8" IsVisible="{Binding Clock.IdDue}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+                <TextBlock Text="📢 IDENTIFY YOUR STATION — 10-minute FCC ID is due"
+                           Foreground="Black" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                <Button Content="Identified" Command="{Binding Clock.AcknowledgeIdCommand}"
+                        Background="Black" Foreground="White" Padding="10,4"/>
+            </StackPanel>
+        </Border>
+
         <TextBlock Text="{Binding StatusMessage}"
                    Foreground="Gray" FontSize="12" HorizontalAlignment="Center"/>
 

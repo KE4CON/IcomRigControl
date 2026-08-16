@@ -528,6 +528,13 @@ public partial class MainWindowViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void OpenPropagation()
+    {
+        var propWindow = new Views.PropagationWindow { DataContext = new PropagationViewModel() };
+        propWindow.Show();
+    }
+
+    [RelayCommand]
     private void OpenBandDvr()
     {
         // Shares the app-wide recorder so per-QSO audio keeps working and monitoring

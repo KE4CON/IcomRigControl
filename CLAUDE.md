@@ -593,6 +593,12 @@ DXCC award tracking + DXCC-aware "new one!" spot alerts — IN PROGRESS 2026-08-
   ("Awards" dashboard button) show DXCC entity count (vs the 100 goal) + grid-square count from this
   app's log + HRD, a sorted worked-entity list, and Refresh. REMAINING: WAS (needs the QSO state field
   — HRD has it, IcomRigControl QsoRecord doesn't yet); cty.dat import for full/exact DXCC.
+Propagation / band intelligence — IMPLEMENTED 2026-08-15. SolarDataService (Services) fetches
+  hamqsl.com's public solar XML and Parse()s SFI / A-index / K-index / sunspots + per-band day/night
+  modeled conditions (BandCondition). Parse is unit-tested (2: full sample + missing-fields don't
+  throw); the fetch returns null on any failure. PropagationViewModel + PropagationWindow
+  ("Propagation" dashboard button): the numbers as tiles + a band-conditions list + Refresh. An
+  operating assistant that pairs with the DX cluster.
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

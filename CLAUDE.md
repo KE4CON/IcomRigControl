@@ -605,6 +605,14 @@ Phone push alerts — IMPLEMENTED 2026-08-15. PushNotifier (Services) POSTs to n
   topic box in Settings, with a how-to hint). Wired into the DX cluster: a genuinely NEW DXCC entity
   spot fires one push per entity per session ("New one! <entity> — <call> on <kHz>"). Easy future adds:
   push on SWR trip and on incoming APRS message (the notifier is generic).
+Station scheduler — IMPLEMENTED 2026-08-15. Scheduler (Services): fires ScheduledTask(Id, "HH:mm" UTC,
+  Action, Parameter, Enabled) once per day; a 20s timer + pure IsDue() (enabled, matching minute, not
+  already fired this minute — unit-tested, 5 cases incl. next-day). Tasks persist in AppSettings.
+  ScheduledTasks. MainWindowViewModel owns the Scheduler and dispatches TaskDue on the UI thread:
+  Frequency (Hz), Mode, Beacon, RecordStart/RecordStop (shared BandRecorder), PowerOn/PowerOff.
+  SchedulerViewModel + SchedulerWindow ("Scheduler" dashboard button): add (time + action dropdown +
+  parameter) / list / delete; changes persist and are pushed to the live Scheduler. For nets and
+  unattended (Pi) operation.
 ## Possible Future Features (backlog — NOT scheduled, do not build without an explicit go)
 - ROTATOR CONTROL: antenna rotator az/el control (Yaesu GS-232 / Hy-Gain protocol over serial, or
   delegate to Hamlib rotctld). From the user's original brainstorm list; deliberately parked here

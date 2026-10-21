@@ -1,0 +1,306 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Portable zip archives ──────────────────────────────────────────────────
+  build:
+    name: Build portable (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            rid: osx-arm64
+            artifact: IcomRigControl-${{ github.ref_name }}-macos-arm64
+          - name: macOS (Intel)
+            os: macos-latest
+            rid: osx-x64
+            artifact: IcomRigControl-${{ github.ref_name }}-macos-x64
+          - name: Windows (x64)
+            os: windows-latest
+            rid: win-x64
+            artifact: IcomRigControl-${{ github.ref_name }}-windows-x64
+          - name: Linux ARM64
+            os: ubuntu-latest
+            rid: linux-arm64
+            artifact: IcomRigControl-${{ github.ref_name }}-linux-arm64
+          - name: Linux x64
+            os: ubuntu-latest
+            rid: linux-x64
+            artifact: IcomRigControl-${{ github.ref_name }}-linux-x64
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compute version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Publish
+        shell: bash
+        run: >
+          dotnet publish IcomRigControl.UI/IcomRigControl.UI.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained true
+          -p:PublishSingleFile=false
+          -p:Version=$VERSION
+          -o publish/${{ matrix.rid }}
+
+      - name: Zip (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: cd publish && zip -r ../${{ matrix.artifact }}.zip ${{ matrix.rid }}/
+
+      - name: Zip (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path publish/${{ matrix.rid }}/* -DestinationPath ${{ matrix.artifact }}.zip
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
+
+  # ── macOS .dmg installers ─────────────────────────────────────────────────
+  installer-macos:
+    name: macOS DMG (${{ matrix.rid }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: osx-arm64
+            artifact: IcomRigControl-${{ github.ref_name }}-macos-arm64-installer
+          - rid: osx-x64
+            artifact: IcomRigControl-${{ github.ref_name }}-macos-x64-installer
+    # Apple signing is DORMANT until the account-level secrets below are configured. The
+    # "Sign + notarize + staple" step self-gates on APPLE_SIGNING_IDENTITY, so until it is set the
+    # job builds an UNSIGNED .dmg. Once the secrets are present, tagging a release signs, notarizes,
+    # staples, and re-signs the .dmg automatically. Required (account-level) secrets:
+    #   APPLE_SIGNING_IDENTITY  (e.g. "Developer ID Application: James Rospopo (TEAMID)") — the on-switch
+    #   APPLE_CERT_P12_BASE64 / APPLE_CERT_PASSWORD                (the exported cert + private key)
+    #   APPLE_API_KEY_P8_BASE64 / APPLE_API_KEY_ID / APPLE_API_ISSUER_ID   (App Store Connect API key)
+    env:
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install create-dmg
+        run: brew install create-dmg
+      - name: Build DMG (unsigned)
+        run: bash scripts/make-macos-app.sh ${{ matrix.rid }}
+
+      - name: Sign + notarize + staple (Apple Developer ID)
+        if: env.APPLE_SIGNING_IDENTITY != ''
+        env:
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          APP="artifacts/installers/IcomRigControl.app"
+          DMG="artifacts/installers/IcomRigControl-${{ matrix.rid }}.dmg"
+
+          # 1) Import the Developer ID cert + key into a throwaway keychain.
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KPW="$(openssl rand -base64 24)"
+          security create-keychain -p "$KPW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KPW" "$KEYCHAIN"
+          echo "$APPLE_CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$APPLE_CERT_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KPW" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+
+          # 2) Sign inner dylibs, then the main executable, then the bundle last. Never --deep.
+          find "$APP/Contents/MacOS" -name "*.dylib" -exec \
+            codesign --force --options runtime --timestamp \
+              --entitlements build/entitlements.mac.plist --sign "$APPLE_SIGNING_IDENTITY" {} \;
+          codesign --force --options runtime --timestamp \
+            --entitlements build/entitlements.mac.plist --sign "$APPLE_SIGNING_IDENTITY" \
+            "$APP/Contents/MacOS/IcomRigControl.UI"
+          codesign --force --options runtime --timestamp \
+            --entitlements build/entitlements.mac.plist --sign "$APPLE_SIGNING_IDENTITY" "$APP"
+          codesign --verify --strict --verbose=2 "$APP"
+
+          # 3) Notarize the .app, then staple the ticket.
+          echo "$APPLE_API_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/api.p8"
+          ditto -c -k --keepParent "$APP" "$RUNNER_TEMP/notarize.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" \
+            --key "$RUNNER_TEMP/api.p8" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" --wait
+          xcrun stapler staple "$APP"
+
+          # 4) Repackage the stapled .app into the .dmg (does NOT rebuild the bundle), then sign the .dmg.
+          bash scripts/make-macos-app.sh ${{ matrix.rid }} --dmg-only
+          codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$DMG"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.artifact }}
+          path: artifacts/installers/IcomRigControl-${{ matrix.rid }}.dmg
+
+  # ── Windows NSIS installer ────────────────────────────────────────────────
+  installer-windows:
+    name: Windows NSIS installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install NSIS
+        run: choco install nsis --no-progress -y
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}" -replace '^v',''
+          pwsh scripts/make-windows-installer.ps1 -Version $v
+
+      # ── Azure Trusted / Artifact Signing ──────────────────────────────────────
+      # DORMANT until the account-level signing config is present. It activates automatically once the
+      # (account-level) VARIABLE `AZURE_SIGNING_ACCOUNT` is set; until then this step is skipped and an
+      # unsigned installer ships. It signs the Setup.exe in place, so the upload step then publishes the
+      # signed file. Account-level (inherited by every repo):
+      #   Secrets:   AZURE_TENANT_ID   AZURE_CLIENT_ID   AZURE_CLIENT_SECRET
+      #   Variables: AZURE_SIGNING_ENDPOINT (e.g. https://eus.codesigning.azure.net/)
+      #              AZURE_SIGNING_ACCOUNT  (e.g. aprscommandsign — the on-switch)
+      #              AZURE_SIGNING_CERT_PROFILE (e.g. rospopo-public — publisher-level, signs all apps)
+      - name: Sign installer (Azure Trusted Signing)
+        if: ${{ vars.AZURE_SIGNING_ACCOUNT != '' }}
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_SIGNING_CERT_PROFILE }}
+          files-folder: ${{ github.workspace }}\artifacts\installers
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      # Publishes the installer — signed if the step above ran, unsigned otherwise.
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v5
+        with:
+          name: IcomRigControl-${{ github.ref_name }}-windows-x64-installer
+          path: artifacts/installers/IcomRigControl-windows-x64-Setup.exe
+
+  # ── Linux .deb / .rpm packages ────────────────────────────────────────────
+  installer-linux:
+    name: Linux packages (${{ matrix.rid }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-x64
+            artifact: IcomRigControl-${{ github.ref_name }}-linux-x64-packages
+          - rid: linux-arm64
+            artifact: IcomRigControl-${{ github.ref_name }}-linux-arm64-packages
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y dpkg-dev rpm
+          # ARM64 cross-compilation support
+          if [[ "${{ matrix.rid }}" == "linux-arm64" ]]; then
+            sudo apt-get install -y qemu-user-static binfmt-support
+            sudo dpkg --add-architecture arm64
+          fi
+      - name: Build .deb and .rpm
+        run: |
+          v="${{ github.ref_name }}"
+          bash scripts/make-linux-packages.sh ${{ matrix.rid }} "${v#v}"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.artifact }}
+          path: artifacts/installers/
+
+  # ── GitHub Release ────────────────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: [build, installer-macos, installer-windows, installer-linux]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: IcomRigControl ${{ github.ref_name }}
+          draft: true
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+          body: |
+            ## IcomRigControl ${{ github.ref_name }}
+
+            Control software for the Icom **IC-7300**, **IC-7300MK2**, and **IC-705**.
+
+            ### Installers (recommended)
+
+            | Platform | File | Notes |
+            |---|---|---|
+            | macOS Apple Silicon (M1/M2/M3/M4) | `IcomRigControl-${{ github.ref_name }}-macos-arm64.dmg` | If unsigned: right-click → Open on first launch |
+            | macOS Intel | `IcomRigControl-${{ github.ref_name }}-macos-x64.dmg` | If unsigned: right-click → Open on first launch |
+            | Windows 10/11 (64-bit) | `IcomRigControl-windows-x64-Setup.exe` | If unsigned: click "More info" → "Run anyway" |
+            | Linux x64 | `icomrigcontrol_*_amd64.deb` | `sudo dpkg -i` |
+            | Linux ARM64 / Raspberry Pi | `icomrigcontrol_*_arm64.deb` | `sudo dpkg -i` |
+
+            ### Portable archives
+
+            | Platform | File |
+            |---|---|
+            | macOS Apple Silicon | `IcomRigControl-${{ github.ref_name }}-macos-arm64.zip` |
+            | macOS Intel | `IcomRigControl-${{ github.ref_name }}-macos-x64.zip` |
+            | Windows 10/11 | `IcomRigControl-${{ github.ref_name }}-windows-x64.zip` |
+            | Linux ARM64 / Raspberry Pi | `IcomRigControl-${{ github.ref_name }}-linux-arm64.zip` |
+            | Linux x64 | `IcomRigControl-${{ github.ref_name }}-linux-x64.zip` |
+
+            ### Code signing
+
+            Windows builds are signed with Azure Trusted Signing when the signing
+            account is configured (no SmartScreen "unknown publisher" warning).
+            macOS builds are signed and notarized once the Apple Developer ID
+            secrets are configured; until then macOS and Linux ship unsigned, which
+            is normal for software distributed outside an app store.
+
+            **If a build is unsigned —**
+            **macOS:** right-click the .app → Open → Open. One time only.
+            **Windows:** click "More info" → "Run anyway". One time only.
+
+            See the Installation Guide for full step-by-step instructions, including
+            connecting your radio and setting up integrations (HRD, N1MM, WSJT-X, LoTW).
+
+            ---
+            Copyright © 2026 KE4CON — github.com/KE4CON/IcomRigControl
+          files: |
+            artifacts/**/*.zip
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
+            artifacts/**/*.deb
+            artifacts/**/*.rpm

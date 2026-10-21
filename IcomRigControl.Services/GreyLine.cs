@@ -15,11 +15,18 @@ public static class GreyLine
     /// day/night. Longitude is east-positive (the usual convention).
     public static (DateTime SunriseUtc, DateTime SunsetUtc)? SunriseSunset(double latDeg, double lonDeg, DateTime dateUtc)
     {
-        double lw = -lonDeg; // the equation uses west-positive longitude
-        double jDate = ToJulian(dateUtc.Date);
+        // ToJulian gives the midnight-referenced Julian *Date* (…​.5); the sunrise
+        // equation below wants the noon-referenced Julian *Day Number* (integer), so
+        // add 0.5.
+        double jdn = ToJulian(dateUtc.Date) + 0.5;
 
-        double n = Math.Round(jDate - 2451545.0 - 0.0009 + lw / 360.0);
-        double jStar = 2451545.0 + 0.0009 + lw / 360.0 + n;     // mean solar noon
+        // Rounding-free mean-solar-noon (matches the tested ActivationPlanner
+        // SolarCalculator). Solar noon shifts later in UTC for western (negative-east)
+        // longitudes, so subtract lonDeg/360; no Math.Round, so there is no day-boundary
+        // sign hazard.
+        double n = jdn - 2451545.0 + 0.0008;
+        double meanSolarNoon = n - lonDeg / 360.0;
+        double jStar = 2451545.0 + meanSolarNoon;               // mean solar noon (Julian)
 
         double m = Mod360(357.5291 + 0.98560028 * (jStar - 2451545.0));
         double c = 1.9148 * Math.Sin(m * Deg) + 0.0200 * Math.Sin(2 * m * Deg) + 0.0003 * Math.Sin(3 * m * Deg);

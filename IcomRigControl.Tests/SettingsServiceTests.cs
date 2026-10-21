@@ -75,6 +75,10 @@ public class SettingsServiceTests
             Assert.Equal(@"C:\HRD\logbook.db", loaded.HrdDatabasePath);
             Assert.True(loaded.N1mmSendEnabled);
             Assert.Single(loaded.N1mmDestinations);
+            // The Ip/Port must survive the round-trip — ValueTuple fields are only
+            // serialized with IncludeFields=true; without it these came back ("", 0).
+            Assert.Equal("127.0.0.1", loaded.N1mmDestinations[0].Ip);
+            Assert.Equal(12060, loaded.N1mmDestinations[0].Port);
             Assert.Equal(12070, loaded.ContactListenPort);
         }
         finally

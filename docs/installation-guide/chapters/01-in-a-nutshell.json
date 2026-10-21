@@ -1,0 +1,75 @@
+{
+  "order": 1,
+  "title": "Before You Start",
+  "subtitle": "What IcomRigControl is, what you need to run it, and the one safety rule.",
+  "in_this_chapter": [
+    "The quick version",
+    "What IcomRigControl is",
+    "The three radios it supports",
+    "What you need",
+    "Which computers it runs on",
+    "The one safety rule",
+    "How to use this guide"
+  ],
+  "blocks": [
+    {"callout": {"kind": "tip", "label": "In a nutshell", "text": "Install the app, plug your radio into the computer with one USB cable, change a handful of settings on the radio itself, tell the app which radio and which port to use, and press Save. That is the whole job. Each of those steps is spelled out, click by click, in the chapters that follow. If you only do the least possible, do this: **install, connect the USB cable, set the radio's CI-V settings, pick the radio and port in the app, restart the app.**"}},
+
+    {"h1": "What IcomRigControl Is"},
+    {"p": "IcomRigControl is a desktop program that controls an Icom radio from your computer. It shows and changes your frequency and mode, reads your meters, draws a spectrum **waterfall** (a live picture of the band), logs your contacts, and — when you set it up on purpose — keys the transmitter, sends a beacon, decodes CW and RTTY, and lets you operate the radio from another room, from a phone, or from across the internet."},
+    {"p": "It runs on Windows, macOS, Linux, and the Raspberry Pi. It is free. Your contact log is kept on your own computer, so it keeps working even if every other program you use is turned off."},
+    {"callout": {"kind": "note", "label": "Jargon, in plain words.", "text": "**CI-V** (Computer-to-transceiver, version 5) is Icom's name for the language the radio and the computer speak to each other over the USB cable. You do not need to understand it — but you will set two or three CI-V options on the radio, and this guide tells you exactly which."}},
+
+    {"h1": "The Three Radios It Supports"},
+    {"p": "IcomRigControl supports exactly three radios, and only these three. This is on purpose: these are the radios that can be properly tested against real hardware, so the app's control of them is trustworthy. If you own one of these, you are in the right place."},
+    {"table": {
+      "headers": ["Radio", "Its CI-V address", "Notes"],
+      "widths": [2.1, 1.6, 2.8],
+      "rows": [
+        ["Icom IC-7300", "`0x94` (the factory default)", "The most common of the three."],
+        ["Icom IC-7300MK2", "`0xB6` (the factory default)", "Differs from the IC-7300 essentially only in this address."],
+        ["Icom IC-705", "`0xA4` (the factory default)", "The portable model; connects the same way."]
+      ]
+    }},
+    {"callout": {"kind": "note", "label": "What is a CI-V address?", "text": "Every Icom radio answers to a number, like a name tag, so the computer knows it is talking to the right rig. The three radios above ship with different numbers. You will confirm this number in two places — on the radio's menu and in the app — and they must match. The app already knows the right default for each model, so in most cases you just pick your model and you are done."}},
+    {"callout": {"kind": "important", "label": "Other Icom radios are not supported.", "text": "IcomRigControl will not properly control an IC-7610, IC-9700, IC-718, IC-706, or any other model. Do not try to use it with them — it has only been built and tested for the three radios above."}},
+
+    {"h1": "What You Need"},
+    {"p": "Gather these before you begin. Every item is explained in detail later; this is the shopping list."},
+    {"bullets": [
+      "**One of the three supported radios** — an IC-7300, IC-7300MK2, or IC-705.",
+      "**One USB cable.** For the IC-7300 and IC-7300MK2 this is a standard **USB-A-to-USB-B** cable (the flat rectangular end goes into the computer; the squarer end goes into the radio). For the IC-705 it is a **USB-A-to-micro-USB** cable (the small micro-USB plug goes into the radio). The exact cable and where it plugs in are covered in the 'Connecting Your Radio Over USB' chapter.",
+      "**A computer** running Windows, macOS, Linux, or a Raspberry Pi (see the table below).",
+      "**About 300 MB of free disk space** for the program, plus room for your logs and any audio recordings.",
+      "**Internet access is optional** — you need it only for online callsign lookup, uploading to Logbook of the World, and the like. The radio control itself works with no internet at all."
+    ]},
+
+    {"h1": "Which Computers It Runs On"},
+    {"p": "IcomRigControl is a 64-bit desktop application built on Microsoft's .NET 10 runtime. Here is exactly what it runs on."},
+    {"table": {
+      "headers": ["Platform", "Minimum version", "Runs on"],
+      "widths": [1.3, 2.6, 2.6],
+      "rows": [
+        ["Windows", "Windows 10 or Windows 11 (64-bit)", "64-bit PCs and laptops"],
+        ["macOS", "macOS 12 (Monterey) or later", "Apple Silicon (M1-M4) and Intel Macs"],
+        ["Linux", "Ubuntu 22.04+, Debian 12+, Fedora, or RHEL 8+ (64-bit)", "x64 or ARM64, with a desktop"],
+        ["Raspberry Pi", "Raspberry Pi OS 64-bit (Bookworm)", "Pi 4 or Pi 5 recommended; 8 GB for the full waterfall display"]
+      ]
+    }},
+    {"callout": {"kind": "tip", "label": "Running on a Raspberry Pi?", "text": "The Pi can run the full app with the waterfall (a Pi 5 with 8 GB is best), or it can run 'headless' — no screen, just a quiet server at the radio that your laptop or phone connects to over the network. Both are covered later. Use the **64-bit** Raspberry Pi OS; the 32-bit version will not run the app."}},
+
+    {"h1": "The One Safety Rule"},
+    {"p": "IcomRigControl can key your transmitter. That is a real radio putting a real signal on the air, so treat it with the same care you would the microphone's PTT (push-to-talk) button."},
+    {"callout": {"kind": "warning", "label": "You are the licensed operator.", "text": "When you enable transmitting, you are responsible for legal amateur-radio operation — your callsign, your identification every ten minutes, your frequency privileges, and your local rules are yours to get right. The app helps (it has a 10-minute ID reminder and an SWR safety cut-out), but the responsibility is yours."}},
+    {"p": "Two things keep you safe while you learn. First, **the app does not transmit on its own** — it only listens and controls until you deliberately press a transmit control. Second, there is a master **Receive-Only** switch on the main screen. When it is on, a red banner reads **TRANSMIT INHIBITED — RECEIVE ONLY**, and nothing — not PTT, not a beacon, not the keyer, not the remote — can key the radio. Turn it on while you set everything up."},
+    {"screenshot": "The main dashboard with the red 'TRANSMIT INHIBITED — RECEIVE ONLY' banner across the top, and the Receive-Only toggle button that controls it"},
+
+    {"h1": "How to Use This Guide"},
+    {"p": "You can read this guide straight through, or jump to the chapter you need. The order is deliberate: install the app, connect the radio's cable, set the radio's own menu, connect in the app, and then — only if you want them — set up remote operation and the other-program integrations."},
+    {"p": "Along the way you will see four kinds of colored boxes:"},
+    {"callout": {"kind": "important", "label": "IMPORTANT", "text": "Something you must not skip — usually about safety or about a setting that has to match on both sides."}},
+    {"callout": {"kind": "note", "label": "NOTE", "text": "A helpful clarification, or a plain-words explanation of a technical term."}},
+    {"callout": {"kind": "tip", "label": "TIP", "text": "A shortcut, or a faster way once you are comfortable."}},
+    {"callout": {"kind": "warning", "label": "WARNING", "text": "An action that can put a signal on the air, or otherwise have a real-world consequence."}},
+    {"p": "Dashed boxes marked **SCREENSHOT** show where a picture of the screen will appear in the finished guide; each one describes exactly what it shows, so you can follow along even before the pictures are added."}
+  ]
+}

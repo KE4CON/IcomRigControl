@@ -23,7 +23,9 @@ public static class DxccResolver
         ["KL"] = "Alaska", ["NL"] = "Alaska", ["WL"] = "Alaska", ["AL"] = "Alaska",
         ["KP4"] = "Puerto Rico", ["NP4"] = "Puerto Rico", ["WP4"] = "Puerto Rico",
         ["KP2"] = "US Virgin Islands", ["NP2"] = "US Virgin Islands",
-        ["KH2"] = "Guam", ["KG4"] = "Guantanamo Bay",
+        ["KH2"] = "Guam",
+        // (KG4 is handled specially in Resolve — Guantanamo only for KG4+2-char calls;
+        //  KG4+3-char is ordinary mainland US.)
         ["VE"] = "Canada", ["VA"] = "Canada", ["VO"] = "Canada", ["VY"] = "Canada", ["VE7"] = "Canada",
         ["XE"] = "Mexico", ["XF"] = "Mexico", ["4A"] = "Mexico", ["6D"] = "Mexico",
         ["CO"] = "Cuba", ["CM"] = "Cuba", ["HI"] = "Dominican Republic", ["HH"] = "Haiti",
@@ -73,7 +75,7 @@ public static class DxccResolver
         ["7X"] = "Algeria", ["3V"] = "Tunisia", ["5A"] = "Libya", ["5N"] = "Nigeria",
         ["5Z"] = "Kenya", ["5H"] = "Tanzania", ["9J"] = "Zambia", ["Z2"] = "Zimbabwe",
         ["V5"] = "Namibia", ["A2"] = "Botswana", ["3B8"] = "Mauritius", ["FR"] = "Reunion",
-        ["EA8"] = "Canary Islands", ["D4"] = "Cape Verde", ["3C"] = "Equatorial Guinea",
+        ["D4"] = "Cape Verde", ["3C"] = "Equatorial Guinea",
 
         // Asia
         ["JA"] = "Japan", ["JE"] = "Japan", ["JF"] = "Japan", ["JG"] = "Japan", ["JH"] = "Japan",
@@ -95,7 +97,7 @@ public static class DxccResolver
         ["VK"] = "Australia", ["ZL"] = "New Zealand", ["KH8"] = "American Samoa", ["5W"] = "Samoa",
         ["ZK"] = "Cook Islands", ["3D2"] = "Fiji", ["FK"] = "New Caledonia", ["FO"] = "French Polynesia",
         ["YJ"] = "Vanuatu", ["P2"] = "Papua New Guinea", ["V7"] = "Marshall Islands", ["T8"] = "Palau",
-        ["KH2"] = "Guam", ["V6"] = "Micronesia", ["T30"] = "Western Kiribati",
+        ["V6"] = "Micronesia", ["T30"] = "Western Kiribati",
     };
 
     /// The DXCC entity for a callsign, or "Unknown" if the prefix isn't in the table.
@@ -104,18 +106,17 @@ public static class DxccResolver
         if (string.IsNullOrWhiteSpace(callsign)) return "Unknown";
         string call = callsign.Trim().ToUpperInvariant();
 
-        // Strip a portable suffix like "/P" or "/MM"; a prefix like "F/W1AW" means the
-        // operator is in the prefixed entity — use the part before the slash.
+        // Portable calls: pick the side that indicates the DXCC entity. A trailing
+        // qualifier (/P, /M, /MM, /QRP, /digit) doesn't change the entity, so use the
+        // base call; otherwise the LOCATION prefix is the shorter side ("F/W1AW" → F;
+        // "W1AW/KH6" → KH6).
         int slash = call.IndexOf('/');
         if (slash > 0)
-        {
-            string before = call[..slash];
-            string after = call[(slash + 1)..];
-            // Use whichever side looks like a country prefix (before, unless it's a
-            // short qualifier like P/MM/QRP and the other side is a real call).
-            call = (before.Length <= 3 && after.Length >= before.Length) ? before : before;
-            if (before is "P" or "M" or "MM" or "AM" or "QRP" && after.Length > 0) call = after;
-        }
+            call = ChooseEntityPart(call[..slash], call[(slash + 1)..]);
+
+        // KG4 + 2 chars is Guantanamo Bay; KG4 + 3 chars is ordinary mainland US.
+        if (call.Length == 5 && call.StartsWith("KG4", StringComparison.Ordinal))
+            return "Guantanamo Bay";
 
         // Longest matching prefix wins (up to 4 leading characters).
         for (int len = Math.Min(4, call.Length); len >= 1; len--)
@@ -124,5 +125,18 @@ public static class DxccResolver
             if (Prefixes.TryGetValue(p, out string? entity)) return entity;
         }
         return "Unknown";
+    }
+
+    private static readonly HashSet<string> Qualifiers = new(StringComparer.OrdinalIgnoreCase)
+    { "P", "M", "MM", "AM", "QRP", "QRPP", "A", "B", "LH", "BCN" };
+
+    private static string ChooseEntityPart(string before, string after)
+    {
+        bool afterQual = after.Length == 0 || after.All(char.IsDigit) || Qualifiers.Contains(after);
+        bool beforeQual = before.Length == 0 || before.All(char.IsDigit) || Qualifiers.Contains(before);
+        if (afterQual && !beforeQual) return before;   // W1AW/P, W1AW/7
+        if (beforeQual && !afterQual) return after;
+        if (afterQual) return before;                  // both qualifier-ish
+        return before.Length <= after.Length ? before : after; // location prefix = shorter side
     }
 }

@@ -1,0 +1,125 @@
+{
+  "order": 2,
+  "title": "Installing IcomRigControl",
+  "subtitle": "Getting the program onto your computer — Windows, macOS, Linux, or a Raspberry Pi.",
+  "in_this_chapter": [
+    "Where to download",
+    "Installer or portable — which to pick",
+    "Windows",
+    "macOS",
+    "Linux",
+    "Raspberry Pi",
+    "Signed vs. unsigned: what you'll see",
+    "Building from source (optional)"
+  ],
+  "blocks": [
+    {"callout": {"kind": "tip", "label": "In a nutshell", "text": "Go to the official releases page, download the file for your computer, and run it. On Windows that is a Setup program; on macOS a disk image you drag into Applications; on Linux and the Raspberry Pi a package you install with one command. If your computer shows a one-time security caution, that is expected for now — this chapter tells you the exact clicks to get past it."}},
+
+    {"h1": "Where to Download"},
+    {"p": "Always download IcomRigControl from its official releases page. Do not get it from anywhere else."},
+    {"code": "https://github.com/KE4CON/IcomRigControl/releases"},
+    {"p": "On that page, open the most recent release and look under **Assets** for the list of downloads. Each file is named for the computer it is for. Pick the one that matches yours from the table below, then follow the matching section."},
+    {"table": {
+      "headers": ["Your computer", "Download this file"],
+      "widths": [2.6, 3.9],
+      "rows": [
+        ["Windows 10 / 11 (64-bit)", "`IcomRigControl-windows-x64-Setup.exe`"],
+        ["Mac with Apple Silicon (M1-M4)", "`IcomRigControl-...-macos-arm64.dmg`"],
+        ["Mac with an Intel processor", "`IcomRigControl-...-macos-x64.dmg`"],
+        ["Windows / Mac / Linux PC or laptop (Intel or AMD)", "the `...-x64` file for your system"],
+        ["Raspberry Pi or other ARM computer", "`icomrigcontrol_..._arm64.deb`"],
+        ["Debian / Ubuntu / Raspberry Pi OS", "the `.deb` file"],
+        ["Fedora / RHEL / openSUSE", "the `.rpm` file"]
+      ]
+    }},
+    {"callout": {"kind": "note", "label": "Not sure whether your Mac is Apple Silicon or Intel?", "text": "Click the Apple menu at the top-left of the screen and choose **About This Mac**. If it says **Chip: Apple M1** (or M2, M3, M4), download the **arm64** file. If it says **Processor: Intel**, download the **x64** file."}},
+
+    {"h1": "Installer or Portable — Which to Pick"},
+    {"p": "Most downloads come in two forms, and you only need one:"},
+    {"bullets": [
+      "**The installer** (the Setup program, the `.dmg`, or the `.deb`/`.rpm` package) is the simplest choice. It puts the program in the normal place, adds a menu shortcut, and can be uninstalled cleanly later. Pick this unless you have a reason not to.",
+      "**The portable archive** (a `.zip`) does not install anything — you unpack it to a folder and run the program in place. Handy for a USB stick or for trying it without touching the rest of your system."
+    ]},
+
+    {"h1": "Windows"},
+    {"h2": "Installer (recommended)"},
+    {"steps": [
+      "Download **`IcomRigControl-windows-x64-Setup.exe`** from the releases page.",
+      "Double-click it to run.",
+      "You may see one of two things — both are fine. If the build is **signed**, a **User Account Control** box may appear showing a verified publisher; click **Yes**. If instead you see **\"Windows protected your PC,\"** this copy is unsigned — click **More info**, then **Run anyway** (this is safe; see 'Signed vs. Unsigned' below).",
+      "The setup window opens. Click **Next** through the Welcome and License pages, leave the install folder at its default (`C:\\Program Files\\IcomRigControl`), and click **Install**.",
+      "When it finishes, click **Finish**. You now have an **IcomRigControl** shortcut on your Desktop and in the Start menu."
+    ]},
+    {"screenshot": "Side by side: the signed User Account Control prompt showing the verified publisher, and the unsigned 'Windows protected your PC' prompt with the More info / Run anyway buttons"},
+    {"p": "To remove it later: **Settings → Apps → IcomRigControl → Uninstall**, or use the Uninstall shortcut in the Start-menu folder."},
+    {"h2": "Portable (no installation)"},
+    {"steps": [
+      "Download the Windows `.zip`, right-click it, choose **Extract All**, and pick a folder.",
+      "Open the extracted folder and double-click **`IcomRigControl.UI.exe`**. If a 'Windows protected your PC' prompt appears, click **More info → Run anyway**."
+    ]},
+
+    {"h1": "macOS"},
+    {"h2": "Installer (.dmg, recommended)"},
+    {"steps": [
+      "Download the disk image for your Mac — the **arm64** `.dmg` for Apple Silicon, or the **x64** `.dmg` for an Intel Mac.",
+      "Double-click the `.dmg` to open it. A window appears showing the **IcomRigControl** app and a shortcut to your **Applications** folder.",
+      "Drag **IcomRigControl** onto the **Applications** folder.",
+      "Open **Applications** and start IcomRigControl. If the build is **signed and notarized**, it opens normally (you may get a one-time 'downloaded from the Internet — are you sure you want to open it?' — click **Open**). If instead macOS says it **\"cannot be opened because Apple cannot check it,\"** this copy is unsigned — **right-click** (or Control-click) the app, choose **Open**, then click **Open** again. macOS remembers your choice and it opens normally afterward."
+    ]},
+    {"callout": {"kind": "note", "label": "The right-click step is only for an unsigned copy.", "text": "A signed, notarized build opens with a normal double-click. The right-click → Open step is the standard one-time approval macOS asks for when a program is not signed. Apple signing for IcomRigControl is being set up; until it is finished, the Mac downloads are unsigned and you use the right-click → Open step once."}},
+    {"h2": "Portable (.zip)"},
+    {"p": "Unzip the archive. Then open **Terminal**, type `xattr -cr ` (with a trailing space), drag the unzipped folder into the Terminal window so its path fills in, and press **Return** — this clears the download-quarantine flag. Then run the `IcomRigControl.UI` program inside that folder."},
+
+    {"h1": "Linux"},
+    {"p": "First pick the download that matches your computer's processor:"},
+    {"bullets": [
+      "**amd64 / x64** — a standard PC or laptop with an Intel or AMD processor.",
+      "**arm64 / aarch64** — a Raspberry Pi or other ARM-based computer."
+    ]},
+    {"callout": {"kind": "note", "label": "About the version number in these commands.", "text": "The commands below show an example version like `1.0.0`. Type the exact name of the file you actually downloaded — your version number may differ. In a terminal you can type the first few letters of the file name and press **Tab** to complete the rest for you."}},
+    {"h2": "Debian, Ubuntu, Mint, or Raspberry Pi OS  (.deb)"},
+    {"p": "Open a terminal in the folder where the file downloaded, then run the command for your computer."},
+    {"p": "**On a PC or laptop** (amd64):"},
+    {"code": "sudo dpkg -i icomrigcontrol_1.0.0_amd64.deb"},
+    {"p": "**On a Raspberry Pi or ARM computer** (arm64):"},
+    {"code": "sudo dpkg -i icomrigcontrol_1.0.0_arm64.deb"},
+    {"h2": "Fedora, RHEL, or openSUSE  (.rpm)"},
+    {"p": "**On a PC or laptop** (x86_64):"},
+    {"code": "sudo rpm -i icomrigcontrol-1.0.0-1.x86_64.rpm"},
+    {"p": "**On a Raspberry Pi or ARM computer** (aarch64):"},
+    {"code": "sudo rpm -i icomrigcontrol-1.0.0-1.aarch64.rpm"},
+    {"p": "An installed package puts the program at **`/opt/icomrigcontrol/`**, adds an **`icomrigcontrol`** command you can run from a terminal, and creates an entry in your application menu."},
+    {"callout": {"kind": "tip", "label": "Using a USB radio on Linux or macOS?", "text": "Your user account must be allowed to open serial ports. On Linux, run `sudo usermod -aG dialout $USER`, then log out and back in. This is covered fully in the 'Connecting Your Radio Over USB' chapter."}},
+
+    {"h1": "Raspberry Pi"},
+    {"steps": [
+      "Install the **64-bit** Raspberry Pi OS (the tested version is 'Bookworm'). The 32-bit OS will not run IcomRigControl.",
+      "Download the **arm64** `.deb` and install it: `sudo dpkg -i icomrigcontrol_1.0.0_arm64.deb`.",
+      "Launch it from the application menu, or by running **`icomrigcontrol`** in a terminal."
+    ]},
+    {"callout": {"kind": "note", "label": "Headless (no-screen) Pi.", "text": "You can also run the Pi with no monitor as a server sitting at the radio, controlled from your laptop or phone over the network. That uses the same `icomrigcontrol` command with extra options and is covered in the 'Remote / Network Mode' chapter."}},
+
+    {"h1": "Signed vs. Unsigned: What You'll See"},
+    {"p": "'Code signing' is a digital seal that tells your computer who made a program and proves it has not been altered. When a program is signed, Windows and macOS trust it and show the author's name. When it is not, they show a one-time caution the first time you run it — not because anything is wrong, but because they cannot confirm the author automatically."},
+    {"p": "IcomRigControl's Windows builds are set up for code signing; macOS signing is being finished. Depending on the build and the date, a download may be **signed** or **unsigned**. Either way it is the identical program. Here is exactly what to expect and what to do."},
+    {"table": {
+      "headers": ["Your computer", "If the copy is signed", "If the copy is unsigned — and what to do"],
+      "widths": [1.2, 2.65, 2.65],
+      "rows": [
+        ["Windows", "Installs normally; a User Account Control box may show a verified publisher — click Yes.", "A 'Windows protected your PC' box appears. Click **More info**, then **Run anyway**. Safe — it only means this copy is not signed."],
+        ["macOS", "Opens with a normal double-click; you may get a one-time 'downloaded from the Internet — open?' — click Open.", "macOS says it 'cannot be opened because Apple cannot check it.' **Right-click** (or Control-click) the app → **Open** → **Open**."],
+        ["Linux / Raspberry Pi", "No warning — Linux does not gate apps this way.", "No warning either; install and run normally."]
+      ]
+    }},
+
+    {"h1": "Building from Source (Optional)"},
+    {"p": "If you would rather build the program yourself — for example to run the very latest changes before a release is posted — install the **.NET 10 SDK** from Microsoft, then run:"},
+    {"code": [
+      "git clone https://github.com/KE4CON/IcomRigControl.git",
+      "cd IcomRigControl",
+      "dotnet run --project IcomRigControl.UI/IcomRigControl.UI.csproj"
+    ]},
+    {"p": "The first build downloads the required packages and takes a few minutes; after that it starts quickly."},
+    {"p": "With IcomRigControl installed, the next chapter connects your radio to the computer with the USB cable."}
+  ]
+}

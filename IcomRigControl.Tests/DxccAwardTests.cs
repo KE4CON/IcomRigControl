@@ -23,6 +23,25 @@ public class DxccResolverTests
     [Fact]
     public void Resolve_UnknownPrefix_IsUnknown() =>
         Assert.Equal("Unknown", DxccResolver.Resolve("QZ9ZZ"));
+
+    [Theory]
+    // Portable calls: the entity comes from the LOCATION side, not the base call.
+    // Before the fix the side-selection ternary was a no-op that always kept the base
+    // call, so "W1AW/KH6" wrongly resolved to United States instead of Hawaii.
+    [InlineData("W1AW/KH6", "Hawaii")]      // US op operating in Hawaii
+    [InlineData("F/W1AW", "France")]         // US op operating in France (prefix side)
+    [InlineData("W1AW/P", "United States")]  // portable qualifier — entity unchanged
+    [InlineData("W1AW/7", "United States")]  // call-area digit — entity unchanged
+    [InlineData("K1ABC/VE7", "Canada")]      // US op operating in Canada
+    public void Resolve_PortableCalls(string call, string entity) =>
+        Assert.Equal(entity, DxccResolver.Resolve(call));
+
+    [Theory]
+    // KG4 + exactly 2 chars is Guantanamo Bay; KG4 + 3 chars is ordinary mainland US.
+    [InlineData("KG4AA", "Guantanamo Bay")]
+    [InlineData("KG4ABC", "United States")]
+    public void Resolve_Kg4_IsGuantanamoOnlyForTwoCharSuffix(string call, string entity) =>
+        Assert.Equal(entity, DxccResolver.Resolve(call));
 }
 
 public class AwardTrackerTests

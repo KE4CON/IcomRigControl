@@ -12,6 +12,13 @@ public class SettingsService
 {
     private readonly string _filePath;
 
+    // IncludeFields is REQUIRED: N1mmDestinations is a List<(string Ip, int Port)> and
+    // ValueTuple exposes Ip/Port as public FIELDS (Item1/Item2), which System.Text.Json
+    // ignores by default — without this every saved destination round-trips as
+    // ("", 0). Serialize and deserialize must use the SAME options.
+    private static readonly JsonSerializerOptions JsonOptions =
+        new() { WriteIndented = true, IncludeFields = true };
+
     public SettingsService(string filePath)
     {
         _filePath = filePath;
@@ -27,7 +34,7 @@ public class SettingsService
             }
 
             var json = File.ReadAllText(_filePath);
-            var settings = JsonSerializer.Deserialize<AppSettings>(json);
+            var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
             return settings ?? new AppSettings();
         }
         catch
@@ -46,7 +53,7 @@ public class SettingsService
             Directory.CreateDirectory(directory);
         }
 
-        var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(settings, JsonOptions);
         File.WriteAllText(_filePath, json);
     }
 }

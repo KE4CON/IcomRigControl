@@ -30,6 +30,7 @@ public partial class RttyDecodeViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private bool _reverse;
     [ObservableProperty] private string _sendText = "";
     [ObservableProperty] private bool _liveTx;
+    [ObservableProperty] private string _profileDescription = "45.45 baud · 170 Hz shift";
     [ObservableProperty] private string _status = "Set the radio to RTTY (or USB with 2125/2295 Hz tones) and Start. If you get garble, try Reverse.";
 
     public RttyDecodeViewModel(SettingsService settingsService, Transceiver transceiver, IAudioPlayer audioPlayer)
@@ -87,8 +88,10 @@ public partial class RttyDecodeViewModel : ViewModelBase, IAsyncDisposable
 
             _service = new RttyDecodeService(AudioDevices.CreateCapture(), RttyProfile.Hf45Baud, reverse: Reverse);
             _service.TextDecoded += OnTextDecoded;
+            _service.AutoDetected += OnAutoDetected;
             _service.Start(device);
             IsReceiving = true;
+            ProfileDescription = "45.45 baud · 170 Hz shift";
             Status = "Decoding RTTY.";
         }
         catch (Exception ex)
@@ -107,6 +110,17 @@ public partial class RttyDecodeViewModel : ViewModelBase, IAsyncDisposable
 
     [RelayCommand]
     private void Clear() => DecodedText = "";
+
+    /// Measures the actual shift and speed off a few seconds of received audio and
+    /// switches the decoder to match, instead of requiring the shift/baud to already
+    /// be known. Needs a real, steady RTTY signal tuned into the passband first.
+    [RelayCommand]
+    private void Auto()
+    {
+        if (_service is null) { Status = "Start receiving first, then Auto to detect shift and speed."; return; }
+        Status = "Auto: listening for a few seconds to measure shift and speed…";
+        _service.BeginAutoDetect();
+    }
 
     /// Modulates the typed text to RTTY audio and transmits it (keys PTT, plays,
     /// unkeys — honoring TX-inhibit). The sent text is echoed into the window.
@@ -174,11 +188,19 @@ public partial class RttyDecodeViewModel : ViewModelBase, IAsyncDisposable
         DecodedText = combined;
     });
 
+    private void OnAutoDetected(object? sender, RttyProfile profile) => Dispatcher.UIThread.Post(() =>
+    {
+        double shift = profile.SpaceFrequencyHz - profile.MarkFrequencyHz;
+        ProfileDescription = $"{profile.BaudRate:0.##} baud · {shift:0} Hz shift (auto)";
+        Status = $"Auto-detected {profile.BaudRate:0.##} baud, {shift:0} Hz shift.";
+    });
+
     private void StopService()
     {
         if (_service is not null)
         {
             _service.TextDecoded -= OnTextDecoded;
+            _service.AutoDetected -= OnAutoDetected;
             _service.Stop();
             _service = null;
         }

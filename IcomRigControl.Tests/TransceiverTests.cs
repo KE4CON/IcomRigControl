@@ -115,6 +115,23 @@ public class TransceiverTests
     }
 
     [Fact]
+    public async Task SetFilterAsync_ResendsCurrentModeWithTheChosenFilter()
+    {
+        var transport = new FakeCivTransport();
+        var tx = new Transceiver(transport, RadioModel.IC7300);
+        await tx.ConnectAsync();
+        await tx.SetModeAsync("CW");
+
+        await tx.SetFilterAsync(2);
+
+        // Command 06: 06 <mode=CW 03> <filter FIL2 02> — mode is unchanged, only
+        // the filter byte differs, since 06 always carries both together.
+        Assert.Equal(new byte[] { 0xFE, 0xFE, 0x94, 0xE0, 0x06, 0x03, 0x02, 0xFD },
+                     transport.WrittenFrames[^1]);
+        Assert.Equal("CW", tx.Mode); // filter-only change must not touch Mode
+    }
+
+    [Fact]
     public async Task TransmitInhibited_BlocksKeyingButAllowsUnkey()
     {
         var transport = new FakeCivTransport();

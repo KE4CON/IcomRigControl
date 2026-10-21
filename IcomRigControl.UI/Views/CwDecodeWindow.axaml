@@ -60,6 +60,18 @@
                         </Style>
                     </Button.Styles>
                 </Button>
+                <Button Content="CW Auto" Command="{Binding CwAutoCommand}"
+                        Background="#243b5a" Foreground="White" Padding="14,6" FontWeight="Bold"
+                        ToolTip.Tip="Zero-beat AND narrow the receiver to the filter number below — one button to get on the station and copy it cleanly.">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3a6ea5"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <TextBlock Text="Filter:" Foreground="Gray" VerticalAlignment="Center"/>
+                <TextBox Text="{Binding CwAutoFilterNumber}" Width="40" VerticalAlignment="Center"
+                         ToolTip.Tip="Which IF filter CW Auto selects: 1, 2, or 3 (FIL1/FIL2/FIL3 — widths set in the radio's own menu)."/>
                 <TextBlock Text="{Binding TuningHint}" Foreground="#88ccff"
                            VerticalAlignment="Center" FontSize="13"/>
                 <ToggleButton IsChecked="{Binding ReverseZeroBeat}" Content="Reverse"

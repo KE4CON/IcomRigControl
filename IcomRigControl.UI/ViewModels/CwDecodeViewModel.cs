@@ -29,6 +29,7 @@ public partial class CwDecodeViewModel : ViewModelBase, IAsyncDisposable
     [ObservableProperty] private int _wpm;
     [ObservableProperty] private string _tuningHint = "Waiting for a signal…";
     [ObservableProperty] private bool _reverseZeroBeat;
+    [ObservableProperty] private int _cwAutoFilterNumber = 2;
     [ObservableProperty] private string _status = "Set the radio to CW, put a signal in the passband, and Start. Match Pitch to the radio's CW Pitch setting.";
 
     public CwDecodeViewModel(Transceiver transceiver, SettingsService settingsService)
@@ -38,6 +39,7 @@ public partial class CwDecodeViewModel : ViewModelBase, IAsyncDisposable
         var settings = settingsService.Load();
         _pitchHz = settings.CwPitchHz;
         _reverseZeroBeat = settings.CwZeroBeatReverse;
+        _cwAutoFilterNumber = settings.CwAutoFilterNumber;
     }
 
     [RelayCommand]
@@ -50,6 +52,7 @@ public partial class CwDecodeViewModel : ViewModelBase, IAsyncDisposable
             var settings = _settingsService.Load();
             settings.CwPitchHz = PitchHz;
             settings.CwZeroBeatReverse = ReverseZeroBeat;
+            settings.CwAutoFilterNumber = CwAutoFilterNumber;
             _settingsService.Save(settings);
 
             string? device = string.IsNullOrWhiteSpace(settings.RemoteAudioCaptureDevice)
@@ -125,6 +128,40 @@ public partial class CwDecodeViewModel : ViewModelBase, IAsyncDisposable
         catch (Exception ex)
         {
             Status = $"Zero-beat tune failed: {ex.Message}";
+        }
+    }
+
+    /// Does what Zero Beat does (tune onto the received tone), and also switches
+    /// the radio's IF filter to CwAutoFilterNumber (FIL1/2/3) — a one-button "get
+    /// on this station and narrow down to copy it" action.
+    [RelayCommand]
+    private async Task CwAuto()
+    {
+        if (_service?.LastToneHz is not { } tone)
+        {
+            Status = "No signal to tune to yet — wait for a tone, then CW Auto.";
+            return;
+        }
+
+        double error = tone - PitchHz;
+        long correction = Math.Abs(error) < 3 ? 0 : (long)Math.Round(ReverseZeroBeat ? -error : error);
+
+        try
+        {
+            if (correction != 0) await _transceiver.SetFrequencyAsync(_transceiver.FrequencyHz + correction);
+            await _transceiver.SetFilterAsync((byte)CwAutoFilterNumber);
+
+            var settings = _settingsService.Load();
+            settings.CwAutoFilterNumber = CwAutoFilterNumber;
+            _settingsService.Save(settings);
+
+            Status = correction != 0
+                ? $"CW Auto: tuned {(correction >= 0 ? "+" : "")}{correction} Hz and set filter to FIL{CwAutoFilterNumber}."
+                : $"CW Auto: already on frequency; set filter to FIL{CwAutoFilterNumber}.";
+        }
+        catch (Exception ex)
+        {
+            Status = $"CW Auto failed: {ex.Message}";
         }
     }
 

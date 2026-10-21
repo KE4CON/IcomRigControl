@@ -45,6 +45,45 @@ public class RttyDecodeServiceTests
         Assert.Contains(message, text.ToString().Trim());
     }
 
+    [Fact]
+    public async Task BeginAutoDetect_SwitchesProfileToTheDetectedShiftAndBaud()
+    {
+        var capture = new FakeCapture();
+        // Start the service on the (wrong) default profile — Auto should still find
+        // the real 850 Hz / 75 baud signal and switch to it.
+        var service = new RttyDecodeService(capture, RttyProfile.Hf45Baud, sampleRateHz: 44100);
+
+        RttyProfile? detected = null;
+        var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        service.AutoDetected += (_, profile) => { detected = profile; done.TrySetResult(true); };
+
+        service.Start();
+        service.BeginAutoDetect(seconds: 0.5);
+
+        var realProfile = new RttyProfile(MarkFrequencyHz: 2125, SpaceFrequencyHz: 2975, BaudRate: 75);
+        float[] audio = RttyModulator.Modulate("RST 599 DE TEST DE TEST", realProfile, 44100);
+        var pcm = new short[audio.Length];
+        for (int i = 0; i < audio.Length; i++) pcm[i] = (short)(audio[i] * 32767);
+
+        int chunk = 4096;
+        for (int off = 0; off < pcm.Length; off += chunk)
+        {
+            int len = Math.Min(chunk, pcm.Length - off);
+            var part = new short[len];
+            Array.Copy(pcm, off, part, 0, len);
+            capture.Push(part);
+        }
+
+        var completed = await Task.WhenAny(done.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+        service.Stop();
+
+        Assert.True(completed == done.Task, "Expected an AutoDetected event.");
+        Assert.NotNull(detected);
+        Assert.Equal(850, detected!.SpaceFrequencyHz - detected.MarkFrequencyHz, 1);
+        Assert.Equal(75, detected.BaudRate, 1);
+        Assert.Equal(detected, service.Profile);
+    }
+
     private sealed class FakeCapture : IAudioCapture
     {
         public bool IsCapturing { get; private set; }

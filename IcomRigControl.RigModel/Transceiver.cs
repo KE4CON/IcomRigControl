@@ -233,6 +233,19 @@ public class Transceiver : IAsyncDisposable
         ModeChanged?.Invoke(this, mode);
     }
 
+    /// Switches the IF filter (FIL1/FIL2/FIL3) without changing mode. The 7300's
+    /// CI-V has no filter-only command — command 06 ("set mode") always carries
+    /// mode + filter together — so this just resends the CURRENT mode with a
+    /// different filter number, the same frame SetModeAsync/SetFt8ModeAsync build.
+    /// filterNumber is 1, 2, or 3, matching the radio's own FIL1/FIL2/FIL3 menu
+    /// widths (whatever the operator configured each one to there).
+    public Task SetFilterAsync(byte filterNumber, CancellationToken ct = default)
+    {
+        byte modeCode = StringToModeCode(Mode);
+        var frame = _builder.SetMode(modeCode, filterNumber);
+        return _transport.WriteAsync(frame, ct);
+    }
+
     private static byte StringToModeCode(string mode) => mode switch
     {
         "LSB" => 0x00,

@@ -53,6 +53,9 @@ public class AppSettings
     public double CwPitchHz { get; set; } = 600;
     // Flip the zero-beat tuning direction for CW-Reverse. Default suits CW-Normal.
     public bool CwZeroBeatReverse { get; set; } = false;
+    // "CW Auto" also narrows the IF filter (FIL1/2/3) when it zero-beats. Default
+    // FIL2, the radio's normally-narrower factory filter slot for CW.
+    public int CwAutoFilterNumber { get; set; } = 2;
 
     // RTTY decode: swap mark/space (wrong-sideband / reversed signal).
     public bool RttyReverse { get; set; } = false;

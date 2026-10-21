@@ -102,6 +102,39 @@ compatibility chart and feature descriptions):
   persisted in AppSettings. 23 tests (round-trip at 44.1k/48k, speed tracking, pitch meter, live
   service). HONEST LIMITATION told to the user: software CW readers copy clean/machine CW well and
   degrade on poor fists / QSB / QRM — inherent to the problem, a good ear still beats them.
+- CW AUTO — IMPLEMENTED 2026-10-21 (prompted by a competing project, mm5agm's "Icom Web Control",
+  shipping a "CW Auto: tunes the station onto your pitch and sets the filter" feature in its v1.5.0
+  release). A new "CW Auto" button next to the existing Zero Beat: does the same tuning Zero Beat does,
+  AND also narrows the IF filter — Transceiver.SetFilterAsync(filterNumber) re-sends the CURRENT mode
+  with a different filter byte via CI-V command 06 (the same frame SetModeAsync/SetFt8ModeAsync already
+  build — 06 has no filter-only form, mode and filter always travel together). CwAutoFilterNumber
+  (1/2/3, default 2) persisted in AppSettings, editable via a small box in the CW Decode window.
+  Zero Beat itself is unchanged (tune only, no filter change) for anyone who doesn't want the filter
+  touched automatically. 1 new Transceiver test (confirms the filter-only CI-V frame; Mode property
+  unchanged).
+- RTTY AUTO (shift + baud detection) — IMPLEMENTED 2026-10-21 (same competing-project prompt as CW
+  Auto above; the release also advertised "RTTY decoding, with Auto to measure the shift and speed").
+  RttyAutoDetector (CivEngine): a FIRST ATTEMPT brute-forced RttyDecoder across the whole (shift, baud)
+  candidate grid and scored by decoded character count — REJECTED, it rewarded wrong, FASTER bauds
+  (more candidate start-bit attempts per second is just more lucky framing matches on noise, not a
+  real lock). The shipped approach is two direct measurements instead: (1) SHIFT — a full-buffer
+  Goertzel sweep of the 300-3000 Hz passband finds the two strongest tones actually present (an FSK
+  signal's energy sits at exactly two frequencies regardless of bit timing), lower = Mark, higher =
+  Space, same convention as RttyProfile.Hf45Baud; (2) BAUD — with the real tones now known, a fine
+  Goertzel sweep across time gives a bit-on/bit-off sequence; every run of consecutive equal bits is a
+  whole number of real bit periods, and the candidate baud whose period divides every run most evenly
+  (least total squared deviation from an integer count) ranks best — ties among the closest few
+  candidates (needed because the window wide enough to tell Mark/Space apart at a narrow 170 Hz shift
+  is itself close to one whole bit period, blurring 45.45 vs 50) are broken by an actual RttyDecoder
+  attempt restricted to just those close candidates (NOT the whole grid, so the rejected-approach
+  failure mode doesn't come back). CandidateBauds = {45.45, 50, 56.92, 75, 100}, CandidateShiftsHz =
+  {170, 200, 425, 850}. RttyDecodeService gained Profile + BeginAutoDetect(seconds)/AutoDetected: a
+  one-shot measurement runs off the capture thread on the next few seconds of audio while decoding
+  keeps running on the old profile, then the decoder switches live. UI: an "Auto" button in the RTTY
+  Decode window (replaces the hardcoded "45.45 baud · 170 Hz shift" label with a live
+  ProfileDescription). 4 new tests (standard 170/45.45 round-trip, non-standard 850/75 round-trip, the
+  full 4-point candidate grid, and a service-level BeginAutoDetect test) — all pass; see git history
+  for the rejected first attempt and why it failed.
 - RTTY DECODE (receive): IMPLEMENTED 2026-08-15. Baudot/ITA2 FSK, 45.45 baud, 170 Hz shift
   (2125 mark / 2295 space). CivEngine: RttyProfile; BaudotCode (5-bit LTRS/FIGS table + an encoder
   that inserts shift codes); RttyModulator (continuous-phase FSK, for a modulate->decode ROUND-TRIP
@@ -439,7 +472,8 @@ IC-705 support — IMPLEMENTED (first pass, 2026-08-15). Added IC705 to the Radi
 CW decode + Zero Beat — IMPLEMENTED 2026-08-15 (see the CW DECODE entry above). RTTY decode —
   IMPLEMENTED 2026-08-15 (see the RTTY DECODE entry). macOS audio capture/stream output —
   IMPLEMENTED 2026-08-15 via SoX rec/play (pending live Mac confirmation). APRS message auto-ACK —
-  IMPLEMENTED 2026-08-15 (see HF APRS above).
+  IMPLEMENTED 2026-08-15 (see HF APRS above). CW Auto (zero-beat + filter) and RTTY Auto (shift/baud
+  detection) — IMPLEMENTED 2026-10-21 (see the CW AUTO / RTTY AUTO entries above).
 Phase 13: Browser / phone / tablet remote client — IN PROGRESS (started 2026-08-15). The flagship
   "operate from anywhere, nothing to install" feature — a mobile web UI served by the app, genuinely
   beyond RS-BA1 (which needs its own software on the client). Built with NO new dependencies: a plain

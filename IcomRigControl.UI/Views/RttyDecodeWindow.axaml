@@ -62,7 +62,18 @@
                 </ToggleButton.Styles>
             </ToggleButton>
 
-            <TextBlock Text="45.45 baud · 170 Hz shift" Foreground="Gray"
+            <Button Content="Auto" Command="{Binding AutoCommand}"
+                    IsEnabled="{Binding IsReceiving}"
+                    Background="#243b5a" Foreground="White" Padding="12,6" Margin="10,0,0,0"
+                    ToolTip.Tip="Listen for a few seconds and measure the signal's shift and speed, instead of assuming 45.45 baud / 170 Hz.">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#3a6ea5"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+
+            <TextBlock Text="{Binding ProfileDescription}" Foreground="Gray"
                        VerticalAlignment="Center" FontSize="11" Margin="10,0,0,0"/>
         </StackPanel>
 
